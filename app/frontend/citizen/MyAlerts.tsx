@@ -1,0 +1,3 @@
+import React from 'react';import {Text} from 'react-native';
+import {useDemo} from '../context/DemoContext';import {Card,Heading,Page,Status,Sub,C} from '../components/UI';
+export default function MyAlerts(){const {alerts}=useDemo();const own=alerts.filter(a=>a.citizenId==='citoyen-demo').slice().reverse();return <Page><Heading>Mes alertes</Heading><Sub>La résolution apparaît uniquement après approbation du superviseur.</Sub>{own.map(a=><Card key={a.id}><Text style={{fontWeight:'800',color:C.ink}}>{a.sewerId} · {a.kind}</Text><Sub>{a.date} · {a.id}</Sub><Status label={a.status}/></Card>)}{!own.length&&<Sub>Aucune alerte envoyée.</Sub>}</Page>}
