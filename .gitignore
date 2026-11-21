@@ -1,0 +1,36 @@
+# Node et Expo
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+*.tsbuildinfo
+
+# iOS et Android générés
+/app/ios
+/app/android
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+data/cache/
+
+# Secrets
+.env*
+!.env.example
+
+# macOS
+.DS_Store
+
+# Notes et outils locaux : seuls le code et les ressources vont sur GitHub
+*.md
+!README.md
+.*/
+!.github/
+!.vscode/
+.mcp.json
+orchestration/
+specs/
