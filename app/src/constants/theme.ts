@@ -30,6 +30,8 @@ export const Colors = {
     onHeader: '#F8F4EA',
     surface: '#FFFFFF',
     border: '#D8E0D2',
+    /** Contour d'un champ de saisie : 3 pour 1 au moins sur le fond crème (contraste des composants). */
+    borderForte: '#7F8A7B',
     success: '#4F7A57',
     danger: '#B3261E',
   },
@@ -47,6 +49,7 @@ export const Colors = {
     onHeader: '#F8F4EA',
     surface: '#212B20',
     border: '#31412F',
+    borderForte: '#7F8A7B',
     success: '#7FB48A',
     danger: '#FF8A80',
   },

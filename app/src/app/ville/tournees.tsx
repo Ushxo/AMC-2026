@@ -58,8 +58,15 @@ import {
 } from '@/lib/tournees';
 import { LIBELLES_INCIDENT } from '@/types';
 
+/** Route classique. */
 export default function Tournees() {
-  const { bottom } = useSafeAreaInsets();
+  return <EcranTournees />;
+}
+
+/** L'écran des tournées ; dans la coquille de l'app (barre d'onglets dessous), la marge du bas est déjà prise par la barre. */
+export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean }) {
+  const { bottom: bas } = useSafeAreaInsets();
+  const bottom = dansCoquille ? 0 : bas;
   const router = useRouter();
   const theme = useTheme();
   const { etat } = useSource();

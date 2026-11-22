@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   field: {
     height: 58,
     borderWidth: 1.5,
-    borderColor: C.border,
+    borderColor: Palette.borderForte,
     borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",

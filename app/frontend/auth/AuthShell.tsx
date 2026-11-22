@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   brand: { color: Palette.onHeader, fontSize: 34, fontWeight: "800", marginTop: 14 },
   card: { flex: 1, backgroundColor: Palette.onHeader, borderTopLeftRadius: 40, borderTopRightRadius: 40, paddingHorizontal: 24, paddingTop: 28 },
   title: { color: Palette.header, fontSize: 28, fontWeight: "800", marginBottom: 18 },
-  field: { height: 58, borderWidth: 1.5, borderColor: Palette.border, borderRadius: 20, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, gap: 12, backgroundColor: Palette.surface },
+  field: { height: 58, borderWidth: 1.5, borderColor: Palette.borderForte, borderRadius: 20, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, gap: 12, backgroundColor: Palette.surface },
   fieldError: { borderColor: Palette.danger },
   input: { flex: 1, fontSize: 18, color: Palette.text },
   error: { color: Palette.danger, fontSize: 14, marginTop: 4, marginLeft: 6 },

@@ -45,7 +45,7 @@ export function BottomNav({ active, onChange }: Props) {
             style={[styles.tab, selected && styles.tabActive]}
           >
             <Ionicons name={selected ? tab.iconActive : tab.icon} size={30} color={C.green} />
-            <Text style={[styles.label, selected && styles.labelActive]}>{tab.label}</Text>
+            <Text style={[styles.label, selected && styles.labelActive]} maxFontSizeMultiplier={1.3}>{tab.label}</Text>
           </Pressable>
         );
       })}

@@ -20,8 +20,14 @@ import { erreursEquipe, type ErreursChamps } from '@/lib/champs';
 import { ETIQUETTE_DEMONSTRATION, MESSAGE_AUCUNE_EQUIPE, MESSAGE_EQUIPES_LECTURE_SEULE, MESSAGE_HYPOTHESES_DEMO } from '@/lib/messages';
 import type { Coordonnees } from '@/types';
 
+/** Route classique. */
 export default function Equipes() {
-  const { bottom } = useSafeAreaInsets();
+  return <EcranEquipes />;
+}
+
+export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean }) {
+  const { bottom: bas } = useSafeAreaInsets();
+  const bottom = dansCoquille ? 0 : bas;
   const router = useRouter();
   const theme = useTheme();
   const { etat } = useSource();

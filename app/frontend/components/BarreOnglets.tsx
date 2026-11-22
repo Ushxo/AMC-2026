@@ -29,7 +29,7 @@ export function BarreOnglets<Id extends string>({ onglets, actif, onChange }: { 
             style={[styles.tab, selected && styles.tabActive]}
           >
             <Ionicons name={selected ? o.iconActive : o.icon} size={24} color={Palette.header} />
-            <Text style={[styles.label, selected && styles.labelActive]} numberOfLines={1}>
+            <Text style={[styles.label, selected && styles.labelActive]} numberOfLines={1} maxFontSizeMultiplier={1.3} adjustsFontSizeToFit minimumFontScale={0.8}>
               {o.label}
             </Text>
           </Pressable>
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Palette.border,
   },
-  tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 6, borderRadius: 18, minHeight: 56, gap: 2 },
+  tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 6, borderRadius: 18, minHeight: 56, gap: 2, minWidth: 44 },
   tabActive: { backgroundColor: Palette.backgroundSelected },
   label: { color: Palette.header, fontSize: 11, fontWeight: "600" },
   labelActive: { fontWeight: "800" },

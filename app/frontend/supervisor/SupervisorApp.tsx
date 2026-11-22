@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { useAcces } from "@/hooks/use-acces";
-import Tournees from "@/app/ville/tournees";
-import Equipes from "@/app/ville/equipes";
+import { EcranEquipes } from "@/app/ville/equipes";
+import { EcranTournees } from "@/app/ville/tournees";
 import { ListeAlertes } from "@/components/ville/liste-alertes";
 import { Palette } from "@/constants/theme";
 import { BarreOnglets, type Onglet } from "../components/BarreOnglets";
@@ -24,7 +24,7 @@ const ONGLETS: Onglet<Id>[] = [
 // Espace superviseur : leur coquille (en-tête, onglets), NOS écrans à l'intérieur (signalements, optimisation, équipes, arrêts faits).
 export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
   const { nom } = useAcces();
-  const [onglet, setOnglet] = useState<Id>("tableau");
+  const [onglet, setOnglet] = useState<Id>("optimisation");
 
   return (
     <View style={styles.root}>
@@ -32,8 +32,8 @@ export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
       <View style={styles.corps}>
         {onglet === "tableau" ? <TableauDeBord /> : null}
         {onglet === "alertes" ? <ListeAlertes avecResume={false} /> : null}
-        {onglet === "optimisation" ? <Tournees /> : null}
-        {onglet === "equipes" ? <Equipes /> : null}
+        {onglet === "optimisation" ? <EcranTournees dansCoquille /> : null}
+        {onglet === "equipes" ? <EcranEquipes dansCoquille /> : null}
         {onglet === "rapports" ? <ArretsFaits /> : null}
       </View>
       <BarreOnglets onglets={ONGLETS} actif={onglet} onChange={setOnglet} />

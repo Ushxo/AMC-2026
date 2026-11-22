@@ -58,9 +58,10 @@ function badgeDe(etat: Etat, step: number) {
   return BADGES[step];
 }
 
+// Texte des étiquettes : vert forêt (contraste élevé) ; l'orange seul sur fond orange pâle n'atteint pas 4,5 pour 1.
 const BADGES = [
-  { label: 'En cours', color: C.orange, bg: C.orangeSoft },
-  { label: 'Pris en charge', color: C.orange, bg: C.orangeSoft },
+  { label: 'En cours', color: C.green, bg: C.orangeSoft },
+  { label: 'Pris en charge', color: C.green, bg: C.orangeSoft },
   { label: 'Terminé', color: C.greenDone, bg: C.sage },
 ];
 
@@ -140,7 +141,7 @@ export default function MyAlerts() {
           <View style={styles.card} accessibilityRole="alert">
             <Text style={styles.cardTitle}>{erreur}</Text>
             <Pressable onPress={() => void rafraichir()} accessibilityRole="button" style={{ marginTop: 10 }}>
-              <Text style={[styles.detail, { fontWeight: '800', color: C.orange }]}>Réessayer</Text>
+              <Text style={[styles.detail, { fontWeight: '800', color: C.green, textDecorationLine: 'underline' }]}>Réessayer</Text>
             </Pressable>
           </View>
         ) : null}
@@ -204,9 +205,9 @@ export default function MyAlerts() {
                   <Pressable
                     onPress={() => router.push({ pathname: '/suivi/[id]', params: { id: a.id } })}
                     accessibilityRole="button"
-                    style={{ marginTop: 10 }}
+                    style={{ marginTop: 10, minHeight: 44, justifyContent: 'center' }}
                   >
-                    <Text style={[styles.detail, { fontWeight: '800', color: C.orange }]}>Voir le suivi et l’heure de passage</Text>
+                    <Text style={[styles.detail, { fontWeight: '800', color: C.green, textDecorationLine: 'underline' }]}>Voir le suivi et l’heure de passage</Text>
                   </Pressable>
                 </View>
               )}

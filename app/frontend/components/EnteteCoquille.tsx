@@ -12,16 +12,16 @@ export function EnteteCoquille({ sousTitre, onLogout }: { sousTitre: string; onL
     <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
       <StatusBar barStyle="light-content" />
       <View style={{ flex: 1 }}>
-        <Text style={styles.brand} accessibilityRole="header">
+        <Text style={styles.brand} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
           Priorix
         </Text>
-        <Text style={styles.who} numberOfLines={1}>
+        <Text style={styles.who} numberOfLines={2} maxFontSizeMultiplier={1.3}>
           {sousTitre}
         </Text>
       </View>
       <Pressable style={styles.logout} onPress={onLogout} accessibilityRole="button" accessibilityLabel="Se déconnecter">
         <Ionicons name="log-out-outline" size={22} color={Palette.onHeader} />
-        <Text style={styles.logoutText}>Déconnexion</Text>
+        <Text style={styles.logoutText} maxFontSizeMultiplier={1.3}>Déconnexion</Text>
       </Pressable>
     </View>
   );
@@ -49,6 +49,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: "rgba(255,255,255,0.12)",
     minHeight: 44,
+    minWidth: 44,
+    flexShrink: 0,
   },
   logoutText: { color: Palette.onHeader, fontWeight: "700", fontSize: 13 },
 });
