@@ -16,7 +16,7 @@ describe('écran de connexion', () => {
     await render(<LoginScreen onLogin={onLogin} {...actions()} />);
     await fireEvent.press(screen.getByText('Se connecter'));
     expect(screen.getByText(/Entrez un courriel valide/)).toBeTruthy();
-    await fireEvent.changeText(screen.getByPlaceholderText('Courriel'), 'nom@ville.ca');
+    await fireEvent.changeText(screen.getByLabelText('Courriel'), 'nom@ville.ca');
     await fireEvent.press(screen.getByText('Se connecter'));
     expect(screen.getByText('Entrez votre mot de passe.')).toBeTruthy();
     expect(onLogin).not.toHaveBeenCalled();
@@ -25,8 +25,8 @@ describe('écran de connexion', () => {
   it('une connexion refusée affiche le message du service', async () => {
     const onLogin = jest.fn(async () => 'Courriel ou mot de passe refusé.');
     await render(<LoginScreen onLogin={onLogin} {...actions()} />);
-    await fireEvent.changeText(screen.getByPlaceholderText('Courriel'), 'nom@ville.ca');
-    await fireEvent.changeText(screen.getByPlaceholderText('Mot de passe'), 'secret');
+    await fireEvent.changeText(screen.getByLabelText('Courriel'), 'nom@ville.ca');
+    await fireEvent.changeText(screen.getByLabelText('Mot de passe'), 'secret');
     await fireEvent.press(screen.getByText('Se connecter'));
     await waitFor(() => expect(screen.getByText('Courriel ou mot de passe refusé.')).toBeTruthy());
     expect(onLogin).toHaveBeenCalledWith('nom@ville.ca', 'secret');

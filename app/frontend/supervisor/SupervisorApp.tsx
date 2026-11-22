@@ -12,7 +12,7 @@ import { EcranTournees } from "@/app/ville/tournees";
 import { ListeAlertes } from "@/components/ville/liste-alertes";
 import { Palette } from "@/constants/theme";
 import { BarreOnglets, type Onglet } from "../components/BarreOnglets";
-import { EnteteCoquille } from "../components/EnteteCoquille";
+import { EnteteVert } from "../components/EnteteVert";
 import ArretsFaits from "./ArretsFaits";
 import InterventionsAPlanifier from "./InterventionsAPlanifier";
 import CreerComptePersonnel from "../admin/CreerComptePersonnel";
@@ -28,6 +28,14 @@ const ONGLETS: Onglet<Id>[] = [
   { id: "equipes", label: "Équipes", icon: "people-outline", iconActive: "people" },
   { id: "rapports", label: "Rapports", icon: "checkmark-done-outline", iconActive: "checkmark-done" },
 ];
+
+const ENTETES: Record<Id, { titre: string; sous: string }> = {
+  interventions: { titre: "Interventions", sous: "À planifier" },
+  alertes: { titre: "Alertes", sous: "Signalements reçus des citoyens" },
+  optimisation: { titre: "Options du calcul", sous: "Quoi inclure, équipes, répartition du travail" },
+  equipes: { titre: "Équipes", sous: "Départ, arrivée et compte de chaque équipe" },
+  rapports: { titre: "Arrêts faits", sous: "Ce que les équipes ont réglé aujourd'hui" },
+};
 
 // En-tête de la page « Interventions à planifier » : casque, titre, profil (déconnexion).
 function EnteteSuperviseur({ nom, onLogout, onCreerCompte }: { nom: string | null; onLogout: () => void; onCreerCompte?: () => void }) {
@@ -78,10 +86,12 @@ export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
 
   return (
     <View style={styles.root}>
-      {onglet === "optimisation" && demande && !details ? null : onglet === "interventions" && !tableau ? (
+      {onglet === "optimisation" && demande && !details ? null : onglet === "interventions" && tableau ? (
+        <EnteteVert titre="Tableau de bord" sousTitre="Vue d'ensemble de la journée" onBack={() => setTableau(false)} libelleRetour="Retour aux interventions" />
+      ) : onglet === "interventions" && !tableau ? (
         <EnteteSuperviseur nom={nom} onLogout={onLogout} onCreerCompte={estAdmin ? () => setCreation(true) : undefined} />
       ) : (
-        <EnteteCoquille sousTitre={`Superviseur · ${nom ?? ""}`} onLogout={onLogout} />
+        <EnteteVert titre={ENTETES[onglet].titre} sousTitre={ENTETES[onglet].sous} />
       )}
       <View style={styles.corps}>
         {onglet === "interventions" && !tableau ? (
