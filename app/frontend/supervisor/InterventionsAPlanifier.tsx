@@ -14,7 +14,7 @@ import { useEndroits } from "@/hooks/use-endroits";
 import { useZonesSignalements } from "@/hooks/use-zones-signalements";
 import { formaterDate, formaterNombre } from "@/lib/format";
 import { chargerAdresses } from "@/lib/officiel";
-import { AUCUN_FILTRE, clesDesInterventions, filtreCalculable, FILTRES_ETAT, interventionsAPlanifier, lieuDeEndroit, LIBELLES_FILTRE_ETAT, TITRES_FILTRE_ETAT, type FiltreEtat, type FiltresInterventions, type Intervention } from "@/lib/interventions";
+import { AUCUN_FILTRE, basculerExclue, clesIncluses, filtreCalculable, toutCocher, toutDecocher, FILTRES_ETAT, interventionsAPlanifier, lieuDeEndroit, LIBELLES_FILTRE_ETAT, TITRES_FILTRE_ETAT, type FiltreEtat, type FiltresInterventions, type Intervention } from "@/lib/interventions";
 import { clesDeZone } from "@/lib/selection";
 import { CATEGORIES_PROPOSEES, LIBELLES_CATEGORIE, LIBELLES_ETAT, LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { IllustrationProbleme } from "@/components/illustration-probleme";
@@ -89,7 +89,7 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir, sansTous = fa
   );
 }
 
-function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir: () => void }) {
+function Ligne({ i, lieu, onOuvrir, caseCalcul }: { i: Intervention; lieu: string; onOuvrir: () => void; /** Case « Inclure dans le calcul » (seulement quand le filtre d'état est calculable). */ caseCalcul?: { incluse: boolean; onBasculer: () => void } }) {
   const styles = useStyles(creerStyles);
   const P = useTheme();
   const c = useImportance()[i.gravite];
@@ -102,8 +102,22 @@ function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir:
       onPress={onOuvrir}
       accessibilityRole="button"
       accessibilityLabel={`Importance ${LIBELLES_GRAVITE[i.gravite]}, ${titre}, ${lieu}${suite ? `, ${suite}` : ""}. Ouvrir la fiche.`}
-      style={styles.ligne}
+      style={[styles.ligne, caseCalcul && !caseCalcul.incluse && styles.ligneExclue]}
     >
+      {caseCalcul ? (
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityLabel={`Inclure dans le calcul : ${titre}, ${lieu}`}
+          accessibilityState={{ checked: caseCalcul.incluse }}
+          onPress={caseCalcul.onBasculer}
+          retour={false}
+          style={styles.caseZone}
+        >
+          <View style={[styles.caseBoite, { borderColor: caseCalcul.incluse ? P.primary : P.borderForte, backgroundColor: caseCalcul.incluse ? P.primary : P.surface }]}>
+            {caseCalcul.incluse ? <Ionicons name="checkmark" size={18} color={P.onPrimary} /> : null}
+          </View>
+        </Pressable>
+      ) : null}
       <View style={[styles.priorite, { backgroundColor: c.fond }]}>
         <Ionicons name={c.icone} size={26} color={c.accent} />
         <Text style={[styles.prioriteTexte, { backgroundColor: c.plein }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} maxFontSizeMultiplier={1.2}>
@@ -149,6 +163,12 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
     .filter((c) => !c.libelle.includes("(0 "));
   const lieu = (i: Intervention) => lieuDeEndroit(i.endroit.position, adresses);
   const calculable = filtreCalculable(filtres.etat);
+  // Décochages mémorisés par clés exclues : ils survivent au changement de filtre et d'onglet ; un nouvel endroit est inclus par défaut.
+  const [exclues, setExclues] = useState<ReadonlySet<string>>(() => new Set());
+  const incluses = useMemo(() => clesIncluses(liste, exclues), [liste, exclues]);
+  const nombreInclus = calculable ? incluses.length : 0;
+  const toutCoche = liste.length > 0 && incluses.length === liste.length;
+  const libelleInclus = nombreInclus === 0 ? "Aucune intervention incluse" : `${formaterNombre(nombreInclus, "intervention incluse", "interventions incluses")}`;
   async function actualiser() {
     setActualisation(true);
     await rafraichir();
@@ -161,7 +181,7 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
         testID="liste-interventions"
         data={chargement || erreur ? [] : liste}
         keyExtractor={(i) => i.endroit.cle}
-        renderItem={({ item }) => <Ligne i={item} lieu={lieu(item)} onOuvrir={() => router.push(hrefEndroit(item.endroit))} />}
+        renderItem={({ item }) => <Ligne i={item} lieu={lieu(item)} onOuvrir={() => router.push(hrefEndroit(item.endroit))} caseCalcul={calculable ? { incluse: !exclues.has(item.endroit.cle), onBasculer: () => setExclues((e) => basculerExclue(e, item.endroit.cle)) } : undefined} />}
         contentContainerStyle={[styles.page, { paddingBottom: 16 }]}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         initialNumToRender={10}
@@ -174,8 +194,21 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
               <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
                 {TITRES_FILTRE_ETAT[filtres.etat]}
               </Text>
-              <View style={styles.compteurCadre} accessibilityLabel={filtres.etat === "a_traiter" ? `${liste.length} à traiter` : formaterNombre(liste.length, "endroit", "endroits")}>
-                <ChiffreGlissant valeur={filtres.etat === "a_traiter" ? `${liste.length} à traiter` : formaterNombre(liste.length, "endroit", "endroits")} style={styles.compteur} />
+              <View style={styles.compteurColonne}>
+                <View style={styles.compteurCadre} accessibilityLabel={filtres.etat === "a_traiter" ? `${liste.length} à traiter` : formaterNombre(liste.length, "endroit", "endroits")}>
+                  <ChiffreGlissant valeur={filtres.etat === "a_traiter" ? `${liste.length} à traiter` : formaterNombre(liste.length, "endroit", "endroits")} style={styles.compteur} />
+                </View>
+                {calculable && liste.length > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={toutCoche ? "Tout décocher" : "Tout cocher"}
+                    onPress={() => setExclues((e) => (toutCoche ? toutDecocher(liste, e) : toutCocher(liste, e)))}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    retour={false}
+                  >
+                    <Text style={styles.raccourci}>{toutCoche ? "Tout décocher" : "Tout cocher"}</Text>
+                  </Pressable>
+                ) : null}
               </View>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtres} accessibilityLabel="Filtres">
@@ -227,20 +260,25 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
           <Text style={styles.explication} accessibilityRole="alert">
             Le calcul ne porte que sur des endroits à traiter : choisissez « À traiter » dans le filtre « État ».
           </Text>
+        ) : liste.length > 0 && nombreInclus === 0 ? (
+          <Text style={styles.explication} accessibilityRole="alert">
+            Cochez au moins une intervention.
+          </Text>
         ) : null}
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: liste.length === 0 || !calculable }}
-          accessibilityLabel={`Calculer le trajet optimal pour ${liste.length} interventions`}
-          disabled={liste.length === 0 || !calculable}
-          onPress={() => onCalculer(clesDesInterventions(liste))}
-          style={[styles.calculer, (liste.length === 0 || !calculable) && { opacity: 0.5 }]}
+          accessibilityState={{ disabled: nombreInclus === 0 }}
+          accessibilityLabel={`Calculer le trajet optimal pour ${nombreInclus} ${nombreInclus > 1 ? "interventions" : "intervention"}`}
+          disabled={nombreInclus === 0}
+          onPress={() => onCalculer(incluses)}
+          style={[styles.calculer, nombreInclus === 0 && { opacity: 0.5 }]}
         >
           <Ionicons name="navigate-outline" size={28} color={P.surface} />
           <View style={{ flex: 1 }}>
             <Text style={styles.calculerTitre} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} maxFontSizeMultiplier={1.2}>
               Calculer le trajet optimal
             </Text>
+            {calculable ? <ChiffreGlissant valeur={libelleInclus} style={styles.calculerCompte} /> : null}
           </View>
           <Ionicons name="arrow-forward" size={24} color={P.surface} />
         </Pressable>
@@ -275,6 +313,12 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   ligneTitre: { fontSize: 17, fontWeight: "800", color: P.text },
   detail: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   detailTexte: { fontSize: 13, color: P.text, flexShrink: 1 },
+  ligneExclue: { opacity: 0.6 },
+  caseZone: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginLeft: -8, marginRight: -4 },
+  caseBoite: { width: 26, height: 26, borderRadius: 8, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  compteurColonne: { alignItems: "flex-end", gap: 4 },
+  raccourci: { fontSize: 13, fontWeight: "700", color: P.primary, textDecorationLine: "underline" },
+  calculerCompte: { color: P.surface, fontSize: 13, lineHeight: 18, fontWeight: "600" },
   detailSuite: { fontWeight: "700", color: P.primary },
   explication: { fontSize: 13, lineHeight: 18, color: P.textSecondary, paddingBottom: 8 },
   lien: { minHeight: 48, alignItems: "center", justifyContent: "center" },

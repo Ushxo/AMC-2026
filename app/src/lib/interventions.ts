@@ -82,6 +82,36 @@ export function interventionsAPlanifier(endroits: Endroit[], zones: Zone[], filt
   return liste.sort((a, b) => ORDRE_GRAVITE[b.gravite] - ORDRE_GRAVITE[a.gravite] || a.signaleeLe.localeCompare(b.signaleeLe));
 }
 
+/**
+ * Les endroits décochés se mémorisent par leurs clés EXCLUES (pas par les incluses) : un endroit arrivé en direct, ou qu'un filtre
+ * fait réapparaître, est inclus par défaut.
+ */
+export type Exclues = ReadonlySet<string>;
+
+/** Les clés de la liste affichée qui partent dans le calcul : celles qui ne sont pas exclues. */
+export function clesIncluses(liste: Intervention[], exclues: Exclues): string[] {
+  return liste.filter((i) => !exclues.has(i.endroit.cle)).map((i) => i.endroit.cle);
+}
+
+export function basculerExclue(exclues: Exclues, cle: string): Set<string> {
+  const suite = new Set(exclues);
+  if (suite.has(cle)) suite.delete(cle);
+  else suite.add(cle);
+  return suite;
+}
+
+/** « Tout cocher » : retire de la mémoire les clés de la liste affichée ; « Tout décocher » : les y ajoute. Les autres clés restent. */
+export function toutCocher(liste: Intervention[], exclues: Exclues): Set<string> {
+  const suite = new Set(exclues);
+  for (const i of liste) suite.delete(i.endroit.cle);
+  return suite;
+}
+export function toutDecocher(liste: Intervention[], exclues: Exclues): Set<string> {
+  const suite = new Set(exclues);
+  for (const i of liste) suite.add(i.endroit.cle);
+  return suite;
+}
+
 export function clesDesInterventions(liste: Intervention[]): string[] {
   return liste.map((i) => i.endroit.cle);
 }

@@ -1,5 +1,5 @@
 import type { Endroit, Signalement } from '../../types';
-import { AUCUN_FILTRE, clesDesInterventions, filtreCalculable, formaterDuree, interventionsAPlanifier } from '../interventions';
+import { AUCUN_FILTRE, basculerExclue, clesDesInterventions, clesIncluses, filtreCalculable, toutCocher, toutDecocher, formaterDuree, interventionsAPlanifier } from '../interventions';
 import type { Zone } from '../zones';
 
 function sig(id: string, categorie: Signalement['categorie'], cree_le: string, etat: Signalement['etat'] = 'nouveau'): Signalement {
@@ -82,5 +82,30 @@ describe('durée du trajet', () => {
     expect(formaterDuree(18 * 60)).toBe('18 min');
     expect(formaterDuree(30)).toBe('1 min');
     expect(formaterDuree(65 * 60)).toBe('1 h 05');
+  });
+});
+
+describe('cases à cocher du calcul : clés exclues', () => {
+  const liste = interventionsAPlanifier(endroits, [], AUCUN_FILTRE); // d, b, c, a
+  it('les clés incluses sont celles de la liste qui ne sont pas exclues, dans l’ordre', () => {
+    expect(clesIncluses(liste, new Set())).toEqual(['d', 'b', 'c', 'a']);
+    expect(clesIncluses(liste, new Set(['b', 'zzz']))).toEqual(['d', 'c', 'a']);
+  });
+  it('basculer ajoute ou retire une clé exclue sans modifier l’ensemble reçu', () => {
+    const avant = new Set<string>();
+    const apres = basculerExclue(avant, 'b');
+    expect([...avant]).toEqual([]);
+    expect([...apres]).toEqual(['b']);
+    expect([...basculerExclue(apres, 'b')]).toEqual([]);
+  });
+  it('tout cocher et tout décocher ne touchent que la liste affichée', () => {
+    const exclues = new Set(['hors-liste', 'b']);
+    expect([...toutCocher(liste, exclues)]).toEqual(['hors-liste']);
+    expect(clesIncluses(liste, toutDecocher(liste, new Set(['hors-liste'])))).toEqual([]);
+    expect(toutDecocher(liste, new Set(['hors-liste'])).has('hors-liste')).toBe(true);
+  });
+  it('un endroit nouveau (jamais décoché) est inclus par défaut', () => {
+    expect(clesIncluses([...liste], new Set(['a']))).toContain('d');
+    expect(clesIncluses(liste, new Set(['a']))).not.toContain('a');
   });
 });

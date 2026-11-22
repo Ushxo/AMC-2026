@@ -152,6 +152,75 @@ describe('superviseur : un seul écran pour planifier et suivre les endroits sig
   });
 });
 
+describe('calcul : cases à cocher et nombre d’interventions incluses', () => {
+  const caseDe = (motif: RegExp) => screen.getByLabelText(motif);
+
+  it('le bouton garde son libellé et annonce son contenu, avec l’accord singulier et pluriel', async () => {
+    await rendre();
+    expect(screen.getByText('Calculer le trajet optimal')).toBeTruthy();
+    expect(a('2 interventions incluses')).toBe(true);
+    await fireEvent.press(caseDe(/^Inclure dans le calcul : Accumulation d'eau/));
+    expect(a('1 intervention incluse')).toBe(true);
+  });
+
+  it('une case par ligne, toutes cochées par défaut, avec l’état dans le libellé ; décocher retire l’endroit du calcul', async () => {
+    const onCalculer = jest.fn();
+    await render(<InterventionsAPlanifier onCalculer={onCalculer} onTableau={jest.fn()} />);
+    const cases = screen.getAllByRole('checkbox');
+    expect(cases).toHaveLength(2);
+    expect(cases.every((c) => c.props.accessibilityState.checked)).toBe(true);
+    expect(cases[0].props.accessibilityLabel).toMatch(/^Inclure dans le calcul : Égout bouché, /);
+    await fireEvent.press(caseDe(/^Inclure dans le calcul : Égout bouché/));
+    expect(caseDe(/^Inclure dans le calcul : Égout bouché/).props.accessibilityState.checked).toBe(false);
+    await fireEvent.press(screen.getByLabelText(/^Calculer le trajet optimal pour 1 intervention$/));
+    expect(onCalculer).toHaveBeenCalledWith(['b']); // seules les clés cochées partent
+  });
+
+  it('la case est distincte du toucher de la ligne : elle ne ouvre pas la fiche', async () => {
+    await rendre();
+    await fireEvent.press(caseDe(/^Inclure dans le calcul : Égout bouché/));
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('« Tout décocher » : zéro inclus, bouton désactivé avec « Cochez au moins une intervention. » ; « Tout cocher » rétablit', async () => {
+    const onCalculer = jest.fn();
+    await render(<InterventionsAPlanifier onCalculer={onCalculer} onTableau={jest.fn()} />);
+    await fireEvent.press(screen.getByLabelText('Tout décocher'));
+    expect(a('Aucune intervention incluse')).toBe(true);
+    expect(screen.getByText('Cochez au moins une intervention.')).toBeTruthy();
+    const bouton = screen.getByLabelText(/^Calculer le trajet optimal pour 0/);
+    expect(bouton.props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(bouton);
+    expect(onCalculer).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByLabelText('Tout cocher'));
+    expect(a('2 interventions incluses')).toBe(true);
+  });
+
+  it('les décochages survivent au changement de filtre ; un endroit arrivé en direct est inclus par défaut', async () => {
+    const rendu = await render(<InterventionsAPlanifier onCalculer={jest.fn()} onTableau={jest.fn()} />);
+    await fireEvent.press(caseDe(/^Inclure dans le calcul : Égout bouché/));
+    await choisirEtat('Tous');
+    await choisirEtat('À traiter');
+    expect(caseDe(/^Inclure dans le calcul : Égout bouché/).props.accessibilityState.checked).toBe(false);
+    expect(a('1 intervention incluse')).toBe(true);
+    mockDonnees.endroits = [...mockDonnees.endroits, endroit('e', 'elevee', 'nouveau', [sig('9', 'nouveau', 'grille_endommagee', '2026-11-21T10:00:00Z')])];
+    await rendu.rerender(<InterventionsAPlanifier onCalculer={jest.fn()} onTableau={jest.fn()} />);
+    expect(a('2 interventions incluses')).toBe(true); // b + le nouvel endroit ; a reste décoché
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    mockDonnees.endroits = mockDonnees.endroits.filter((x) => x.cle !== 'e');
+  });
+
+  it('hors filtre calculable : ni cases, ni nombre ; la règle de l’état reste prioritaire sur « Cochez au moins une »', async () => {
+    await rendre();
+    await fireEvent.press(screen.getByLabelText('Tout décocher'));
+    await choisirEtat('Réglés');
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+    expect(screen.getByText(/Le calcul ne porte que sur des endroits à traiter/)).toBeTruthy();
+    expect(screen.queryByText('Cochez au moins une intervention.')).toBeNull();
+    expect(screen.queryByText('Tout cocher')).toBeNull();
+  });
+});
+
 describe('barre du bas du superviseur : quatre onglets', () => {
   it('Planifier, Calcul, Équipes, Traités ; plus d’onglet Alertes', async () => {
     await render(<SupervisorApp onLogout={jest.fn()} />);
@@ -170,6 +239,7 @@ describe('lisibilité sous chaque thème : écran des interventions', () => {
     ];
     appliquerThemeEtLisibilite(theme, lis);
     await rendre();
+    await fireEvent.press(screen.getAllByRole('checkbox')[0]); // une ligne décochée (atténuée)
     expect(textesIllisibles()).toEqual([]);
     expect(fondDeLaRacine()).toBe(lireMarque().jetons.background);
   });
