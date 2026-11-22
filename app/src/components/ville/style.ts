@@ -9,11 +9,6 @@ export const COULEUR_GRAVITE: Record<Gravite, string> = {
 export const COULEUR_ACCENT = '#1F5FBF';
 export const CIBLE_MIN = 48;
 
-/** Couleurs de texte avec contraste suffisant en clair et en sombre. */
-export const COULEURS_TEXTE = {
-  light: { erreur: '#B3261E', lien: '#1F5FBF' },
-  dark: { erreur: '#FF8A80', lien: '#8AB4F8' },
-} as const;
 
 /** Une couleur par équipe, lisible sur fond clair et sombre et distincte pour le daltonisme (palette Okabe-Ito). */
 export const COULEURS_EQUIPES = [

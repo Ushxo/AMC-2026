@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AppState, Linking } from 'react-native';
-import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, fondDeLaRacine, textesIllisibles } from '../aide-tests/lisibilite';
+import { lireMarque } from '../../src/marque/magasin';
 import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import PhotoStep from '../citizen/PhotoStep';
@@ -140,5 +141,6 @@ describe('lisibilité sous chaque thème (photo-eclairage)', () => {
     appliquerThemeEtLisibilite(theme, lis);
     await render(<PhotoStep onPhoto={jest.fn()} onBack={jest.fn()} onSkip={jest.fn()} onContinue={jest.fn()} />);
     expect(textesIllisibles()).toEqual([]);
+    expect(fondDeLaRacine()).toBe(lireMarque().jetons.background); // l'écran pose lui-même le fond du thème
   });
 });

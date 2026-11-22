@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, fondDeLaRacine, textesIllisibles } from '../aide-tests/lisibilite';
+import { lireMarque } from '../../src/marque/magasin';
 import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import StaffApp from '../StaffApp';
@@ -54,5 +55,6 @@ describe('lisibilité sous chaque thème (employe)', () => {
     appliquerThemeEtLisibilite(theme, lis);
     await render(<StaffApp onLogout={() => {}} />);
     expect(textesIllisibles()).toEqual([]);
+    expect(fondDeLaRacine()).toBe(lireMarque().jetons.background); // l'écran pose lui-même le fond du thème
   });
 });

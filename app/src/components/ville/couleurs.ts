@@ -1,7 +1,7 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 
-import { COULEURS_TEXTE } from './style';
-
+/** Couleurs de texte d'erreur et de lien : celles du thème de l'app (jamais le mode clair ou sombre du téléphone). */
 export function useCouleursTexte() {
-  return useColorScheme() === 'dark' ? COULEURS_TEXTE.dark : COULEURS_TEXTE.light;
+  const P = useTheme();
+  return { erreur: P.danger, lien: P.primary };
 }

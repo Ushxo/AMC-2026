@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, fondDeLaRacine, textesIllisibles } from '../aide-tests/lisibilite';
+import { lireMarque } from '../../src/marque/magasin';
 import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import LoginScreen from '../citizen/LoginScreen';
@@ -80,5 +81,6 @@ describe('lisibilité sous chaque thème (connexion-ecrans)', () => {
     appliquerThemeEtLisibilite(theme, lis);
     await render(<SignupScreen onBack={jest.fn()} onSignup={async () => null} />);
     expect(textesIllisibles()).toEqual([]);
+    expect([lireMarque().jetons.background, lireMarque().jetons.header]).toContain(fondDeLaRacine()); // l'écran pose lui-même un fond du thème (le bandeau d'en-tête pour les écrans de compte)
   });
 });

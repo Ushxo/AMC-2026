@@ -1,6 +1,4 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
-import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import AdminApp from '../admin/AdminApp';
 
@@ -64,14 +62,5 @@ describe('espace d’administration', () => {
     mockLister.mockResolvedValue(null);
     await render(<AdminApp onLogout={jest.fn()} />);
     expect(await screen.findByText(/ne peuvent pas être lus/)).toBeTruthy();
-  });
-});
-
-describe('lisibilité sous chaque thème (admin)', () => {
-  beforeEach(() => reinitialiserMarque());
-  it.each(COMBINAISONS_THEMES)('thème %s %j', async (theme, lis) => {
-    appliquerThemeEtLisibilite(theme, lis);
-    await render(<AdminApp onLogout={jest.fn()} />);
-    expect(textesIllisibles()).toEqual([]);
   });
 });

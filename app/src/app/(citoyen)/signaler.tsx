@@ -374,7 +374,15 @@ export default function Signaler() {
           </View>
           <View style={{ flex: 1, gap: 2 }}>
             <ThemedText style={styles.resumeTitre}>{categorie ? LIBELLES_CATEGORIE[categorie] : ''}</ThemedText>
-            <ThemedText style={styles.resumeLieu}>{adresseLieu ?? 'Lieu à choisir'}</ThemedText>
+            {adresseLieu ? (
+              <ThemedText style={styles.resumeLieu}>{adresseLieu}</ThemedText>
+            ) : (
+              // Bloquant pour l'envoi : en couleur d'alerte, avec une icône, pas un texte gris discret.
+              <View style={styles.lieuAChoisir} accessibilityRole="alert" accessible accessibilityLabel="Lieu à choisir : obligatoire pour envoyer">
+                <Ionicons name="location" size={16} color={P.danger} />
+                <ThemedText style={[styles.resumeLieu, { color: P.danger, fontWeight: '700' }]}>Lieu à choisir</ThemedText>
+              </View>
+            )}
             {verification ? (
               <ThemedText style={[styles.resumePhoto, { color: verification.statut === 'refusee' ? P.danger : verification.statut === 'acceptee' ? P.primary : P.textSecondary }]} accessibilityLiveRegion="polite">
                 {ETIQUETTES_RESUME[verification.statut]}
@@ -399,6 +407,7 @@ export default function Signaler() {
             {permission === 'refusee' ? <ThemedText type="small">{MESSAGE_POSITION_REFUSEE}</ThemedText> : null}
             <Champ
               etiquette="Ou cherchez une adresse"
+              placeholder="Numéro et nom de rue, à Montréal"
               value={texteAdresse}
               onChangeText={setTexteAdresse}
               onSubmitEditing={() => sansBruit(lancerRecherche, 'recherche')}
@@ -464,8 +473,20 @@ export default function Signaler() {
         ) : null}
 
         {verification ? (
-          <View style={styles.suggestion} accessibilityLiveRegion="polite">
-            <ThemedText style={styles.suggestionTexte}>{verification.message}</ThemedText>
+          <View
+            style={[styles.suggestion, verification.statut === 'refusee' ? { backgroundColor: P.backgroundElement, borderWidth: 2, borderColor: P.danger } : null]}
+            accessibilityLiveRegion="polite">
+            {verification.statut === 'refusee' ? (
+              <View style={styles.suggestionLigne}>
+                <Ionicons name="alert-circle" size={22} color={P.danger} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <ThemedText style={[styles.suggestionTexte, { color: P.danger, fontWeight: '800' }]}>Photo refusée</ThemedText>
+                  <ThemedText style={styles.suggestionTexte}>{verification.message}</ThemedText>
+                </View>
+              </View>
+            ) : (
+              <ThemedText style={styles.suggestionTexte}>{verification.message}</ThemedText>
+            )}
           </View>
         ) : null}
 
@@ -517,11 +538,11 @@ export default function Signaler() {
 }
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
-  fond: { flex: 1 },
+  fond: { flex: 1, backgroundColor: P.background },
   contenu: { padding: 16, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   ligne: { minHeight: CIBLE_MIN, padding: 12, borderRadius: 12, justifyContent: 'center' },
-  carte: { height: 240, borderRadius: 16 },
+  carte: { height: 240, borderRadius: 16, marginBottom: 8, overflow: 'hidden' },
   enteteVert: { backgroundColor: P.header, paddingHorizontal: 20, paddingBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   enteteTitre: { color: P.onHeader, fontSize: 26, lineHeight: 34, fontWeight: '700' },
@@ -539,6 +560,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   blocTitre: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
   suggestion: { backgroundColor: P.bandeau, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16 },
   suggestionTexte: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
+  suggestionLigne: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  lieuAChoisir: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   pied: { paddingHorizontal: 20, paddingTop: 12 },
   avis: { borderWidth: 2, borderRadius: 12, padding: 12, gap: 4 },
   commentaire: { minHeight: 96, textAlignVertical: 'top', paddingTop: 12 },

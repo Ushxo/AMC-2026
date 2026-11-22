@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, fondDeLaRacine, textesIllisibles } from '../aide-tests/lisibilite';
+import { lireMarque } from '../../src/marque/magasin';
 import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import Signaler from '../../src/app/(citoyen)/signaler';
@@ -95,9 +96,18 @@ describe('signalement : feuille des quatre problèmes', () => {
 
 describe('lisibilité sous chaque thème (signaler-feuille)', () => {
   beforeEach(() => reinitialiserMarque());
-  it.each(COMBINAISONS_THEMES)('thème %s %j', async (theme, lis) => {
+  it.each(COMBINAISONS_THEMES)('les trois étapes, thème %s %j', async (theme, lis) => {
     appliquerThemeEtLisibilite(theme, lis);
     await render(<Signaler />);
     expect(textesIllisibles()).toEqual([]);
+    expect(fondDeLaRacine()).toBe(lireMarque().jetons.background); // l'écran pose lui-même le fond du thème
+    await fireEvent.press(screen.getByLabelText('Égout bouché'));
+    await fireEvent.press(screen.getByText('Continuer'));
+    expect(screen.getByText('Étape photo')).toBeTruthy();
+    expect(fondDeLaRacine()).toBe(lireMarque().jetons.background);
+    await fireEvent.press(screen.getByText('Étape photo'));
+    expect(screen.getByText('Derniers détails')).toBeTruthy(); // « Derniers détails » : l'écran de la capture du propriétaire
+    expect(textesIllisibles()).toEqual([]);
+    expect(fondDeLaRacine()).toBe(lireMarque().jetons.background);
   });
 });

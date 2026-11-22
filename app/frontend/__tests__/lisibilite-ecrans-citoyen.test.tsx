@@ -3,7 +3,8 @@ import { render, screen } from '@testing-library/react-native';
 import MyAlerts from '../citizen/MyAlerts';
 import Suivi from '../../src/app/(citoyen)/suivi/[id]';
 import Endroit from '../../src/app/ville/endroit';
-import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, fondDeLaRacine, textesIllisibles } from '../aide-tests/lisibilite';
+import { lireMarque } from '../../src/marque/magasin';
 import { reinitialiserMarque } from '../../src/marque/magasin';
 import { regrouper } from '../../src/lib/gravite';
 import type { Signalement } from '../../src/types';
@@ -53,12 +54,14 @@ describe('lisibilité sous chaque thème : Mes alertes, suivi, fiche d’un endr
     await render(<MyAlerts />);
     expect(screen.getAllByText(/Mes alertes/).length).toBeGreaterThan(0);
     expect(textesIllisibles()).toEqual([]);
+    expect(fondDeLaRacine()).toBe(lireMarque().jetons.background);
   });
 
   it.each(COMBINAISONS_THEMES)('suivi d’une alerte, thème %s %j', async (theme, lis) => {
     appliquerThemeEtLisibilite(theme, lis);
     await render(<Suivi />);
     expect(textesIllisibles()).toEqual([]);
+    expect(fondDeLaRacine()).toBe(lireMarque().jetons.background);
   });
 
   it.each(COMBINAISONS_THEMES)('fiche d’un endroit, thème %s %j', async (theme, lis) => {
@@ -68,5 +71,6 @@ describe('lisibilité sous chaque thème : Mes alertes, suivi, fiche d’un endr
     jest.requireMock('expo-router').useLocalSearchParams = () => ({ cle: endroit.cle });
     await render(<Endroit />);
     expect(textesIllisibles()).toEqual([]);
+    expect(fondDeLaRacine()).toBe(lireMarque().jetons.background);
   });
 });

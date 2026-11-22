@@ -45,7 +45,10 @@ function problemes(noeud: ReactTestRendererJSON | ReactTestRendererJSON[] | null
 
 /** Les textes illisibles (couleur contre le fond opaque réel) de l'écran affiché, sous le thème et la lisibilité courants. */
 export function textesIllisibles(): Probleme[] {
-  return problemes(screen.toJSON(), lireMarque().jetons.background);
+  const rendu = screen.toJSON();
+  // Un rendu vide rendrait le contrôle vide de sens : on le refuse.
+  if (!rendu || (Array.isArray(rendu) && rendu.length === 0)) throw new Error('Rien à contrôler : le rendu est vide.');
+  return problemes(rendu, lireMarque().jetons.background);
 }
 
 /** Les combinaisons à vérifier : chaque thème, sans puis avec contraste élevé. */
@@ -56,4 +59,20 @@ export const COMBINAISONS_THEMES: [ThemeId, { contraste: boolean; daltonisme: bo
 export function appliquerThemeEtLisibilite(theme: ThemeId, l: { contraste: boolean; daltonisme: boolean }): void {
   definirTheme(theme);
   definirLisibilite(l);
+}
+
+/**
+ * Fond opaque posé par la racine de l'écran affiché (en descendant les enveloppes sans style), ou null.
+ * Chaque écran doit poser lui-même le fond du thème : sinon il laisse voir le fond de la navigation.
+ */
+export function fondDeLaRacine(): string | null {
+  const j = screen.toJSON();
+  let noeud: ReactTestRendererJSON | undefined = Array.isArray(j) ? j[0] : (j ?? undefined);
+  for (let profondeur = 0; noeud && profondeur < 4; profondeur++) {
+    const st = aplatir(noeud.props?.style);
+    if (typeof st.backgroundColor === 'string' && HEX.test(st.backgroundColor)) return st.backgroundColor;
+    const enfants = (noeud.children ?? []).filter((c): c is ReactTestRendererJSON => typeof c !== 'string');
+    noeud = enfants.length === 1 ? enfants[0] : undefined;
+  }
+  return null;
 }

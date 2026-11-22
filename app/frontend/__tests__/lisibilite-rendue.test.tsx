@@ -15,6 +15,8 @@ import { definirLisibilite, definirTheme, lireMarque, reinitialiserMarque } from
 import { THEMES_IDS } from '../../src/marque/themes';
 
 jest.mock('@react-native-async-storage/async-storage', () => jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+// Le téléphone est en MODE SOMBRE : l'app ne suit que son propre thème (cas du retour du propriétaire : fond noir sur « Derniers détails »).
+jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({ __esModule: true, default: () => 'dark' }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 
 type Style = Record<string, unknown>;
