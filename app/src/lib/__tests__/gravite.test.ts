@@ -1,4 +1,12 @@
-import { cleEndroit, graviteMax, graviteParNombre, regrouper, trierEndroits } from '../gravite';
+import {
+  cleEndroit,
+  graviteMax,
+  graviteParNombre,
+  manquePourConfirmer,
+  regrouper,
+  sansNonConfirmes,
+  trierEndroits,
+} from '../gravite';
 import { sig } from '../test-utils/fabrique';
 
 describe('gravite', () => {
@@ -89,5 +97,46 @@ describe('gravite', () => {
       sig({ grille_id: 'c', gravite: 'elevee', cree_le: '2026-11-01T10:00:00Z' }),
     ]);
     expect(trierEndroits(e).map((x) => x.cle)).toEqual(['grille:c', 'grille:b', 'grille:a']);
+  });
+});
+
+describe('endroit confirmé selon la photo', () => {
+  const un = (liste: ReturnType<typeof sig>[]) => regrouper(liste)[0];
+
+  it('un signalement avec photo vérifiée seul : confirmé', () => {
+    expect(un([sig({ grille_id: 'g', photo_verifiee: true })]).confirme).toBe(true);
+  });
+  it('un signalement sans photo seul : non confirmé, il en manque 2', () => {
+    const e = un([sig({ grille_id: 'g', photo_verifiee: false })]);
+    expect(e.confirme).toBe(false);
+    expect(manquePourConfirmer(e)).toBe(2);
+  });
+  it('trois sans photo : confirmé', () => {
+    const e = un([1, 2, 3].map(() => sig({ grille_id: 'g', photo_verifiee: false })));
+    expect(e.confirme).toBe(true);
+    expect(manquePourConfirmer(e)).toBe(0);
+  });
+  it('deux sans photo plus un fermé : non confirmé, il en manque 1', () => {
+    const e = un([
+      sig({ grille_id: 'g', photo_verifiee: false }),
+      sig({ grille_id: 'g', photo_verifiee: false }),
+      sig({ grille_id: 'g', photo_verifiee: false, etat: 'regle' }),
+    ]);
+    expect(e.confirme).toBe(false);
+    expect(manquePourConfirmer(e)).toBe(1);
+  });
+  it('ancien signalement sans le champ : confirmé', () => {
+    const e = un([sig({ grille_id: 'g' })]);
+    expect(e.confirme).toBe(true);
+    expect(e.nombre_avec_photo).toBe(1);
+  });
+  it('un endroit qui n’a que des signalements fermés reste confirmé', () => {
+    expect(un([sig({ grille_id: 'g', photo_verifiee: false, etat: 'rejete' })]).confirme).toBe(true);
+  });
+  it('sansNonConfirmes retire seulement les signalements ouverts des endroits non confirmés', () => {
+    const cache = sig({ grille_id: 'a', photo_verifiee: false });
+    const ferme = sig({ grille_id: 'a', photo_verifiee: false, etat: 'regle' });
+    const ok = sig({ grille_id: 'b' });
+    expect(sansNonConfirmes([cache, ferme, ok])).toEqual([ferme, ok]);
   });
 });

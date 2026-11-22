@@ -12,6 +12,7 @@ import {
   lireSignalements,
   renvoyerFile,
   redemarrerLocal,
+  reinitialiserColonnePhoto,
   reinitialiserLocal,
 } from '../source';
 import { getSupabase } from '../supabase';
@@ -109,14 +110,14 @@ describe('démonstration hors ligne : persistance', () => {
 });
 
 describe('source avec client', () => {
-  it('envoie le signalement avec les seules colonnes de la table', async () => {
+  it('envoie le signalement avec les seules colonnes de la table (photo_verifiee comprise)', async () => {
     const insert = jest.fn(async () => ({ error: null }));
     mockGet.mockReturnValue(clientFaux(insert));
     const r = await creerSignalement(donnees);
     expect(r.statut).toBe('envoye');
     const ligne = (insert.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
     expect(Object.keys(ligne).sort()).toEqual(
-      ['categorie', 'commentaire', 'grille_id', 'gravite', 'id', 'latitude', 'longitude', 'photo_url'].sort(),
+      ['categorie', 'commentaire', 'grille_id', 'gravite', 'id', 'latitude', 'longitude', 'photo_url', 'photo_verifiee'].sort(),
     );
     expect(await lister()).toHaveLength(0);
   });
@@ -238,5 +239,53 @@ describe('refus permanents, photos et session (revue)', () => {
     definirEmploye({ user_id: 'u1', nom: 'Réelle', courriel: 'x' });
     expect(await changerEtat('demo-1', 'regle')).toMatch(/Pas de réseau/);
     expect(await AsyncStorage.getItem('signalement-mtl:etats-demo')).toBeNull();
+  });
+});
+
+describe('photo vérifiée à la création', () => {
+  beforeEach(() => {
+    reinitialiserColonnePhoto();
+    mockDemo.mockReturnValue([]);
+  });
+
+  it('photo_verifiee est vrai seulement avec une photo acceptée ET réellement envoyée', async () => {
+    const insert = jest.fn(async () => ({ error: null }));
+    mockGet.mockReturnValue(clientFaux(insert));
+    globalThis.fetch = jest.fn(async () => ({ arrayBuffer: async () => new ArrayBuffer(4) })) as never;
+    await creerSignalement({ ...donnees, photoUri: 'file:///p.jpg', photoVerifiee: true });
+    expect((insert.mock.calls[0] as unknown[])[0]).toMatchObject({ photo_verifiee: true });
+    await creerSignalement({ ...donnees, photoUri: 'file:///p.jpg', photoVerifiee: false });
+    expect((insert.mock.calls[1] as unknown[])[0]).toMatchObject({ photo_verifiee: false });
+    await creerSignalement({ ...donnees, photoVerifiee: true }); // aucune photo : jamais vérifiée
+    expect((insert.mock.calls[2] as unknown[])[0]).toMatchObject({ photo_verifiee: false });
+  });
+
+  it('si la migration n’est pas lancée, renvoie sans la colonne et ne perd pas le signalement', async () => {
+    const insert = jest.fn(async (ligne: Record<string, unknown>) =>
+      'photo_verifiee' in ligne
+        ? { error: { code: 'PGRST204', message: "Could not find the 'photo_verifiee' column" } }
+        : { error: null },
+    );
+    mockGet.mockReturnValue(clientFaux(insert));
+    const r = await creerSignalement(donnees);
+    expect(r.statut).toBe('envoye');
+    expect(insert).toHaveBeenCalledTimes(2);
+    expect('photo_verifiee' in ((insert.mock.calls[1] as unknown[])[0] as object)).toBe(false);
+    await creerSignalement(donnees); // plus d'essai avec la colonne ensuite
+    expect(insert).toHaveBeenCalledTimes(3);
+    expect(await lister()).toHaveLength(0);
+  });
+
+  it('à la lecture, colonne absente = photo vérifiée', async () => {
+    const ligne = { ...sig(), photo_verifiee: undefined, exemple_demo: false };
+    const client = {
+      from: () => ({
+        select: () => ({ order: () => ({ limit: async () => ({ data: [ligne, { ...ligne, id: 'x', photo_verifiee: false }], error: null }) }) }),
+      }),
+    };
+    mockGet.mockReturnValue(client);
+    const l = await lireSignalements();
+    expect(l[0].photo_verifiee).toBe(true);
+    expect(l[1].photo_verifiee).toBe(false);
   });
 });

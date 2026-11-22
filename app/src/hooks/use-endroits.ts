@@ -1,11 +1,15 @@
 import { useMemo } from 'react';
 
 import type { FiltreSignalements } from '../lib/filtre';
-import { regrouper, trierEndroits } from '../lib/gravite';
+import { estConfirme, regrouper, trierEndroits } from '../lib/gravite';
 import type { Endroit, Signalement } from '../types';
 import { useSignalements } from './use-signalements';
 
-export function useEndroits(filtre?: FiltreSignalements): {
+/** Par défaut, seuls les endroits confirmés (assez de signalements, ou une photo vérifiée). `tout: true` rend aussi les autres. */
+export function useEndroits(
+  filtre?: FiltreSignalements,
+  options: { tout?: boolean } = {},
+): {
   endroits: Endroit[];
   signalements: Signalement[];
   chargement: boolean;
@@ -13,6 +17,10 @@ export function useEndroits(filtre?: FiltreSignalements): {
   rafraichir: () => Promise<void>;
 } {
   const { signalements, chargement, erreur, rafraichir } = useSignalements(filtre);
-  const endroits = useMemo(() => trierEndroits(regrouper(signalements)), [signalements]);
+  const tout = Boolean(options.tout);
+  const endroits = useMemo(() => {
+    const tous = trierEndroits(regrouper(signalements));
+    return tout ? tous : tous.filter(estConfirme);
+  }, [signalements, tout]);
   return { endroits, signalements, chargement, erreur, rafraichir };
 }

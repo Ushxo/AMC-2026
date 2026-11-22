@@ -176,6 +176,8 @@ function versSignalement(ligne: Record<string, unknown>): Signalement {
     grille_id: (ligne.grille_id as string | null) ?? null,
     etat: ligne.etat as Etat,
     etat_change_le: ligne.etat_change_le as string,
+    // Colonne absente (migration pas lancée) ou nulle : la photo compte comme vérifiée.
+    photo_verifiee: ligne.photo_verifiee !== false,
     exemple_demo: Boolean(ligne.exemple_demo),
   };
 }
@@ -224,6 +226,8 @@ export type DonneesSignalement = {
   gravite: Gravite;
   commentaire?: string;
   photoUri?: string;
+  /** Vrai seulement si l'analyse a accepté la photo. */
+  photoVerifiee?: boolean;
   grille_id: string | null;
 };
 
@@ -241,6 +245,19 @@ async function reduirePhoto(uri: string): Promise<string> {
   } catch {
     return uri;
   }
+}
+
+// Vrai quand la base a refusé la colonne photo_verifiee : on n'essaie plus de l'envoyer jusqu'au redémarrage.
+let colonnePhotoAbsente = false;
+
+export function colonneRefusee(e: { code?: string; message?: string }): boolean {
+  return (
+    e.code === '42703' || e.code === 'PGRST204' || /photo_verifiee/i.test(e.message ?? '')
+  );
+}
+
+export function reinitialiserColonnePhoto(): void {
+  colonnePhotoAbsente = false;
 }
 
 type Client = NonNullable<ReturnType<typeof getSupabase>>;
@@ -272,10 +289,28 @@ async function envoyerElement(
       if (!photo_url) throw new Error('Adresse du projet manquante');
     }
   }
-  const final: Signalement = { ...s, photo_url };
-  const ligne = Object.fromEntries(COLONNES.map((c) => [c, final[c]]));
-  const { error } = await avecDelai(client.from('signalements').insert(ligne), DELAI_ENVOI_MS);
-  if (error && (error as { code?: string }).code !== '23505') throw error;
+  // Vérifiée seulement si l'analyse l'a acceptée ET qu'une photo est bien partie.
+  const verifiee = Boolean(s.photo_verifiee && photo_url);
+  const final: Signalement = { ...s, photo_url, photo_verifiee: verifiee };
+  const ligne: Record<string, unknown> = Object.fromEntries(COLONNES.map((c) => [c, final[c]]));
+  let erreurInsertion = null as { code?: string; message?: string } | null;
+  if (!colonnePhotoAbsente) {
+    const r = await avecDelai(
+      client.from('signalements').insert({ ...ligne, photo_verifiee: verifiee }),
+      DELAI_ENVOI_MS,
+    );
+    erreurInsertion = r.error;
+    // La migration n'est pas lancée : la base refuse la colonne. On renvoie sans elle, le signalement n'est pas perdu.
+    if (erreurInsertion && colonneRefusee(erreurInsertion)) {
+      colonnePhotoAbsente = true;
+      erreurInsertion = null;
+    }
+  }
+  if (colonnePhotoAbsente) {
+    const r = await avecDelai(client.from('signalements').insert(ligne), DELAI_ENVOI_MS);
+    erreurInsertion = r.error;
+  }
+  if (erreurInsertion && erreurInsertion.code !== '23505') throw erreurInsertion;
   return { signalement: final, sansPhoto };
 }
 
@@ -291,6 +326,7 @@ export async function creerSignalement(d: DonneesSignalement): Promise<ResultatC
     gravite: d.gravite,
     commentaire: d.commentaire ? d.commentaire : null,
     photo_url: null,
+    photo_verifiee: Boolean(d.photoVerifiee && d.photoUri),
     grille_id: d.grille_id,
     etat: 'nouveau',
     etat_change_le: maintenant,
