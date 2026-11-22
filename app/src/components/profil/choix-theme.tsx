@@ -64,7 +64,6 @@ export function ChoixTheme() {
         Lisibilité
       </ThemedText>
       <LigneInterrupteur titre="Contraste élevé" aide="Textes et contours renforcés" valeur={lisibilite.contraste} onChange={(v) => definirLisibilite({ contraste: v })} />
-      <LigneInterrupteur titre="Adapté au daltonisme" aide="Succès en bleu, danger en vermillon" valeur={lisibilite.daltonisme} onChange={(v) => definirLisibilite({ daltonisme: v })} />
     </>
   );
 }

@@ -113,7 +113,7 @@ export function definirTheme(theme: ThemeId): void {
   garderReglages();
 }
 
-/** Contraste élevé et daltonisme : deux réglages séparés, appliqués par-dessus le thème choisi. */
+/** Contraste élevé : appliqué par-dessus le thème choisi. */
 export function definirLisibilite(l: Partial<Lisibilite>): void {
   etat = creerEtat(etat.organisation, { theme: etat.theme, lisibilite: { ...etat.lisibilite, ...l } }, etat.duPersonnel);
   notifier();
@@ -124,17 +124,16 @@ function lireReglages(brut: string | null): Reglages | null {
   try {
     const v = brut ? JSON.parse(brut) : null;
     if (!v || typeof v !== 'object') return null;
-    return { theme: estThemeId(v.theme) ? v.theme : THEME_ORGANISATION, lisibilite: { contraste: v.lisibilite?.contraste === true, daltonisme: v.lisibilite?.daltonisme === true } };
+    return { theme: estThemeId(v.theme) ? v.theme : THEME_ORGANISATION, lisibilite: { contraste: v.lisibilite?.contraste === true } /* une ancienne valeur « daltonisme » enregistrée est ignorée */ };
   } catch {
     return null;
   }
 }
 
-/** Réglages d'avant les thèmes : « sombre » devient le thème Nuit, « contraste » et « daltonisme » deviennent les réglages de lisibilité. */
+/** Réglages d'avant les thèmes : « sombre » devient le thème Nuit, « contraste » le contraste élevé ; « daltonisme » n'existe plus : thème de l'organisation, sans réglage. */
 function reglagesAnciens(a: string | null): Reglages | null {
   if (a === 'sombre') return { theme: 'nuit', lisibilite: LISIBILITE_PAR_DEFAUT };
-  if (a === 'contraste') return { theme: THEME_ORGANISATION, lisibilite: { contraste: true, daltonisme: false } };
-  if (a === 'daltonisme') return { theme: THEME_ORGANISATION, lisibilite: { contraste: false, daltonisme: true } };
+  if (a === 'contraste') return { theme: THEME_ORGANISATION, lisibilite: { contraste: true } };
   return null;
 }
 

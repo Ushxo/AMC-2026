@@ -82,8 +82,8 @@ function Ecrans() {
 beforeEach(() => reinitialiserMarque());
 
 const REGLAGES = [
-  { contraste: false, daltonisme: false },
-  { contraste: true, daltonisme: false },
+  { contraste: false },
+  { contraste: true },
 ];
 
 describe('lisibilité du rendu : chaque texte contre le fond qu’il a vraiment', () => {

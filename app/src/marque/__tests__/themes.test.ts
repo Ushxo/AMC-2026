@@ -40,12 +40,7 @@ const COUPLES: Couple[] = [
   ['bouton d’action sur fond d’écran (le bouton se distingue)', (j) => j.action, (j) => j.background, 3],
 ];
 
-const LISIBILITES = [
-  { contraste: false, daltonisme: false },
-  { contraste: true, daltonisme: false },
-  { contraste: false, daltonisme: true },
-  { contraste: true, daltonisme: true },
-];
+const LISIBILITES = [{ contraste: false }, { contraste: true }];
 
 describe('thèmes : lisibilité de chaque couple réellement utilisé', () => {
   it('six thèmes, dont celui de l’organisation en premier', () => {
@@ -71,7 +66,7 @@ describe('thèmes : lisibilité de chaque couple réellement utilisé', () => {
           const j = jetonsDuTheme(o, t as ThemeId, l);
           for (const [nom, a, b, min] of COUPLES) {
             const r = contraste(a(j), b(j));
-            if (r < min) manques.push(`${o.code}/${t}/${l.contraste ? 'C' : '-'}${l.daltonisme ? 'D' : '-'} : ${nom} ${r.toFixed(2)} < ${min}`);
+            if (r < min) manques.push(`${o.code}/${t}/${l.contraste ? 'C' : '-'} : ${nom} ${r.toFixed(2)} < ${min}`);
           }
         }
       }
@@ -92,10 +87,10 @@ describe('thèmes : lisibilité de chaque couple réellement utilisé', () => {
 
   it('le contraste élevé ne change pas la teinte de l’en-tête ni de l’action au point de les rendre méconnaissables', () => {
     const base = PALETTES.ocean;
-    const c = couleursAvecLisibilite(base, { contraste: true, daltonisme: false });
+    const c = couleursAvecLisibilite(base, { contraste: true });
     expect(c.background).toBe('#FFFFFF');
     expect(c.text).toBe('#000000');
-    const nuit = couleursAvecLisibilite(PALETTES.nuit, { contraste: true, daltonisme: false });
+    const nuit = couleursAvecLisibilite(PALETTES.nuit, { contraste: true });
     expect(nuit.background).toBe('#000000');
     expect(nuit.text).toBe('#FFFFFF');
     expect(jetonsDepuis(nuit).onHeaderSoft).toBeTruthy();

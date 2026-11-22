@@ -47,9 +47,9 @@ export function estSombre(c: Couleurs): boolean {
   return luminance(c.background) < 0.2;
 }
 
-/** Les deux réglages de lisibilité, par-dessus n'importe quel thème. */
-export type Lisibilite = { contraste: boolean; daltonisme: boolean };
-export const LISIBILITE_PAR_DEFAUT: Lisibilite = { contraste: false, daltonisme: false };
+/** Le réglage de lisibilité (contraste élevé), par-dessus n'importe quel thème. */
+export type Lisibilite = { contraste: boolean };
+export const LISIBILITE_PAR_DEFAUT: Lisibilite = { contraste: false };
 
 /** Contraste élevé : fond noir ou blanc pur, textes et contours renforcés ; l'accent du thème est gardé (assombri ou éclairci au besoin). */
 export function renforcerContraste(base: Couleurs): Couleurs {
@@ -74,23 +74,10 @@ export function renforcerContraste(base: Couleurs): Couleurs {
   return c;
 }
 
-/** Adapté au daltonisme : le succès et le danger ne reposent plus sur le vert et le rouge (bleu et vermillon). Les mots restent écrits partout. */
-export function adapterDaltonisme(base: Couleurs): Couleurs {
-  const sombre = estSombre(base);
-  const c: Couleurs = { ...base };
-  const sur = [base.background, base.surface, base.backgroundElement, base.backgroundSelected];
-  const regler = (couleur: string, min: number) => sur.reduce((acc, f) => ajusterContraste(acc, f, min), couleur);
-  c.success = regler(sombre ? '#56B4E9' : '#0072B2', 4.5);
-  c.danger = regler(sombre ? '#FF9A5C' : '#B34100', 4.5);
-  c.accent = regler(sombre ? '#E69F00' : '#9C5700', 3);
-  return c;
-}
-
-/** Palette finale : la base du thème, puis le contraste élevé, puis le daltonisme s'ils sont activés. */
+/** Palette finale : la base du thème, puis le contraste élevé s'il est activé. */
 export function couleursAvecLisibilite(base: Couleurs, l: Lisibilite): Couleurs {
   let c = base;
   if (l.contraste) c = renforcerContraste(c);
-  if (l.daltonisme) c = adapterDaltonisme(c);
   return c;
 }
 

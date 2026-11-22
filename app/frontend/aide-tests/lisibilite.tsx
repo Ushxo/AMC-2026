@@ -52,11 +52,11 @@ export function textesIllisibles(): Probleme[] {
 }
 
 /** Les combinaisons à vérifier : chaque thème, sans puis avec contraste élevé. */
-export const COMBINAISONS_THEMES: [ThemeId, { contraste: boolean; daltonisme: boolean }][] = THEMES_IDS.flatMap((t) =>
-  [false, true].map((c) => [t, { contraste: c, daltonisme: false }] as [ThemeId, { contraste: boolean; daltonisme: boolean }]),
+export const COMBINAISONS_THEMES: [ThemeId, { contraste: boolean }][] = THEMES_IDS.flatMap((t) =>
+  [false, true].map((c) => [t, { contraste: c }] as [ThemeId, { contraste: boolean }]),
 );
 
-export function appliquerThemeEtLisibilite(theme: ThemeId, l: { contraste: boolean; daltonisme: boolean }): void {
+export function appliquerThemeEtLisibilite(theme: ThemeId, l: { contraste: boolean }): void {
   definirTheme(theme);
   definirLisibilite(l);
 }

@@ -53,7 +53,7 @@ aplatir(Object.values(fixes), []);
 function valeursJetons(theme: ThemeId): Set<string> {
   const ensemble = new Set<string>();
   for (const o of ORGANISATIONS_EMBARQUEES) {
-    for (const l of [{ contraste: false, daltonisme: false }, { contraste: true, daltonisme: true }]) {
+    for (const l of [{ contraste: false }, { contraste: true }]) {
       Object.values(jetonsDuTheme(o, theme, l)).forEach((v) => typeof v === 'string' && ensemble.add(v.toUpperCase()));
     }
   }

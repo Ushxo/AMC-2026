@@ -68,7 +68,7 @@ describe('marque courante', () => {
     const e = lireMarque();
     expect(e.organisation.code).toBe('priorix');
     expect(e.theme).toBe('organisation');
-    expect(e.lisibilite).toEqual({ contraste: false, daltonisme: false });
+    expect(e.lisibilite).toEqual({ contraste: false });
     expect(e.jetons.action).toBe('#B84A0B');
     expect(e.jetons.primary).toBe('#1D3A1B');
   });
@@ -86,14 +86,14 @@ describe('marque courante', () => {
   it('le thème et la lisibilité sont gardés par personne au redémarrage ; le citoyen ne choisit jamais la marque', async () => {
     await AsyncStorage.setItem('priorix:marque-citoyen', 'montreal'); // reste d'une ancienne version
     definirTheme('ocean');
-    definirLisibilite({ daltonisme: true });
+    definirLisibilite({ contraste: true });
     await new Promise((r) => setTimeout(r, 10));
-    expect(JSON.parse((await AsyncStorage.getItem('priorix:theme:invite')) ?? '{}')).toEqual({ theme: 'ocean', lisibilite: { contraste: false, daltonisme: true } });
+    expect(JSON.parse((await AsyncStorage.getItem('priorix:theme:invite')) ?? '{}')).toEqual({ theme: 'ocean', lisibilite: { contraste: true } });
     reinitialiserMarque();
     await chargerMarqueLocale(ORGANISATIONS_EMBARQUEES);
     expect(lireMarque().organisation.code).toBe('priorix');
     expect(lireMarque().theme).toBe('ocean');
-    expect(lireMarque().lisibilite.daltonisme).toBe(true);
+    expect(lireMarque().lisibilite.contraste).toBe(true);
     // une autre personne a ses propres réglages
     await chargerReglagesTheme('autre-personne');
     expect(lireMarque().theme).toBe('organisation');
@@ -167,5 +167,22 @@ describe('marque courante', () => {
     mettreAJourOrganisation({ ...priorix, nom_app: 'Autre nom' });
     expect(rappel).toHaveBeenCalledTimes(1);
     arret();
+  });
+
+  it('une valeur « daltonisme » déjà enregistrée est ignorée : aucune couleur ne change', async () => {
+    await AsyncStorage.setItem('priorix:theme:invite', JSON.stringify({ theme: 'ocean', lisibilite: { contraste: false, daltonisme: true } }));
+    await chargerReglagesTheme('invite');
+    const avecAncienne = lireMarque().jetons;
+    expect(lireMarque().lisibilite).toEqual({ contraste: false });
+    definirTheme('ocean');
+    expect(lireMarque().jetons).toEqual(avecAncienne); // même palette que le thème Océan seul
+    expect(avecAncienne.success).toBe('#2A7A57'); // le vert du thème, pas le bleu du réglage disparu
+    // l'ancien réglage d'avant les thèmes : thème de l'organisation, sans réglage
+    reinitialiserMarque();
+    await AsyncStorage.removeItem('priorix:theme:invite');
+    await AsyncStorage.setItem('priorix:apparence', 'daltonisme');
+    await chargerReglagesTheme('invite');
+    expect(lireMarque().theme).toBe('organisation');
+    expect(lireMarque().lisibilite).toEqual({ contraste: false });
   });
 });

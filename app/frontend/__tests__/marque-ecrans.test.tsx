@@ -58,10 +58,19 @@ describe('feuille du profil : thème', () => {
     await fireEvent.press(screen.getByLabelText('Prune'));
     await fireEvent(screen.getByLabelText('Contraste élevé : désactivé'), 'valueChange', true);
     expect(lireMarque().theme).toBe('prune');
-    expect(lireMarque().lisibilite).toEqual({ contraste: true, daltonisme: false });
+    expect(lireMarque().lisibilite).toEqual({ contraste: true });
     expect(lireMarque().jetons.background).toBe('#FFFFFF');
-    await fireEvent(screen.getByLabelText('Adapté au daltonisme : désactivé'), 'valueChange', true);
-    expect(lireMarque().lisibilite).toEqual({ contraste: true, daltonisme: true });
+    expect(screen.queryByLabelText(/daltonisme/i)).toBeNull(); // un seul réglage de lisibilité
+  });
+
+  it('aucun texte « daltonisme » dans la feuille Profil ; « Lisibilité » ne propose que « Contraste élevé »', async () => {
+    await render(<FeuilleProfil visible onFermer={jest.fn()} />);
+    expect(screen.queryByText(/daltonisme/i)).toBeNull();
+    expect(screen.queryByLabelText(/daltonisme/i)).toBeNull();
+    expect(screen.queryByText(/vermillon/i)).toBeNull();
+    expect(screen.getByText('Lisibilité')).toBeTruthy();
+    expect(screen.getByLabelText('Contraste élevé : désactivé')).toBeTruthy();
+    expect(screen.getAllByRole('switch')).toHaveLength(1);
   });
 
   it('un compte du personnel ne change pas de ville ; il voit « Tournées optimisées par Priorix »', async () => {
