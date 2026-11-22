@@ -1,6 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -121,7 +120,6 @@ export default function MyAlerts() {
   const router = useRouter();
   const { mes, chargement, erreur, rafraichir } = useMesSignalements();
   const adresses = useMemo(() => chargerAdresses(), []);
-  const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
     <ScrollView
@@ -152,15 +150,14 @@ export default function MyAlerts() {
           const kind = KINDS[a.categorie];
           const titre = LIBELLES_CATEGORIE[a.categorie];
           const badge = badgeDe(a.etat, step);
-          const open = expanded === a.id;
 
           return (
             <Pressable
               key={a.id}
-              onPress={() => setExpanded(open ? null : a.id)}
+              onPress={() => router.push({ pathname: '/suivi/[id]', params: { id: a.id } })}
               style={styles.card}
               accessibilityRole="button"
-              accessibilityLabel={`${titre}, ${badge.label}`}
+              accessibilityLabel={`${titre}, ${badge.label}. Ouvrir le suivi et l’heure de passage.`}
             >
               <View style={styles.cardTop}>
                 <View style={[styles.iconBox, { backgroundColor: kind.tile }]}>
@@ -178,11 +175,7 @@ export default function MyAlerts() {
                       <Text style={[styles.badge, { color: badge.color, backgroundColor: badge.bg }]}>
                         {badge.label}
                       </Text>
-                      <Ionicons
-                        name={open ? 'chevron-down' : 'chevron-forward'}
-                        size={20}
-                        color={C.text}
-                      />
+                      <Ionicons name="chevron-forward" size={22} color={C.text} />
                     </View>
                   </View>
                   <View style={styles.detailRow}>
@@ -198,21 +191,7 @@ export default function MyAlerts() {
 
               <Progress step={step} />
 
-              {open && (
-                <View style={styles.expanded}>
-                  <Text style={styles.detail}>État actuel : {LIBELLES_ETAT[a.etat]}</Text>
-                  {a.en_attente ? <Text style={styles.detail}>En attente d’envoi : le réseau reviendra.</Text> : null}
-                  {a.commentaire ? <Text style={styles.detail}>Votre commentaire : {a.commentaire}</Text> : null}
-                  {a.photo_url ? <Image source={{ uri: a.photo_url }} style={styles.photo} accessibilityLabel="Photo jointe" /> : null}
-                  <Pressable
-                    onPress={() => router.push({ pathname: '/suivi/[id]', params: { id: a.id } })}
-                    accessibilityRole="button"
-                    style={{ marginTop: 10, minHeight: 44, justifyContent: 'center' }}
-                  >
-                    <Text style={[styles.detail, { fontWeight: '800', color: C.green, textDecorationLine: 'underline' }]}>Voir le suivi et l’heure de passage</Text>
-                  </Pressable>
-                </View>
-              )}
+              {a.en_attente ? <Text style={[styles.detail, { marginTop: 10 }]}>En attente d’envoi : le réseau reviendra.</Text> : null}
             </Pressable>
           );
         })}
@@ -398,17 +377,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  expanded: {
-    borderTopWidth: 1,
-    borderColor: '#E3E5DC',
-    marginTop: 14,
-    paddingTop: 12,
-    gap: 4,
-  },
-
-  photo: {
-    height: 150,
-    borderRadius: 14,
-    marginTop: 8,
-  },
 });

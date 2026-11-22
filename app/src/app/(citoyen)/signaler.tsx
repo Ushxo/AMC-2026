@@ -25,6 +25,8 @@ import { erreursSignalement } from '@/lib/champs';
 import { jugerPhoto } from '@/lib/ml';
 import { analyseDisponible, graviteSuggeree, MESSAGE_ANALYSE_INDISPONIBLE, MESSAGE_PHOTO_PAS_EGOUT } from '@/lib/suggestion-gravite';
 import PhotoStep from '../../../frontend/citizen/PhotoStep';
+import { ProblemIllustration } from '../../../frontend/components/ProblemIllustration';
+import type { AlertKind } from '../../../frontend/types/models';
 import { chargerRegion } from '@/lib/officiel';
 import {
   MESSAGE_ECHEC_ENVOI,
@@ -46,6 +48,21 @@ import {
 
 const CATEGORIES: Categorie[] = CATEGORIES_PROPOSEES;
 const GRAVITES: Gravite[] = ['faible', 'moyenne', 'elevee'];
+
+/** Illustration de chaque problème proposé (les dessins sont rangés sous les anciens noms de la maquette). */
+const ILLUSTRATION: Partial<Record<Categorie, AlertKind>> = {
+  grille_bouchee: 'Égout bouché',
+  eau_accumulee: 'Eau accumulée',
+  affaissement: 'Feuilles',
+  grille_endommagee: 'Autre',
+};
+const TITRE_CARTE: Partial<Record<Categorie, string>> = {
+  grille_bouchee: 'Égout bouché',
+  eau_accumulee: "Accumulation d'eau ou inondation",
+  affaissement: "Affaissement autour d'un égout",
+  grille_endommagee: "Grille d'égout endommagée",
+};
+type Etape = 'probleme' | 'photo' | 'formulaire';
 
 export default function Signaler() {
   const { bottom } = useSafeAreaInsets();
@@ -72,6 +89,7 @@ export default function Signaler() {
   const [commentaire, setCommentaire] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoOuverte, setPhotoOuverte] = useState(false);
+  const [etape, setEtape] = useState<Etape>('probleme');
   const [analyse, setAnalyse] = useState<{ enCours: boolean; texte: string | null }>({ enCours: false, texte: null });
   const [messages, setMessages] = useState<string[]>([]);
   const [aEssaye, setAEssaye] = useState(false);
@@ -161,6 +179,79 @@ export default function Signaler() {
 
   const termine = envoyeId !== null;
 
+  // Étape 1 : feuille « Quel problème avez-vous observé ? » (grille 2 x 2), montée depuis le bas.
+  if (etape === 'probleme') {
+    return (
+      <View style={styles.voile}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <Pressable style={styles.fondFeuille} accessibilityRole="button" accessibilityLabel="Fermer sans signaler" onPress={() => router.back()} />
+        <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 20 }]}>
+          <View style={[styles.poignee, { backgroundColor: theme.borderForte }]} />
+          <ThemedText type="subtitle" accessibilityRole="header" style={styles.titreFeuille} maxFontSizeMultiplier={1.3}>
+            Quel problème avez-vous observé ?
+          </ThemedText>
+          <View style={styles.grille}>
+            {CATEGORIES.map((c) => {
+              const choisi = categorie === c;
+              return (
+                <Pressable
+                  key={c}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: choisi }}
+                  accessibilityLabel={TITRE_CARTE[c] ?? LIBELLES_CATEGORIE[c]}
+                  onPress={() => setCategorie(c)}
+                  style={[
+                    styles.carteProbleme,
+                    { backgroundColor: choisi ? theme.accentDoux : theme.surface, borderColor: choisi ? theme.accent : theme.border, borderWidth: choisi ? 3 : 1 },
+                  ]}>
+                  <View style={styles.dessin}>
+                    <View style={{ transform: [{ scale: 0.8 }] }}>{ILLUSTRATION[c] ? <ProblemIllustration kind={ILLUSTRATION[c]!} /> : null}</View>
+                  </View>
+                  <ThemedText type="smallBold" style={styles.texteProbleme} maxFontSizeMultiplier={1.3}>
+                    {TITRE_CARTE[c] ?? LIBELLES_CATEGORIE[c]}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+          {erreursChamps.categorie && !categorie ? (
+            <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
+              {erreursChamps.categorie}
+            </ThemedText>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !categorie }}
+            onPress={() => (categorie ? setEtape('photo') : setAEssaye(true))}
+            style={[styles.continuer, { backgroundColor: categorie ? theme.accent : theme.backgroundSelected }]}>
+            <ThemedText type="smallBold" style={{ color: categorie ? theme.surface : theme.textSecondary, fontSize: 18 }}>
+              Continuer
+            </ThemedText>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  // Étape 2 : photo du problème (facultative).
+  if (etape === 'photo') {
+    return (
+      <View style={styles.fond}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PhotoStep
+          photoUri={photoUri ?? undefined}
+          onPhoto={(u) => setPhotoUri(u ?? null)}
+          onBack={() => setEtape('probleme')}
+          onSkip={() => setEtape('formulaire')}
+          onContinue={() => {
+            setEtape('formulaire');
+            if (photoUri) void analyserPhoto(photoUri);
+          }}
+        />
+      </View>
+    );
+  }
+
   return (
     <ThemedView style={styles.fond}>
       <Stack.Screen options={{ title: 'Signaler un problème' }} />
@@ -244,25 +335,12 @@ export default function Signaler() {
             ) : null}
 
             <ThemedText type="smallBold" accessibilityRole="header">
-              2. Que signalez-vous ?
+              2. Problème choisi
             </ThemedText>
             <View style={styles.rangee}>
-              {CATEGORIES.map((c) => (
-                <Bouton
-                  key={c}
-                  titre={LIBELLES_CATEGORIE[c]}
-                  variante="discret"
-                  selectionne={categorie === c}
-                  onPress={() => setCategorie(c)}
-                />
-              ))}
+              <ThemedText>{categorie ? LIBELLES_CATEGORIE[categorie] : ''}</ThemedText>
+              <Bouton titre="Changer" variante="discret" onPress={() => setEtape('probleme')} />
             </View>
-
-            {erreursChamps.categorie && !categorie ? (
-              <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
-                {erreursChamps.categorie}
-              </ThemedText>
-            ) : null}
 
             <ThemedText type="smallBold" accessibilityRole="header">
               3. Quelle est la gravité ?
@@ -367,4 +445,14 @@ const styles = StyleSheet.create({
   commentaire: { minHeight: 96, textAlignVertical: 'top', paddingTop: 12 },
   photoBloc: { gap: 8 },
   photo: { width: '100%', height: 200, borderRadius: 14 },
+  voile: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  fondFeuille: { flex: 1 },
+  feuille: { borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 12, gap: 14 },
+  poignee: { alignSelf: 'center', width: 48, height: 5, borderRadius: 3 },
+  titreFeuille: { textAlign: 'center', fontSize: 24, lineHeight: 30 },
+  grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  carteProbleme: { flexBasis: '47%', flexGrow: 1, borderRadius: 22, padding: 10, alignItems: 'center', minHeight: 150, justifyContent: 'space-between' },
+  dessin: { height: 84, alignItems: 'center', justifyContent: 'center' },
+  texteProbleme: { textAlign: 'center' },
+  continuer: { minHeight: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
 });
