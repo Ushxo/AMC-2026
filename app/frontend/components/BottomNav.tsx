@@ -6,6 +6,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { IconeAnimee } from '@/components/mouvement/icone-animee';
+import { useChangementImmediat } from '@/components/mouvement/onglets-gardes';
 import { PastilleGlissante, type CiblePastille } from '@/components/mouvement/pastille-glissante';
 import { RebondEchelle } from '@/components/mouvement/rebond-echelle';
 import { useStyles } from '@/marque/utiliser';
@@ -32,7 +33,9 @@ type Props = {
   onChange: (tab: CitizenTab) => void;
 };
 
-export function BottomNav({ active, onChange }: Props) {
+export function BottomNav({ active: actifParent, onChange }: Props) {
+  // La pastille et l'icône suivent le toucher tout de suite ; le contenu change juste après, en transition.
+  const { actifLocal: active, changer } = useChangementImmediat(actifParent, onChange);
   const P = useTheme();
   const styles = useStyles(creerStyles);
   const insets = useSafeAreaInsets();
@@ -51,7 +54,7 @@ export function BottomNav({ active, onChange }: Props) {
         return (
           <Pressable
             key={tab.id}
-            onPress={() => onChange(tab.id)}
+            onPress={() => changer(tab.id)}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             onLayout={mesurer(tab.id)}

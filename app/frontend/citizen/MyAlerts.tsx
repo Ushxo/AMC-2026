@@ -99,6 +99,8 @@ export default function MyAlerts() {
   const adresses = useMemo(() => chargerAdresses(), []);
   const { signalements: tous } = useSignalements();
   const index = useMemo(() => indexerEndroits(tous), [tous]);
+  // L'adresse la plus proche de chaque alerte : calculée une fois par liste, pas à chaque rendu de chaque ligne.
+  const lieux = useMemo(() => new Map(mes.map((a) => [a.id, lieuDe(a, adresses)])), [mes, adresses]);
 
   const vide = !chargement && !erreur && !mes.length;
   return (
@@ -148,7 +150,7 @@ export default function MyAlerts() {
                   </View>
                   <View style={styles.detailRow}>
                     <Ionicons name="location-outline" size={16} color={P.text} />
-                    <Text style={styles.detail}>{lieuDe(a, adresses)}</Text>
+                    <Text style={styles.detail}>{lieux.get(a.id) ?? ''}</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <Ionicons name="calendar-outline" size={15} color={P.text} />

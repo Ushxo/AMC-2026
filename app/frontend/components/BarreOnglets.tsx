@@ -6,6 +6,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { IconeAnimee } from '@/components/mouvement/icone-animee';
+import { useChangementImmediat } from '@/components/mouvement/onglets-gardes';
 import { PastilleGlissante, type CiblePastille } from '@/components/mouvement/pastille-glissante';
 import { RebondEchelle } from '@/components/mouvement/rebond-echelle';
 import { useStyles } from '@/marque/utiliser';
@@ -23,7 +24,9 @@ export type Onglet<Id extends string> = {
 };
 
 // Barre d'onglets du bas (même allure que celle du citoyen), placée sous le contenu : rien ne passe dessous.
-export function BarreOnglets<Id extends string>({ onglets, actif, onChange }: { onglets: Onglet<Id>[]; actif: Id; onChange: (id: Id) => void }) {
+export function BarreOnglets<Id extends string>({ onglets, actif: actifParent, onChange }: { onglets: Onglet<Id>[]; actif: Id; onChange: (id: Id) => void }) {
+  // La pastille et l'icône suivent le toucher tout de suite ; le contenu change juste après, en transition.
+  const { actifLocal: actif, changer } = useChangementImmediat(actifParent, onChange);
   const styles = useStyles(creerStyles);
   const P = useTheme();
   const insets = useSafeAreaInsets();
@@ -41,7 +44,7 @@ export function BarreOnglets<Id extends string>({ onglets, actif, onChange }: { 
         return (
           <Pressable
             key={o.id}
-            onPress={() => onChange(o.id)}
+            onPress={() => changer(o.id)}
             accessibilityRole="tab"
             accessibilityLabel={o.nom ?? o.label}
             accessibilityState={{ selected }}

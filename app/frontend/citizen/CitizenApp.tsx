@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import EcranCarteCitoyen from "@/components/citoyen/ecran-carte";
+import { OngletsGardes } from "@/components/mouvement/onglets-gardes";
 import { FeuilleProfil } from "@/components/profil/feuille-profil";
 import { BOTTOM_NAV_HEIGHT, BottomNav, CitizenTab } from "../components/BottomNav";
 import MyAlerts from "./MyAlerts";
@@ -19,7 +20,14 @@ export default function CitizenApp({ compteConnecte, nom, demoHorsLigne, onLogou
 
   return (
     <View style={styles.root}>
-      {tab === "carte" ? <EcranCarteCitoyen coquille={{ espaceBas: BOTTOM_NAV_HEIGHT, onOpenProfile: () => setProfil(true), onFeuille: setFeuille }} /> : <MyAlerts />}
+      {/* Les deux onglets restent montés une fois visités : revenir sur la carte ne recrée plus la carte native ni ses repères. */}
+      <OngletsGardes
+        actif={tab}
+        onglets={[
+          { id: "carte", gardeTaille: true, rendu: () => <EcranCarteCitoyen coquille={{ espaceBas: BOTTOM_NAV_HEIGHT, onOpenProfile: () => setProfil(true), onFeuille: setFeuille }} /> },
+          { id: "alertes", rendu: () => <MyAlerts /> },
+        ]}
+      />
       {feuille && tab === "carte" ? null : <BottomNav active={tab} onChange={setTab} />}
       <FeuilleProfil
         visible={profil}

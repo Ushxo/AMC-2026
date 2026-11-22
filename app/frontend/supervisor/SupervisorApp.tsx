@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { useAcces } from "@/hooks/use-acces";
 import { EcranEquipes } from "@/app/ville/equipes";
 import { EcranTournees } from "@/app/ville/tournees";
+import { OngletsGardes } from "@/components/mouvement/onglets-gardes";
 import { ListeAlertes } from "@/components/ville/liste-alertes";
 import { BarreOnglets, type Onglet } from "../components/BarreOnglets";
 import { BoutonProfil } from "../components/BoutonProfil";
@@ -55,36 +56,51 @@ export default function SupervisorApp({ onLogout, onAdministration }: { onLogout
         />
       )}
       <View style={styles.corps}>
-        {onglet === "interventions" && !tableau ? (
-          <InterventionsAPlanifier
-            onTableau={() => setTableau(true)}
-            onCalculer={(cles) => {
-              setDemande({ id: Date.now(), cles });
-              setDetails(false);
-              setOnglet("optimisation");
-            }}
-          />
-        ) : null}
-        {onglet === "interventions" && tableau ? <TableauDeBord /> : null}
-        {onglet === "alertes" ? <ListeAlertes avecResume={false} /> : null}
-        {onglet === "optimisation" && demande && !details ? (
-          <TrajetOptimal
-            key={demande.id}
-            cles={demande.cles}
-            onRetour={() => {
-              setDemande(null);
-              setOnglet("interventions");
-            }}
-            onDetails={() => setDetails(true)}
-          />
-        ) : null}
-        {onglet === "optimisation" && (!demande || details) ? <EcranTournees key={demande?.id ?? 0} dansCoquille clesInitiales={demande?.cles} /> : null}
-        {onglet === "equipes" ? (
-          <>
-            <EcranEquipes dansCoquille />
-          </>
-        ) : null}
-        {onglet === "rapports" ? <ArretsFaits /> : null}
+        {/* Les onglets déjà visités restent montés (cachés, sans toucher) : changer d'onglet ne les recrée plus. Chacun ne se
+            redessine que si l'état de la coquille qu'il lit change. */}
+        <OngletsGardes
+          actif={onglet}
+          onglets={[
+            {
+              id: "interventions",
+              deps: [tableau],
+              rendu: () =>
+                tableau ? (
+                  <TableauDeBord />
+                ) : (
+                  <InterventionsAPlanifier
+                    onTableau={() => setTableau(true)}
+                    onCalculer={(cles) => {
+                      setDemande({ id: Date.now(), cles });
+                      setDetails(false);
+                      setOnglet("optimisation");
+                    }}
+                  />
+                ),
+            },
+            { id: "alertes", rendu: () => <ListeAlertes avecResume={false} /> },
+            {
+              id: "optimisation",
+              deps: [demande, details],
+              rendu: () =>
+                demande && !details ? (
+                  <TrajetOptimal
+                    key={demande.id}
+                    cles={demande.cles}
+                    onRetour={() => {
+                      setDemande(null);
+                      setOnglet("interventions");
+                    }}
+                    onDetails={() => setDetails(true)}
+                  />
+                ) : (
+                  <EcranTournees key={demande?.id ?? 0} dansCoquille clesInitiales={demande?.cles} />
+                ),
+            },
+            { id: "equipes", rendu: () => <EcranEquipes dansCoquille /> },
+            { id: "rapports", rendu: () => <ArretsFaits /> },
+          ]}
+        />
       </View>
       <BarreOnglets
         onglets={ONGLETS}

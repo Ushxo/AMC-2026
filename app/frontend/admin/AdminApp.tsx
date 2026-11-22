@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { EcranEquipes } from "@/app/ville/equipes";
+import { OngletsGardes } from "@/components/mouvement/onglets-gardes";
 import { useAcces } from "@/hooks/use-acces";
 import { BarreOnglets, type Onglet } from "../components/BarreOnglets";
 import { BoutonProfil } from "../components/BoutonProfil";
@@ -50,9 +51,15 @@ export default function AdminApp({ onLogout }: { onLogout: () => void }) {
         droite={<BoutonProfil nom={nom} role="Administrateur" onDeconnexion={onLogout} />}
       />
       <View style={styles.corps}>
-        {onglet === "comptes" ? <ComptesPersonnel onCreer={() => setCreation(true)} /> : null}
-        {onglet === "marque" ? <MarqueOrganisation /> : null}
-        {onglet === "equipes" ? <EcranEquipes dansCoquille /> : null}
+        {/* Les onglets déjà visités restent montés : changer d'onglet ne les recrée plus. */}
+        <OngletsGardes
+          actif={onglet}
+          onglets={[
+            { id: "comptes", rendu: () => <ComptesPersonnel onCreer={() => setCreation(true)} /> },
+            { id: "marque", rendu: () => <MarqueOrganisation /> },
+            { id: "equipes", rendu: () => <EcranEquipes dansCoquille /> },
+          ]}
+        />
       </View>
       <BarreOnglets onglets={ONGLETS} actif={onglet} onChange={setOnglet} />
     </View>

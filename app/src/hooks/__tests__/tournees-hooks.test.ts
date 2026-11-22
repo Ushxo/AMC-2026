@@ -127,17 +127,23 @@ describe('en ligne', () => {
     o.lireDemande.mockResolvedValue({
       id: 'd1', cree_le: 'x', statut: 'terminee', parametres: {}, message: null, commence_le: null, termine_le: 'y',
     });
-    const { result } = await renderHook(() => useOptimisation());
-    await act(async () => {
-      await result.current.lancer();
-    });
-    expect(result.current.enCours).toBe(true);
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 1700));
-    });
-    expect(result.current.demande?.statut).toBe('terminee');
-    expect(result.current.enCours).toBe(false);
-    expect(lireEtatTournees().forcerPrecalcule).toBe(false);
+    // Minuteurs simulés : la relève de 1,5 s se fait sans attente réelle (le test durait 1,7 s).
+    jest.useFakeTimers();
+    try {
+      const { result } = await renderHook(() => useOptimisation());
+      await act(async () => {
+        await result.current.lancer();
+      });
+      expect(result.current.enCours).toBe(true);
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1700);
+      });
+      expect(result.current.demande?.statut).toBe('terminee');
+      expect(result.current.enCours).toBe(false);
+      expect(lireEtatTournees().forcerPrecalcule).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('lancer : sans réponse après 20 s, bascule sur le précalculé', async () => {

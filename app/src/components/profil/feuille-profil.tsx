@@ -105,7 +105,7 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
 
 const styles = StyleSheet.create({
   voile: { flex: 1, backgroundColor: VOILE_FEUILLE },
-  feuille: { maxHeight: '90%', ...FEUILLE_BASE },
+  feuille: { ...FEUILLE_BASE },
   defile: { flexShrink: 1 },
   contenu: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, gap: 8 },
   pied: { paddingHorizontal: 16, paddingTop: 8, gap: 4, borderTopWidth: StyleSheet.hairlineWidth },
