@@ -1,0 +1,40 @@
+[project]
+name = "ml-egouts"
+version = "0.1.0"
+description = "Classifieur de photos d'égouts : photo valide ou non, et gravité du signalement"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "torch==2.14.1",
+    "torchvision==0.29.1",
+    "pillow>=11.0",
+    "onnx>=1.17",
+    "fastapi>=0.165.0",
+    "uvicorn[standard]>=0.54.0",
+    "onnxruntime>=1.32.0",
+    "python-multipart>=0.0.34",
+    "numpy>=2.5.5",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+# PyTorch avec CUDA 13 (GPU NVIDIA) sous Windows et Linux.
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }
+torchvision = { index = "pytorch-cu130", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
