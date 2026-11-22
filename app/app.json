@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "app",
+    "name": "Piorix",
     "slug": "app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -31,6 +31,13 @@
           "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La caméra sert à photographier le problème signalé.",
+          "recordAudioAndroid": false
         }
       ]
     ],

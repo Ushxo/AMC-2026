@@ -1,148 +1,152 @@
-
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  StatusBar,
+  Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type LoginProps = {
-  onLogin: () => void;
-};
+import { isValidEmail, Session, sessionForEmail } from "../auth";
+import { AppLogo } from "../components/AppLogo";
 
-const COLORS = {
-  green: "#1D341B",
-  darkGreen: "#142B17",
-  cream: "#F8F5ED",
-  orange: "#E56C28",
-  border: "#B9BAB2",
-  gray: "#666666",
+const C = {
+  green: "#1D3A1B",
+  cream: "#F8F4EA",
+  orange: "#EE5F12",
+  border: "#C9C9BD",
+  text: "#2B3328",
+  muted: "#6E7468",
   white: "#FFFFFF",
+  error: "#C2410C",
 };
 
-export default function LoginScreen({ onLogin }: LoginProps) {
+type Props = {
+  onLogin: (session: Session) => void;
+};
+
+function notAvailable(title: string) {
+  const message = "Cette fonction n’est pas encore disponible dans la démo.";
+  if (Platform.OS === "web") window.alert(`${title}\n\n${message}`);
+  else Alert.alert(title, message);
+}
+
+export default function LoginScreen({ onLogin }: Props) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isRegister, setIsRegister] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function handleLogin() {
+    if (!isValidEmail(email)) {
+      setError("Entrez un courriel valide.");
+      return;
+    }
+    if (!password) {
+      setError("Entrez votre mot de passe.");
+      return;
+    }
+    setError(null);
+    onLogin(sessionForEmail(email));
+  }
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <StatusBar barStyle="light-content" />
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
+        bounces={false}
       >
-        {/* EN-TÊTE */}
-        <View style={styles.header}>
-          {/* LOGO */}
-          <View style={styles.logo}>
-            <Text style={styles.logoMap}>╱╲╱╲</Text>
-            <View style={styles.logoPin}>
-              <View style={styles.logoDrain}>
-                <Text style={styles.drainIcon}>▤</Text>
-              </View>
-            </View>
-          </View>
-
-          <Text style={styles.appName}>ÉgoutMontréal</Text>
-
-          <Text style={styles.subtitle}>
-            Signalez les problèmes d’égouts
-            {"\n"}et suivez vos demandes.
+        <View style={[styles.hero, { paddingTop: insets.top + 36 }]}>
+          <AppLogo />
+          <Text style={styles.brand}>Piorix</Text>
+          <Text style={styles.tagline}>
+            Signalez les problèmes d’égouts{"\n"}et suivez vos demandes.
           </Text>
         </View>
 
-        {/* FORMULAIRE */}
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>
-            {isRegister ? "Créer un compte" : "Connexion"}
-          </Text>
+        <View style={[styles.card, { paddingBottom: insets.bottom + 28 }]}>
+          <Text style={styles.title}>Connexion</Text>
 
-          {/* COURRIEL */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputIcon}>✉</Text>
+          <View style={[styles.field, error && !isValidEmail(email) && styles.fieldError]}>
+            <Ionicons name="mail-outline" size={24} color={C.text} />
             <TextInput
               style={styles.input}
               placeholder="Courriel"
-              placeholderTextColor={COLORS.gray}
+              placeholderTextColor={C.muted}
+              value={email}
+              onChangeText={(v) => {
+                setEmail(v);
+                setError(null);
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              value={email}
-              onChangeText={setEmail}
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
             />
           </View>
 
-          {/* MOT DE PASSE */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputIcon}>♙</Text>
+          <View style={[styles.field, error && isValidEmail(email) && !password && styles.fieldError]}>
+            <Ionicons name="lock-closed-outline" size={24} color={C.text} />
             <TextInput
               style={styles.input}
               placeholder="Mot de passe"
-              placeholderTextColor={COLORS.gray}
-              secureTextEntry={!showPassword}
+              placeholderTextColor={C.muted}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(v) => {
+                setPassword(v);
+                setError(null);
+              }}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoComplete="password"
+              textContentType="password"
+              returnKeyType="go"
+              onSubmitEditing={handleLogin}
             />
-
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
+            <Pressable
+              onPress={() => setShowPassword((v) => !v)}
+              hitSlop={10}
+              accessibilityLabel={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
             >
-              <Text style={styles.eyeIcon}>
-                {showPassword ? "◉" : "◎"}
-              </Text>
-            </TouchableOpacity>
+              <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={24} color={C.text} />
+            </Pressable>
           </View>
 
-          {!isRegister && (
-            <TouchableOpacity style={styles.forgotButton}>
-              <Text style={styles.forgotText}>
-                Mot de passe oublié ?
-              </Text>
-            </TouchableOpacity>
-          )}
+          {error && <Text style={styles.error}>{error}</Text>}
 
-          {/* BOUTON PRINCIPAL */}
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={onLogin}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.loginText}>
-              {isRegister ? "Créer mon compte" : "Se connecter"}
-            </Text>
-          </TouchableOpacity>
+          <Pressable style={styles.forgot} onPress={() => notAvailable("Mot de passe oublié")}>
+            <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+          </Pressable>
 
-          {/* SÉPARATEUR */}
-          <View style={styles.separator}>
-            <View style={styles.line} />
-            <Text style={styles.orText}>ou</Text>
-            <View style={styles.line} />
+          <Pressable style={styles.primary} onPress={handleLogin}>
+            <Text style={styles.primaryText}>Se connecter</Text>
+          </Pressable>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou</Text>
+            <View style={styles.dividerLine} />
           </View>
 
-          {/* CRÉER COMPTE */}
-          <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => setIsRegister(!isRegister)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.registerText}>
-              {isRegister
-                ? "Retour à la connexion"
-                : "Créer un compte"}
-            </Text>
-          </TouchableOpacity>
+          <Pressable style={styles.secondary} onPress={() => notAvailable("Créer un compte")}>
+            <Text style={styles.secondaryText}>Créer un compte</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -150,189 +154,117 @@ export default function LoginScreen({ onLogin }: LoginProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: COLORS.green,
+    backgroundColor: C.green,
   },
-
-  scroll: {
-    flexGrow: 1,
-  },
-
-  header: {
-    minHeight: 340,
+  hero: {
     alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 65,
-    paddingBottom: 35,
-    paddingHorizontal: 20,
-    backgroundColor: COLORS.green,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
-
-  logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 32,
-    backgroundColor: "#30482A",
-    borderWidth: 2,
-    borderColor: "#A7B9A0",
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden",
-    marginBottom: 15,
+  brand: {
+    color: C.cream,
+    fontSize: 40,
+    fontWeight: "800",
+    marginTop: 18,
   },
-
-  logoMap: {
-    position: "absolute",
-    color: "#A7B9A0",
-    fontSize: 35,
-    opacity: 0.5,
-  },
-
-  logoPin: {
-    width: 70,
-    height: 70,
-    backgroundColor: COLORS.orange,
-    borderRadius: 35,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  logoDrain: {
-    width: 52,
-    height: 52,
-    backgroundColor: COLORS.darkGreen,
-    borderRadius: 26,
-    borderWidth: 4,
-    borderColor: COLORS.white,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  drainIcon: {
-    color: COLORS.white,
-    fontSize: 39,
-    fontWeight: "bold",
-  },
-
-  appName: {
-    color: COLORS.white,
-    fontSize: 36,
-    fontWeight: "900",
+  tagline: {
+    color: "#ECE9DD",
+    fontSize: 17,
+    lineHeight: 24,
     textAlign: "center",
-    letterSpacing: -1,
-  },
-
-  subtitle: {
-    color: COLORS.white,
-    fontSize: 18,
-    textAlign: "center",
-    lineHeight: 27,
     marginTop: 8,
   },
-
-  formContainer: {
+  card: {
     flex: 1,
-    backgroundColor: COLORS.cream,
-    borderTopLeftRadius: 48,
-    borderTopRightRadius: 48,
-    paddingHorizontal: 28,
-    paddingTop: 32,
-    paddingBottom: 45,
+    backgroundColor: C.cream,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingHorizontal: 24,
+    paddingTop: 30,
   },
-
   title: {
-    fontSize: 32,
-    fontWeight: "900",
-    color: COLORS.darkGreen,
-    marginBottom: 28,
+    color: C.green,
+    fontSize: 30,
+    fontWeight: "800",
+    marginBottom: 20,
   },
-
-  inputContainer: {
-    height: 59,
+  field: {
+    height: 58,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderRadius: 19,
+    borderColor: C.border,
+    borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 17,
-    marginBottom: 15,
+    paddingHorizontal: 18,
+    gap: 14,
+    marginBottom: 14,
   },
-
-  inputIcon: {
-    fontSize: 27,
-    color: "#17251B",
-    width: 42,
+  fieldError: {
+    borderColor: C.error,
   },
-
   input: {
     flex: 1,
-    fontSize: 18,
-    color: COLORS.darkGreen,
+    fontSize: 17,
+    color: C.text,
+    height: "100%",
   },
-
-  eyeIcon: {
-    fontSize: 28,
-    color: "#17251B",
+  error: {
+    color: C.error,
+    fontSize: 14,
+    marginTop: -4,
+    marginBottom: 4,
   },
-
-  forgotButton: {
+  forgot: {
     alignSelf: "flex-end",
-    marginTop: 5,
-    marginBottom: 25,
+    paddingVertical: 6,
   },
-
   forgotText: {
+    color: C.green,
     fontSize: 15,
     fontWeight: "700",
-    color: COLORS.darkGreen,
   },
-
-  loginButton: {
-    backgroundColor: COLORS.orange,
-    height: 62,
-    borderRadius: 40,
-    justifyContent: "center",
+  primary: {
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: C.orange,
     alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
   },
-
-  loginText: {
-    fontSize: 22,
+  primaryText: {
+    color: C.white,
+    fontSize: 20,
     fontWeight: "800",
-    color: COLORS.white,
   },
-
-  separator: {
+  dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 25,
-    gap: 15,
+    gap: 14,
+    marginVertical: 18,
+    paddingHorizontal: 16,
   },
-
-  line: {
+  dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#AAAAA2",
+    backgroundColor: C.border,
   },
-
-  orText: {
-    color: COLORS.gray,
-    fontSize: 17,
-    fontWeight: "600",
+  dividerText: {
+    color: C.muted,
+    fontSize: 16,
   },
-
-  registerButton: {
-    height: 62,
-    borderRadius: 40,
-    borderWidth: 1.8,
-    borderColor: "#638265",
-    justifyContent: "center",
+  secondary: {
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: C.green,
     alignItems: "center",
+    justifyContent: "center",
   },
-
-  registerText: {
+  secondaryText: {
+    color: C.green,
     fontSize: 19,
     fontWeight: "800",
-    color: COLORS.darkGreen,
   },
 });

@@ -4,7 +4,7 @@ import {AlertKind, CitizenAlert, Tour, WorkStatus} from '../types/models';
 
 type DemoStore = {
   alerts: CitizenAlert[]; tours: Tour[];
-  report: (sewerId:string, kind: AlertKind) => void;
+  report: (sewerId:string, kind: AlertKind, photoUri?: string) => void;
   createTour: (sewerIds:string[], teamId:string) => void;
   mark: (tourId:string, sewerId:string, status:WorkStatus, reason?:string) => void;
   submitTour: (tourId:string) => void;
@@ -16,7 +16,7 @@ export function DemoProvider({children}:{children:React.ReactNode}) {
  const [alerts,setAlerts]=useState<CitizenAlert[]>(INITIAL_ALERTS);
  const [tours,setTours]=useState<Tour[]>([]);
  const rank=(id:string)=>alerts.filter(a=>a.sewerId===id && a.status!=='Résolue').length;
- const report=(sewerId:string,kind:AlertKind)=>setAlerts(prev=>[...prev, {id:`AL-${Date.now()}`,sewerId,kind,citizenId:'citoyen-demo',date:new Date().toISOString().slice(0,10),status:'Envoyée'}]);
+ const report=(sewerId:string,kind:AlertKind,photoUri?:string)=>setAlerts(prev=>[...prev, {id:`AL-${Date.now()}`,sewerId,kind,citizenId:'citoyen-demo',date:new Date().toISOString().slice(0,10),status:'Envoyée',photoUri}]);
  const createTour=(ids:string[],teamId:string)=>{
    if(!ids.length)return;
    // Heuristique de démonstration : favoriser le nombre d'alertes puis la proximité.
