@@ -16,6 +16,7 @@ import AuthFlow from "./auth/AuthFlow";
 import CitizenApp from "./citizen/CitizenApp";
 import StaffApp from "./StaffApp";
 import SupervisorApp from "./supervisor/SupervisorApp";
+import AdminApp from "./admin/AdminApp";
 
 // Racine de l'app (« / ») : le citoyen arrive DIRECTEMENT sur la carte (aucune connexion). L'icône de profil ouvre la connexion
 // du personnel de la Ville ; une session gardée d'employé ou de superviseur ouvre tout de suite son espace.
@@ -35,10 +36,11 @@ export default function AppRoot() {
 
   // Une fois connecté (employé ou superviseur), la connexion se referme d'elle-même.
   useEffect(() => {
-    if (ecran === "superviseur" || ecran === "employe") setConnexionPersonnel(false);
+    if (ecran === "superviseur" || ecran === "employe" || ecran === "admin") setConnexionPersonnel(false);
   }, [ecran]);
 
   if (!polices && !erreurPolices) return <Chargement texte="Ouverture de Priorix…" />;
+  if (ecran === "admin") return <AdminApp onLogout={logout} />;
   if (ecran === "superviseur") return <SupervisorApp onLogout={logout} />;
   if (ecran === "employe") return <StaffApp onLogout={logout} />;
   // Reprise de la session gardée : un bref chargement évite que la carte clignote chez le personnel déjà connecté.

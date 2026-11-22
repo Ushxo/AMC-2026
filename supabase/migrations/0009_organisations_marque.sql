@@ -87,3 +87,32 @@ end $$;
 drop trigger if exists organisations_date on organisations;
 create trigger organisations_date before update on organisations
   for each row execute function organisations_date();
+
+-- Seul un admin modifie la marque (avant : un superviseur le pouvait aussi).
+drop policy if exists organisations_admin on organisations;
+create policy organisations_admin on organisations for update
+  using (est_admin()) with check (est_admin());
+
+-- La liste des comptes du personnel, pour l'espace d'administration.
+create or replace function liste_comptes_personnel()
+returns table (
+  user_id uuid, courriel text, role role_utilisateur, poste poste_employe,
+  prenom text, nom text, organisation text, equipe text, created_at timestamptz
+)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not est_admin() then
+    raise exception 'Réservé aux administrateurs.';
+  end if;
+  return query
+    select p.id, u.email::text, p.role, p.poste, p.prenom, p.nom, o.nom, eq.nom, p.created_at
+    from profils p
+    join auth.users u on u.id = p.id
+    left join employes e on e.user_id = p.id
+    left join organisations o on o.id = e.organisation_id
+    left join equipes eq on eq.compte_id = p.id
+    where p.role in ('employe', 'admin') and u.deleted_at is null
+    order by p.created_at desc;
+end $$;
+revoke execute on function liste_comptes_personnel() from public, anon;
+grant execute on function liste_comptes_personnel() to authenticated, service_role;

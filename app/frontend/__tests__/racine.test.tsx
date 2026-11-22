@@ -36,6 +36,10 @@ jest.mock('../supervisor/SupervisorApp', () => {
   const { Text } = jest.requireActual('react-native');
   return { __esModule: true, default: () => <Text>Coquille superviseur</Text> };
 });
+jest.mock('../admin/AdminApp', () => {
+  const { Text } = jest.requireActual('react-native');
+  return { __esModule: true, default: () => <Text>Coquille administration</Text> };
+});
 jest.mock('../StaffApp', () => {
   const { Text } = jest.requireActual('react-native');
   return { __esModule: true, default: () => <Text>Coquille employé</Text> };
@@ -73,5 +77,8 @@ describe('racine de l’app : le citoyen arrive sur la carte', () => {
     mockAcces.mockReturnValue({ ...base, ecran: 'employe', pret: true });
     await rerender(<AppRoot />);
     expect(screen.getByText('Coquille employé')).toBeTruthy();
+    mockAcces.mockReturnValue({ ...base, ecran: 'admin', pret: true });
+    await rerender(<AppRoot />);
+    expect(screen.getByText('Coquille administration')).toBeTruthy();
   });
 });

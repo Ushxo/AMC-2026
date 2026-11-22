@@ -37,7 +37,7 @@ export function useAcces(): {
       clearTimeout(delai);
     };
   }, []);
-  const ecran: EcranRole | null = session.employe ? (session.peutGerer ? 'superviseur' : 'employe') : citoyen ? 'citoyen' : null;
+  const ecran: EcranRole | null = session.employe ? (session.role === 'admin' ? 'admin' : session.peutGerer ? 'superviseur' : 'employe') : citoyen ? 'citoyen' : null;
   const nom = session.employe?.nom ?? citoyen?.nom ?? null;
   const { deconnecter: deconnecterEmploye } = session;
   const deconnecter = useCallback(async () => {

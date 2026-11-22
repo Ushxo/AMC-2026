@@ -6,7 +6,6 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAcces } from "@/hooks/use-acces";
-import { useSessionEmploye } from "@/hooks/use-session-employe";
 import { EcranEquipes } from "@/app/ville/equipes";
 import { EcranTournees } from "@/app/ville/tournees";
 import { ListeAlertes } from "@/components/ville/liste-alertes";
@@ -15,7 +14,6 @@ import { BarreOnglets, type Onglet } from "../components/BarreOnglets";
 import { EnteteVert } from "../components/EnteteVert";
 import ArretsFaits from "./ArretsFaits";
 import InterventionsAPlanifier from "./InterventionsAPlanifier";
-import CreerComptePersonnel from "../admin/CreerComptePersonnel";
 import TableauDeBord from "./TableauDeBord";
 import TrajetOptimal from "./TrajetOptimal";
 
@@ -38,15 +36,15 @@ const ENTETES: Record<Id, { titre: string; sous: string }> = {
 };
 
 // En-tête de la page « Interventions à planifier » : casque, titre, profil (déconnexion).
-function EnteteSuperviseur({ nom, onLogout, onCreerCompte }: { nom: string | null; onLogout: () => void; onCreerCompte?: () => void }) {
+function EnteteSuperviseur({ nom, onLogout, onAdministration }: { nom: string | null; onLogout: () => void; onAdministration?: () => void }) {
   const insets = useSafeAreaInsets();
   function profil() {
     if (Platform.OS === "web") {
       if (window.confirm("Se déconnecter ?")) onLogout();
       return;
     }
-    Alert.alert(nom ? `Connecté : ${nom}` : "Mon compte", onCreerCompte ? "Que voulez-vous faire ?" : "Voulez-vous vous déconnecter ?", [
-      ...(onCreerCompte ? [{ text: "Créer un compte du personnel", onPress: onCreerCompte }] : []),
+    Alert.alert(nom ? `Connecté : ${nom}` : "Mon compte", onAdministration ? "Que voulez-vous faire ?" : "Voulez-vous vous déconnecter ?", [
+      ...(onAdministration ? [{ text: "Espace d'administration", onPress: onAdministration }] : []),
       { text: "Annuler", style: "cancel" as const },
       { text: "Se déconnecter", style: "destructive" as const, onPress: onLogout },
     ]);
@@ -71,25 +69,20 @@ function EnteteSuperviseur({ nom, onLogout, onCreerCompte }: { nom: string | nul
 }
 
 // Espace superviseur : la page des interventions à planifier (avec le bouton de calcul), puis NOS écrans (alertes, optimisation, équipes, arrêts faits).
-export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
+export default function SupervisorApp({ onLogout, onAdministration }: { onLogout: () => void; onAdministration?: () => void }) {
   const { nom } = useAcces();
-  const { role } = useSessionEmploye();
-  const estAdmin = role === "admin";
-  const [creation, setCreation] = useState(false);
   const [onglet, setOnglet] = useState<Id>("interventions");
   const [tableau, setTableau] = useState(false);
   // Calcul demandé depuis la liste : la sélection filtrée part avec le calcul, une seule fois par demande.
   const [demande, setDemande] = useState<{ id: number; cles: string[] } | null>(null);
   const [details, setDetails] = useState(false);
 
-  if (creation && estAdmin) return <CreerComptePersonnel onBack={() => setCreation(false)} />;
-
   return (
     <View style={styles.root}>
       {onglet === "optimisation" && demande && !details ? null : onglet === "interventions" && tableau ? (
         <EnteteVert titre="Tableau de bord" sousTitre="Vue d'ensemble de la journée" onBack={() => setTableau(false)} libelleRetour="Retour aux interventions" />
       ) : onglet === "interventions" && !tableau ? (
-        <EnteteSuperviseur nom={nom} onLogout={onLogout} onCreerCompte={estAdmin ? () => setCreation(true) : undefined} />
+        <EnteteSuperviseur nom={nom} onLogout={onLogout} onAdministration={onAdministration} />
       ) : (
         <EnteteVert titre={ENTETES[onglet].titre} sousTitre={ENTETES[onglet].sous} />
       )}
@@ -120,12 +113,6 @@ export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
         {onglet === "optimisation" && (!demande || details) ? <EcranTournees key={demande?.id ?? 0} dansCoquille clesInitiales={demande?.cles} /> : null}
         {onglet === "equipes" ? (
           <>
-            {estAdmin ? (
-              <Pressable onPress={() => setCreation(true)} accessibilityRole="button" style={styles.creer}>
-                <Ionicons name="person-add-outline" size={22} color={Palette.header} />
-                <Text style={styles.creerTexte}>Créer un compte du personnel</Text>
-              </Pressable>
-            ) : null}
             <EcranEquipes dansCoquille />
           </>
         ) : null}

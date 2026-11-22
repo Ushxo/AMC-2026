@@ -1,4 +1,4 @@
-import React from "react";
+import React, { type ReactNode } from "react";
 import { Pressable, StatusBar, StyleSheet, View } from "react-native";
 import { Texte as Text } from "@/components/texte";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Palette } from "@/constants/theme";
 
 // En-tête vert des pages des maquettes : flèche de retour (facultative), titre, sous-titre.
-export function EnteteVert({ titre, sousTitre, onBack, libelleRetour = "Retour" }: { titre: string; sousTitre?: string; onBack?: () => void; libelleRetour?: string }) {
+export function EnteteVert({ titre, sousTitre, onBack, libelleRetour = "Retour", droite }: { titre: string; sousTitre?: string; onBack?: () => void; libelleRetour?: string; droite?: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.entete, { paddingTop: insets.top + 14 }]}>
@@ -27,6 +27,7 @@ export function EnteteVert({ titre, sousTitre, onBack, libelleRetour = "Retour" 
           </Text>
         ) : null}
       </View>
+      {droite}
     </View>
   );
 }
