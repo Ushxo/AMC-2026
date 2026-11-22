@@ -1,0 +1,13 @@
+# Fichiers envoyés à Cloud Build : seulement le serveur et le modèle entraîné.
+# (Sans ce fichier, gcloud reprendrait .gitignore et exclurait modeles/.)
+*
+!Dockerfile
+!serveur/
+!serveur/**
+!ml_egouts/
+!ml_egouts/__init__.py
+!ml_egouts/score.py
+!modeles/
+!modeles/modele.onnx
+!modeles/metriques.json
+serveur/__pycache__/
