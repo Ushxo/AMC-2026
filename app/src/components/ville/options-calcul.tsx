@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 
 import { ThemedText } from '@/components/themed-text';
 import {

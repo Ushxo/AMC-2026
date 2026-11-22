@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
-import { Image, Pressable, StatusBar, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -9,13 +10,10 @@ import { CameraView, useCameraPermissions as usePermissionCamera, type VueCamera
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { CAMERA } from '@/components/ville/style';
 
 // Commandes de la caméra : couleurs fixes (fond sombre de l'objectif). Le reste de l'écran suit la marque.
-const C = {
-  cream: "#F8F5ED",
-  dark: "#23271F",
-  white: "#FFFFFF",
-};
+const C = { cream: CAMERA.creme, dark: CAMERA.sombre, white: CAMERA.blanc };
 
 /** Vérification de la photo par l'analyse : en cours, acceptée (égout), refusée (pas un égout) ou impossible. */
 export type VerificationPhoto = { statut: "en_cours" | "acceptee" | "refusee" | "impossible"; message: string };
@@ -110,7 +108,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
           <Text style={styles.permissionText}>
             Autorisez l’accès à la caméra pour photographier le problème.
           </Text>
-          <Pressable style={styles.permissionButton} onPress={requestPermission}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Autoriser la caméra" style={styles.permissionButton} onPress={requestPermission}>
             <Text style={styles.permissionButtonText}>Autoriser la caméra</Text>
           </Pressable>
         </View>
@@ -126,7 +124,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
           onCameraReady={() => setReady(true)}
         />
         <FrameCorners />
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.flashButton}
           onPress={() => setFlash((f) => !f)}
           accessibilityLabel={flash ? "Désactiver le flash" : "Activer le flash"}
@@ -139,12 +137,11 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
 
       <View style={[styles.header, { paddingTop: insets.top + 18 }]}>
         <View style={styles.headerWave} />
         <View style={styles.headerRow}>
-          <Pressable onPress={onBack} hitSlop={10} accessibilityLabel="Retour">
+          <Pressable accessibilityRole="button" onPress={onBack} hitSlop={10} accessibilityLabel="Retour">
             <Ionicons name="arrow-back" size={30} color={P.onHeader} />
           </Pressable>
           <View style={{ flex: 1 }}>
@@ -160,11 +157,11 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
         <View style={styles.preview}>{renderPreview()}</View>
 
         <View style={styles.controls}>
-          <Pressable onPress={chooseFromLibrary} hitSlop={10} accessibilityLabel="Choisir dans la galerie">
+          <Pressable accessibilityRole="button" onPress={chooseFromLibrary} hitSlop={10} accessibilityLabel="Choisir dans la galerie">
             <Ionicons name="image-outline" size={34} color={C.cream} />
           </Pressable>
 
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={capture}
             style={styles.shutter}
             accessibilityLabel={photoUri ? "Reprendre la photo" : "Prendre la photo"}
@@ -172,7 +169,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
             <View style={styles.shutterInner} />
           </Pressable>
 
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={flipOrRetake}
             hitSlop={10}
             accessibilityLabel={photoUri ? "Reprendre la photo" : "Changer de caméra"}
@@ -208,10 +205,10 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
       ) : null}
 
       <View style={[styles.actions, { paddingBottom: insets.bottom + 16 }]}>
-        <Pressable style={styles.skipButton} onPress={onSkip}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Passer la photo" style={styles.skipButton} onPress={onSkip}>
           <Text style={styles.skipText}>Passer</Text>
         </Pressable>
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={[styles.continueButton, !peutContinuer && { opacity: 0.55 }]}
           onPress={onContinue}
           disabled={!peutContinuer}
@@ -256,7 +253,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     fontWeight: "800",
   },
   subtitle: {
-    color: "#E6E4D8",
+    color: CAMERA.clair,
     fontSize: 15,
     lineHeight: 20,
     marginTop: 6,
@@ -271,7 +268,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   },
   preview: {
     flex: 1,
-    backgroundColor: "#111",
+    backgroundColor: CAMERA.noir,
   },
   frame: {
     position: "absolute",

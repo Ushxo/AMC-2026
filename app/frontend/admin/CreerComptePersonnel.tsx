@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 
 import { useEquipes } from "@/hooks/use-equipes";
 import {

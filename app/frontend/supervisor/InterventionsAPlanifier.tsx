@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -18,12 +19,13 @@ import { IllustrationProbleme } from "@/components/illustration-probleme";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { COULEUR_OMBRE, COULEURS_IMPORTANCE, FOND_COMPTEUR, BLANC_FIXE } from '@/components/ville/style';
 
 // Couleurs d'importance de la maquette : rouge, orange, jaune. Le texte et la pastille pleine restent contrastés.
 export const IMPORTANCE: Record<Gravite, { fond: string; plein: string; icone: keyof typeof Ionicons.glyphMap }> = {
-  elevee: { fond: "#F8D9D4", plein: "#B3261E", icone: "chevron-up" },
-  moyenne: { fond: "#FCE3CF", plein: "#B84A0B", icone: "remove" },
-  faible: { fond: "#FAF0C4", plein: "#8A6200", icone: "chevron-down" },
+  elevee: { ...COULEURS_IMPORTANCE.elevee, icone: "chevron-up" },
+  moyenne: { ...COULEURS_IMPORTANCE.moyenne, icone: "remove" },
+  faible: { ...COULEURS_IMPORTANCE.faible, icone: "chevron-down" },
 };
 
 type Choix = { valeur: string | null; libelle: string };
@@ -43,13 +45,13 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: ke
         style={[styles.pilule, actif && styles.piluleActive]}
       >
         <Ionicons name={icone} size={20} color={P.text} />
-        <Text style={styles.piluleTexte} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+        <Text style={styles.piluleTexte} maxFontSizeMultiplier={1.3}>
           {actif ? courant?.libelle : titre}
         </Text>
         <Ionicons name="chevron-down" size={18} color={P.text} />
       </Pressable>
       <Modal visible={ouvert} transparent animationType="fade" onRequestClose={() => setOuvert(false)}>
-        <Pressable style={styles.voile} onPress={() => setOuvert(false)} accessibilityRole="button" accessibilityLabel="Fermer la liste" />
+        <Pressable retour={false} style={styles.voile} onPress={() => setOuvert(false)} accessibilityRole="button" accessibilityLabel="Fermer la liste" />
         <View style={styles.feuille}>
           <Text style={styles.feuilleTitre} accessibilityRole="header">
             {titre}
@@ -132,54 +134,67 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
 
   return (
     <View style={styles.fond}>
-      <ScrollView contentContainerStyle={[styles.page, { paddingBottom: 130 }]}>
+      <FlatList
+        data={chargement || erreur ? [] : liste}
+        keyExtractor={(i) => i.endroit.cle}
+        renderItem={({ item }) => <Ligne i={item} lieu={lieu(item)} onOuvrir={() => router.push(hrefEndroit(item.endroit))} />}
+        contentContainerStyle={[styles.page, { paddingBottom: 130 }]}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        initialNumToRender={10}
+        windowSize={7}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          <View style={{ gap: 12, marginBottom: 12 }}>
         <View style={styles.titreRangee}>
-          <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
-            Interventions à planifier
-          </Text>
-          <Text style={styles.compteur} accessibilityLabel={`${liste.length} à traiter`}>
-            {liste.length} à traiter
-          </Text>
-        </View>
-        <Text style={styles.sous}>Priorisées par degré d’importance pour l’optimisation du trajet.</Text>
+              <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
+                Interventions à planifier
+              </Text>
+              <Text style={styles.compteur} accessibilityLabel={`${liste.length} à traiter`}>
+                {liste.length} à traiter
+              </Text>
+            </View>
+            <Text style={styles.sous}>Priorisées par degré d’importance pour l’optimisation du trajet.</Text>
 
-        <View style={styles.filtresTitre}>
-          <Ionicons name="funnel-outline" size={22} color={P.text} />
-          <Text style={styles.filtresMot} accessibilityRole="header">
-            Filtres
-          </Text>
-        </View>
-        <View style={styles.filtres}>
-          <ListeDeroulante icone="location-outline" titre="Secteur" choix={secteurs} valeur={filtres.zoneId} onChoisir={(v) => setFiltres({ ...filtres, zoneId: v })} />
-          <ListeDeroulante
-            icone="warning-outline"
-            titre="Type de problème"
-            choix={CATEGORIES_PROPOSEES.map((c) => ({ valeur: c, libelle: LIBELLES_CATEGORIE[c] }))}
-            valeur={filtres.categorie}
-            onChoisir={(v) => setFiltres({ ...filtres, categorie: v as FiltresInterventions["categorie"] })}
-          />
-          <ListeDeroulante
-            icone="list-outline"
-            titre="Importance"
-            choix={(["elevee", "moyenne", "faible"] as Gravite[]).map((g) => ({ valeur: g, libelle: LIBELLES_GRAVITE[g] }))}
-            valeur={filtres.gravite}
-            onChoisir={(v) => setFiltres({ ...filtres, gravite: v as Gravite | null })}
-          />
-        </View>
-
-        {chargement ? (
-          <Chargement texte="Chargement des interventions…" />
-        ) : erreur ? (
-          <Erreur message={erreur} onReessayer={() => void rafraichir()} />
-        ) : liste.length === 0 ? (
-          <Vide texte="Aucune intervention à planifier avec ces filtres." />
-        ) : (
-          liste.map((i) => <Ligne key={i.endroit.cle} i={i} lieu={lieu(i)} onOuvrir={() => router.push(hrefEndroit(i.endroit))} />)
-        )}
-        <Pressable onPress={onTableau} accessibilityRole="button" style={styles.lien}>
-          <Text style={styles.lienTexte}>Voir le tableau de bord complet</Text>
-        </Pressable>
-      </ScrollView>
+            <View style={styles.filtresTitre}>
+              <Ionicons name="funnel-outline" size={22} color={P.text} />
+              <Text style={styles.filtresMot} accessibilityRole="header">
+                Filtres
+              </Text>
+            </View>
+            <View style={styles.filtres}>
+              <ListeDeroulante icone="location-outline" titre="Secteur" choix={secteurs} valeur={filtres.zoneId} onChoisir={(v) => setFiltres({ ...filtres, zoneId: v })} />
+              <ListeDeroulante
+                icone="warning-outline"
+                titre="Type de problème"
+                choix={CATEGORIES_PROPOSEES.map((c) => ({ valeur: c, libelle: LIBELLES_CATEGORIE[c] }))}
+                valeur={filtres.categorie}
+                onChoisir={(v) => setFiltres({ ...filtres, categorie: v as FiltresInterventions["categorie"] })}
+              />
+              <ListeDeroulante
+                icone="list-outline"
+                titre="Importance"
+                choix={(["elevee", "moyenne", "faible"] as Gravite[]).map((g) => ({ valeur: g, libelle: LIBELLES_GRAVITE[g] }))}
+                valeur={filtres.gravite}
+                onChoisir={(v) => setFiltres({ ...filtres, gravite: v as Gravite | null })}
+              />
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          chargement ? (
+            <Chargement texte="Chargement des interventions…" />
+          ) : erreur ? (
+            <Erreur message={erreur} onReessayer={() => void rafraichir()} />
+          ) : (
+            <Vide texte="Aucune intervention à planifier avec ces filtres." />
+          )
+        }
+        ListFooterComponent={
+          <Pressable onPress={onTableau} accessibilityRole="button" style={styles.lien}>
+            <Text style={styles.lienTexte}>Voir le tableau de bord complet</Text>
+          </Pressable>
+        }
+      />
 
       <View style={styles.bas} pointerEvents="box-none">
         <Pressable
@@ -212,7 +227,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   page: { padding: 18, gap: 12, maxWidth: 800, width: "100%", alignSelf: "center" },
   titreRangee: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
   titre: { fontSize: 26, fontWeight: "800", color: P.text, flexShrink: 1 },
-  compteur: { backgroundColor: "#F3E7C3", color: P.primary, fontWeight: "800", fontSize: 16, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, overflow: "hidden" },
+  compteur: { backgroundColor: FOND_COMPTEUR, color: P.primary, fontWeight: "800", fontSize: 16, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, overflow: "hidden" },
   sous: { color: P.textSecondary, fontSize: 15 },
   filtresTitre: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
   filtresMot: { fontSize: 20, fontWeight: "800", color: P.text },
@@ -225,9 +240,9 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   feuilleTitre: { fontSize: 20, fontWeight: "800", color: P.text },
   option: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderColor: P.border },
   optionTexte: { fontSize: 17, color: P.text },
-  ligne: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: P.surface, borderRadius: 24, padding: 10, shadowColor: "#1A261A", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  ligne: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: P.surface, borderRadius: 24, padding: 10, shadowColor: COULEUR_OMBRE, shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   priorite: { width: 76, borderRadius: 18, alignItems: "center", paddingTop: 8, paddingBottom: 6, gap: 4 },
-  prioriteTexte: { color: "#FFFFFF", fontWeight: "800", fontSize: 13, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, overflow: "hidden" },
+  prioriteTexte: { color: BLANC_FIXE, fontWeight: "800", fontSize: 13, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, overflow: "hidden" },
   dessin: { width: 60, height: 52, alignItems: "center", justifyContent: "center" },
   ligneTitre: { fontSize: 17, fontWeight: "800", color: P.text },
   detail: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },

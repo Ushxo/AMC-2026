@@ -14,6 +14,7 @@ import { LIBELLES_CATEGORIE } from "@/types";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { BLANC_FIXE } from '@/components/ville/style';
 
 // « Arrêts faits » du superviseur : par équipe, les arrêts déjà faits (heure réelle) puis le prochain à venir. Lecture seule :
 // un arrêt fait règle tout de suite ses signalements, il n'y a pas de rapport à approuver.
@@ -100,7 +101,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   carte: { backgroundColor: P.surface, borderRadius: 22, padding: 16 },
   separateur: { height: 1, backgroundColor: P.border, marginVertical: 10 },
   ligne: { flexDirection: "row", alignItems: "center", gap: 12 },
-  numero: { width: 32, height: 32, borderRadius: 16, textAlign: "center", lineHeight: 32, color: "#FFFFFF", fontWeight: "700", fontSize: 15, overflow: "hidden" },
+  numero: { width: 32, height: 32, borderRadius: 16, textAlign: "center", lineHeight: 32, color: BLANC_FIXE, fontWeight: "700", fontSize: 15, overflow: "hidden" },
   ligneTitre: { fontSize: 15, fontWeight: "700", color: P.text },
   ligneDetail: { fontSize: 13, fontWeight: "500", color: P.textSecondary },
   heure: { fontSize: 14, fontWeight: "700", color: P.primary },

@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Modal, Pressable, ScrollView, StyleSheet, View, Switch } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View, Switch } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { ChampTexte as TextInput } from '@/components/texte';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,7 +17,7 @@ import { Chargement, Erreur } from '@/components/ville/etat-ecran';
 import { ListeEndroits } from '@/components/ville/liste-endroits';
 import { BandesInondation } from '@/components/ville/bandes-inondation';
 import { SelecteurCarte } from '@/components/ville/selecteur-carte';
-import { COULEUR_REPERE, STYLE_CHANTIER, STYLE_ZONE_INONDABLE } from '@/components/ville/style';
+import { COULEUR_REPERE, STYLE_AVIS, STYLE_CHANTIER, STYLE_ZONE_INONDABLE, COULEUR_OMBRE } from '@/components/ville/style';
 import { useCouches } from '@/hooks/use-couches';
 import { useBandesInondation } from '@/hooks/use-bandes-inondation';
 import { useBouchesExistantes } from '@/hooks/use-bouches-existantes';
@@ -46,6 +47,7 @@ import {
 import { dansQuartier, messagePositionCarte, RAYON_CITOYEN_M } from '@/lib/position-citoyen';
 import { LIBELLES_GRAVITE, type Categorie, type Endroit, type ResultatRecherche } from '@/types';
 import { LogoMarque } from '@/components/logo-marque';
+import { LegendeGravite } from './legende-gravite';
 import { FeuilleProbleme } from './feuille-probleme';
 import { useMarque, useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
@@ -264,7 +266,7 @@ export default function CarteCitoyen({ coquille }: Props) {
             </Pressable>
           ) : null}
         </View>
-        <View style={[styles.recherche, { backgroundColor: theme.onHeader }]}>
+        <View style={[styles.recherche, { backgroundColor: theme.background }]}>
           <Ionicons name="search" size={24} color={theme.primary} />
           <TextInput
             style={[styles.champ, { color: theme.text }]}
@@ -290,7 +292,7 @@ export default function CarteCitoyen({ coquille }: Props) {
         return (
           <View
             accessibilityRole="alert"
-            style={[styles.verif, { top: top + 150, backgroundColor: v.sous ? '#E4F1F5' : theme.onHeader, borderColor: v.sous ? '#287F99' : theme.border }]}>
+            style={[styles.verif, { top: top + 150, backgroundColor: theme.surface, borderColor: v.sous ? STYLE_AVIS.ebullition.couleur : theme.border }]}>
             <ThemedText type="smallBold">{v.message}</ThemedText>
             {v.sous ? (
               <Pressable accessibilityRole="button" onPress={() => setFiche({ element: ficheAvis(v.avis[0]), point: null })} style={styles.lienVerif}>
@@ -329,23 +331,27 @@ export default function CarteCitoyen({ coquille }: Props) {
         </View>
       ) : null}
 
+      <View pointerEvents="none" style={{ position: 'absolute', left: 16, bottom: HAUTEUR_BARRE * (coquille ? 1 : 0) + bottom + 84 }}>
+        <LegendeGravite />
+      </View>
+
       {/* Boutons flottants : options de la carte, recentrage, signalement. */}
       <View pointerEvents="box-none" style={[styles.flottants, { bottom: HAUTEUR_BARRE * (coquille ? 1 : 0) + bottom + 16 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Options de la carte et liste des endroits" onPress={() => setOptions(true)} style={[styles.rond, { backgroundColor: theme.onHeader }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Options de la carte et liste des endroits" onPress={() => setOptions(true)} style={[styles.rond, { backgroundColor: theme.background }]}>
           <Ionicons name="layers-outline" size={26} color={theme.primary} />
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => { setChoixProbleme(null); setFeuille({ point: null }); }} style={[styles.signaler, { backgroundColor: theme.accent }]}>
-          <Ionicons name="add" size={24} color={theme.surface} />
-          <ThemedText type="smallBold" style={{ color: theme.surface }} maxFontSizeMultiplier={1.3}>
+        <Pressable accessibilityRole="button" onPress={() => { setChoixProbleme(null); setFeuille({ point: null }); }} style={[styles.signaler, { backgroundColor: theme.action }]}>
+          <Ionicons name="add" size={24} color={theme.onAction} />
+          <ThemedText type="smallBold" style={{ color: theme.onAction }} maxFontSizeMultiplier={1.3}>
             Signaler un problème
           </ThemedText>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Ma position : recentrer la carte" onPress={() => void recentrer()} style={[styles.rond, { backgroundColor: theme.onHeader }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ma position : recentrer la carte" onPress={() => void recentrer()} style={[styles.rond, { backgroundColor: theme.background }]}>
           <Ionicons name="locate" size={28} color={theme.primary} />
         </Pressable>
       </View>
       {messagePosition ? (
-        <View pointerEvents="none" style={[styles.avisPosition, { bottom: HAUTEUR_BARRE * (coquille ? 1 : 0) + bottom + 86, backgroundColor: theme.onHeader }]}>
+        <View pointerEvents="none" style={[styles.avisPosition, { bottom: HAUTEUR_BARRE * (coquille ? 1 : 0) + bottom + 130, backgroundColor: theme.background }]}>
           <ThemedText type="small" accessibilityRole="alert">
             {messagePosition}
           </ThemedText>
@@ -362,7 +368,7 @@ export default function CarteCitoyen({ coquille }: Props) {
       ) : null}
 
       <Modal visible={fiche !== null} transparent animationType="slide" onRequestClose={() => setFiche(null)}>
-        <Pressable style={styles.voile} onPress={() => setFiche(null)} accessibilityRole="button" accessibilityLabel="Fermer la fiche" />
+        <Pressable retour={false} style={styles.voile} onPress={() => setFiche(null)} accessibilityRole="button" accessibilityLabel="Fermer la fiche" />
         <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
           <ScrollView contentContainerStyle={styles.contenuFeuille}>
             <ThemedText type="subtitle" accessibilityRole="header" style={{ fontSize: 20, lineHeight: 28 }}>
@@ -395,7 +401,7 @@ export default function CarteCitoyen({ coquille }: Props) {
 
       {/* Options : style de la carte, liste équivalente des endroits, explications. */}
       <Modal visible={options} transparent animationType="slide" onRequestClose={() => setOptions(false)}>
-        <Pressable style={styles.voile} onPress={() => setOptions(false)} accessibilityRole="button" accessibilityLabel="Fermer les options de la carte" />
+        <Pressable retour={false} style={styles.voile} onPress={() => setOptions(false)} accessibilityRole="button" accessibilityLabel="Fermer les options de la carte" />
         <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
           <ScrollView contentContainerStyle={styles.contenuFeuille}>
             <ThemedText type="subtitle" accessibilityRole="header">
@@ -481,8 +487,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   resultats: { position: 'absolute', left: 20, right: 20, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
   ligneResultat: { minHeight: 48, paddingHorizontal: 16, justifyContent: 'center' },
   flottants: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rond: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
-  signaler: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 56, paddingHorizontal: 20, borderRadius: 28, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+  rond: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', shadowColor: COULEUR_OMBRE, shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+  signaler: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 56, paddingHorizontal: 20, borderRadius: 28, shadowColor: COULEUR_OMBRE, shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   verif: { position: 'absolute', left: 20, right: 20, borderRadius: 16, borderWidth: 1, paddingVertical: 10, paddingHorizontal: 14, gap: 2 },
   lienVerif: { minHeight: 36, justifyContent: 'center' },
   avisPosition: { position: 'absolute', left: 16, right: 16, borderRadius: 16, padding: 10 },

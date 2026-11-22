@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -36,6 +37,8 @@ import { IMPORTANCE } from "./InterventionsAPlanifier";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { FOND_AVERTISSEMENT, BLANC_FIXE } from '@/components/ville/style';
+import { BoutonAction } from '@/components/bouton-action';
 
 /**
  * Écran « Trajet optimal » : lance notre optimisation sur la sélection de la liste, puis montre le trajet de chaque équipe
@@ -81,7 +84,6 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
   return (
     <View style={styles.fond}>
       <View style={[styles.entete, { paddingTop: insets.top + 12 }]}>
-        <StatusBar barStyle="light-content" />
         <Pressable onPress={onRetour} accessibilityRole="button" accessibilityLabel="Retour à la liste des interventions" hitSlop={8} style={styles.retour}>
           <Ionicons name="arrow-back" size={30} color={P.onHeader} />
         </Pressable>
@@ -95,15 +97,18 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
           <View style={styles.bloc} accessibilityLiveRegion="polite">
             <Text style={styles.blocTitre}>{MESSAGE_OPTIMISATION_EN_COURS}</Text>
             <BarreProgression etape={progression.etape} fraction={progression.fraction} />
+            {resultat && actif ? <Text style={styles.note}>Le plan en place est affiché tout de suite ; il sera remplacé à l&apos;arrivée du nouveau calcul.</Text> : null}
           </View>
-        ) : echec ? (
+        ) : null}
+        {echec && !calcul ? (
           <Text style={styles.alerte} accessibilityRole="alert">
             {echec}
           </Text>
-        ) : chargement ? (
+        ) : null}
+        {chargement && !resultat ? (
           <Chargement texte="Chargement du trajet…" />
         ) : !resultat || !actif ? (
-          <Vide texte={MESSAGE_AUCUNE_TOURNEE} />
+          calcul || echec ? null : <Vide texte={MESSAGE_AUCUNE_TOURNEE} />
         ) : (
           <>
             <View style={styles.genere}>
@@ -238,19 +243,11 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
 
       {actif && peutGerer && !calcul ? (
         <View style={[styles.bas, { paddingBottom: 10 }]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Suivre le trajet de l'équipe ${actif.equipe_nom}`}
+          <BoutonAction
+            titre="Suivre ce trajet"
+            libelleAccessible={`Suivre le trajet de l'équipe ${actif.equipe_nom}`}
             onPress={() => router.push({ pathname: "/ville/trajet/[equipe]", params: { equipe: actif.equipe_id } })}
-            style={styles.suivre}
-          >
-            <MaterialCommunityIcons name="navigation-variant-outline" size={30} color={P.surface} />
-            <View style={styles.separateur} />
-            <Text style={styles.suivreTexte} maxFontSizeMultiplier={1.2}>
-              Suivre ce trajet
-            </Text>
-            <Ionicons name="arrow-forward" size={28} color={P.surface} />
-          </Pressable>
+          />
         </View>
       ) : null}
     </View>
@@ -272,10 +269,10 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   duree: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: P.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 },
   dureeTexte: { fontWeight: "800", fontSize: 16, color: P.text },
   note: { fontSize: 13, color: P.textSecondary },
-  avisPrecalcule: { backgroundColor: "#FAF0C4", borderRadius: 16, padding: 12, gap: 2 },
+  avisPrecalcule: { backgroundColor: FOND_AVERTISSEMENT, borderRadius: 16, padding: 12, gap: 2 },
   avisTitre: { fontSize: 14, fontWeight: "700", color: P.text },
   ligneNonServi: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
-  raison: { fontSize: 12, fontWeight: "600", color: P.textSecondary },
+  raison: { fontSize: 13, fontWeight: "600", color: P.textSecondary },
   equipes: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface },
   chipTexte: { fontSize: 15, color: P.text, fontWeight: "700" },
@@ -287,7 +284,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   colNum: { width: 40, alignSelf: "stretch", alignItems: "center", justifyContent: "center" },
   trait: { position: "absolute", width: 3, top: "50%", bottom: -39 },
   num: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  numTexte: { color: "#FFFFFF", fontWeight: "800", fontSize: 18 },
+  numTexte: { color: BLANC_FIXE, fontWeight: "800", fontSize: 18 },
   dessin: { width: 60, height: 52, alignItems: "center", justifyContent: "center" },
   ligneTitre: { fontSize: 16, fontWeight: "800", color: P.text },
   ligneLieu: { fontSize: 13, color: P.text },
@@ -295,7 +292,4 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   lien: { minHeight: 48, alignItems: "center", justifyContent: "center" },
   lienTexte: { color: P.primary, fontWeight: "800", textDecorationLine: "underline", fontSize: 14, textAlign: "center" },
   bas: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 14 },
-  suivre: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: P.action, borderRadius: 32, paddingHorizontal: 22, minHeight: 72 },
-  separateur: { width: 1, alignSelf: "stretch", marginVertical: 14, backgroundColor: "rgba(255,255,255,0.5)" },
-  suivreTexte: { flex: 1, color: P.surface, fontSize: 21, fontWeight: "800" },
 });

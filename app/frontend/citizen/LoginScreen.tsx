@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text, ChampTexte as TextInput } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { BoutonAction } from '@/components/bouton-action';
 
 
 const COURRIEL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,7 +60,6 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
   const champErreurMdp = !!error && isValidEmail(email) && !password;
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <StatusBar barStyle="light-content" />
       <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
         {onBack ? (
           <Pressable onPress={onBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="Retour à la carte" style={styles.retour}>
@@ -138,9 +139,7 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
           </Text>
         ) : null}
 
-        <Pressable style={[styles.primary, busy && { opacity: 0.6 }]} onPress={() => void handleLogin()} disabled={busy} accessibilityRole="button" accessibilityState={{ busy }}>
-          <Text style={styles.primaryText}>{busy ? "Connexion…" : "Se connecter"}</Text>
-        </Pressable>
+        <BoutonAction titre={busy ? "Connexion…" : "Se connecter"} occupe={busy} onPress={() => void handleLogin()} />
 
         {onSignup ? (
           <Pressable style={styles.secondary} onPress={onSignup} accessibilityRole="button">
@@ -185,8 +184,6 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   forgot: { alignSelf: "flex-end", minHeight: 48, justifyContent: "center" },
   forgotText: { fontSize: 15, fontWeight: "600", color: P.primary, textDecorationLine: "underline" },
   error: { color: P.danger, fontSize: 14, fontWeight: "600" },
-  primary: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: "center", justifyContent: "center" },
-  primaryText: { color: P.onAction, fontSize: 19, fontWeight: "700" },
   secondary: { minHeight: 52, borderRadius: 26, borderWidth: 2, borderColor: P.primary, alignItems: "center", justifyContent: "center" },
   secondaryText: { color: P.primary, fontSize: 16, fontWeight: "700" },
   demo: { borderTopWidth: 1, borderTopColor: P.border, paddingTop: 16, alignItems: "center", gap: 6, marginTop: 8 },

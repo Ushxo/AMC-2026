@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -27,6 +27,7 @@ import { formaterDuree, formaterHeure, formaterKm } from '@/lib/temps';
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { BoutonAction } from '@/components/bouton-action';
 
 export default function FicheEquipe() {
   const P = useTheme();
@@ -298,14 +299,7 @@ export default function FicheEquipe() {
         </ScrollView>
         {equipe && tournee ? (
           <View style={[styles.pied, { paddingBottom: bottom + 12 }]}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push({ pathname: '/ville/trajet/[equipe]', params: { equipe: equipe.id } })}
-              style={styles.suivre}>
-              <ThemedText style={styles.suivreTexte} maxFontSizeMultiplier={1.2}>
-                Suivre ce trajet
-              </ThemedText>
-            </Pressable>
+            <BoutonAction titre="Suivre ce trajet" onPress={() => router.push({ pathname: '/ville/trajet/[equipe]', params: { equipe: equipe.id } })} />
           </View>
         ) : null}
       </SafeAreaView>
@@ -328,6 +322,4 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   piste: { height: 8, borderRadius: 4, backgroundColor: P.surface, overflow: 'hidden' },
   remplissage: { height: 8, borderRadius: 4, backgroundColor: P.primary },
   pied: { paddingHorizontal: 20, paddingTop: 8 },
-  suivre: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: 'center', justifyContent: 'center' },
-  suivreTexte: { color: P.onAction, fontSize: 19, lineHeight: 26, fontWeight: '700' },
 });

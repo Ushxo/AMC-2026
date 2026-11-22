@@ -2,7 +2,8 @@ import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COULEUR_AVIS } from '@/components/citoyen-essai/style';
@@ -53,6 +54,7 @@ import {
 } from '@/types';
 import { useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
+import { BoutonAction } from '@/components/bouton-action';
 
 const CATEGORIES: Categorie[] = CATEGORIES_PROPOSEES;
 
@@ -449,16 +451,11 @@ export default function Signaler() {
             <Bouton pleineLargeur titre="Retour à la carte" variante="discret" onPress={() => router.replace('/')} />
           </View>
         ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ disabled: envoiEnCours || attenteAnalyse }}
-            disabled={envoiEnCours || attenteAnalyse}
+          <BoutonAction
+            titre={attenteAnalyse ? 'Vérification de la photo…' : envoiEnCours ? 'Envoi…' : 'Envoyer le signalement'}
             onPress={() => void valider()}
-            style={[styles.envoyer, (envoiEnCours || attenteAnalyse) && { opacity: 0.6 }]}>
-            <ThemedText style={styles.envoyerTexte} maxFontSizeMultiplier={1.2}>
-              {attenteAnalyse ? 'Vérification de la photo…' : envoiEnCours ? 'Envoi…' : 'Envoyer le signalement'}
-            </ThemedText>
-          </Pressable>
+            occupe={envoiEnCours || attenteAnalyse}
+          />
         )}
       </View>
     </View>
@@ -489,8 +486,6 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   suggestion: { backgroundColor: P.bandeau, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
   suggestionTexte: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
   pied: { paddingHorizontal: 20, paddingTop: 12 },
-  envoyer: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: 'center', justifyContent: 'center' },
-  envoyerTexte: { color: P.onAction, fontSize: 19, lineHeight: 26, fontWeight: '700' },
   avis: { borderWidth: 2, borderRadius: 12, padding: 12, gap: 4 },
   commentaire: { minHeight: 96, textAlignVertical: 'top', paddingTop: 12 },
   photoBloc: { gap: 8 },

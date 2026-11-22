@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IllustrationProbleme } from '@/components/illustration-probleme';
@@ -8,6 +9,7 @@ import { BlurView } from '@/lib/flou-optionnel';
 import { CATEGORIES_PROPOSEES, LIBELLES_CATEGORIE, type Categorie } from '@/types';
 import { useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
+import { BoutonAction } from '@/components/bouton-action';
 
 const TITRE_CARTE: Partial<Record<Categorie, string>> = {
   grille_bouchee: 'Égout bouché',
@@ -38,7 +40,7 @@ export function FeuilleProbleme({
   const theme = useTheme();
   return (
     <View style={styles.plein} pointerEvents="box-none">
-      <Pressable style={styles.plein} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer sans signaler">
+      <Pressable retour={false} style={styles.plein} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer sans signaler">
         {BlurView ? (
           <BlurView intensity={25} tint="light" style={styles.plein}>
             <View style={[styles.plein, styles.teinte]} />
@@ -81,15 +83,7 @@ export function FeuilleProbleme({
             {erreur}
           </ThemedText>
         ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !categorie }}
-          onPress={onContinuer}
-          style={[styles.continuer, { backgroundColor: categorie ? theme.accent : theme.backgroundSelected }]}>
-          <ThemedText type="smallBold" style={{ color: categorie ? theme.surface : theme.textSecondary, fontSize: 18 }}>
-            Continuer
-          </ThemedText>
-        </Pressable>
+        <BoutonAction titre="Continuer" actif={!!categorie} onPress={onContinuer} />
       </View>
     </View>
   );
@@ -106,5 +100,4 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   carte: { flexBasis: '47%', flexGrow: 1, borderRadius: 22, padding: 10, alignItems: 'center', minHeight: 150, justifyContent: 'space-between' },
   dessin: { height: 84, alignItems: 'center', justifyContent: 'center' },
   texte: { textAlign: 'center' },
-  continuer: { minHeight: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
 });

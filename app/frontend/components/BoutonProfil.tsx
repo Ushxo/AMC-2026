@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import { StyleSheet } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { FeuilleProfil } from "@/components/profil/feuille-profil";

@@ -1,5 +1,6 @@
 import React, { type ReactNode } from "react";
-import { Pressable, StatusBar, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from "@/components/texte";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,7 +17,6 @@ export function EnteteVert({ titre, sousTitre, onBack, libelleRetour = "Retour",
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.entete, { paddingTop: insets.top + 14 }]}>
-      <StatusBar barStyle="light-content" />
       {onBack ? (
         <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel={libelleRetour} hitSlop={8} style={styles.retour}>
           <Ionicons name="arrow-back" size={28} color={P.onHeader} />

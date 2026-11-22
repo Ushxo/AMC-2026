@@ -18,12 +18,13 @@ export type Jetons = Couleurs & {
   onActionDoux: string;
 };
 
-export type Apparence = 'standard' | 'contraste' | 'sombre';
-export const APPARENCES: Apparence[] = ['standard', 'contraste', 'sombre'];
+export type Apparence = 'standard' | 'contraste' | 'sombre' | 'daltonisme';
+export const APPARENCES: Apparence[] = ['standard', 'contraste', 'sombre', 'daltonisme'];
 export const LIBELLES_APPARENCE: Record<Apparence, string> = {
   standard: 'Standard',
   contraste: 'Contraste élevé',
   sombre: 'Sombre',
+  daltonisme: 'Adapté au daltonisme',
 };
 
 /** Complète une palette partielle avec celle de repli, jeton par jeton. */
@@ -53,6 +54,15 @@ export function jetonsDepuis(c: Couleurs): Jetons {
 /** Variante d'apparence appliquée à la palette de la marque. */
 export function appliquerApparence(base: Couleurs, apparence: Apparence): Couleurs {
   if (apparence === 'standard') return base;
+
+  if (apparence === 'daltonisme') {
+    // Sans rouge ni vert pour dire « bon » ou « mauvais » : bleu et vermillon (palette sûre pour le daltonisme). Les mots restent écrits partout.
+    const c: Couleurs = { ...base };
+    c.success = ajusterContraste('#0072B2', base.surface, 4.5);
+    c.danger = ajusterContraste('#B34100', base.surface, 4.5);
+    c.accent = ajusterContraste('#D55E00', base.background, 3);
+    return c;
+  }
 
   if (apparence === 'contraste') {
     const fond = '#FFFFFF';

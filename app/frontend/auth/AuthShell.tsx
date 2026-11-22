@@ -1,5 +1,6 @@
 import React from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, StyleSheet, View, type TextInputProps } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type TextInputProps } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text, ChampTexte as TextInput } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +9,7 @@ import { LogoMarque } from "@/components/logo-marque";
 import { useMarque, useStyles } from "@/marque/utiliser";
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { BoutonAction } from '@/components/bouton-action';
 
 // Coquille commune des écrans de compte (même allure que la connexion) : bandeau vert avec le logo, carte crème dessous.
 export function AuthShell({ title, onBack, children }: { title: string; onBack?: () => void; children: React.ReactNode }) {
@@ -17,7 +19,6 @@ export function AuthShell({ title, onBack, children }: { title: string; onBack?:
   const insets = useSafeAreaInsets();
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
         <View style={[styles.hero, { paddingTop: insets.top + 24 }]}>
           {onBack ? (
@@ -70,15 +71,13 @@ export function AuthField({ icon, label, error, ...rest }: ChampProps) {
 export function AuthButton({ label, onPress, busy, outline }: { label: string; onPress: () => void; busy?: boolean; outline?: boolean }) {
   const styles = useStyles(creerStyles);
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={busy}
-      accessibilityRole="button"
-      accessibilityState={{ busy: !!busy, disabled: !!busy }}
-      style={[outline ? styles.secondary : styles.primary, busy && { opacity: 0.6 }, { marginTop: 8 }]}
-    >
-      <Text style={outline ? styles.secondaryText : styles.primaryText}>{busy ? "Un instant…" : label}</Text>
-    </Pressable>
+    outline ? (
+      <Pressable onPress={onPress} disabled={busy} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ busy: !!busy, disabled: !!busy }} style={[styles.secondary, busy && { opacity: 0.6 }, { marginTop: 8 }]}>
+        <Text style={styles.secondaryText}>{busy ? "Un instant…" : label}</Text>
+      </Pressable>
+    ) : (
+      <BoutonAction titre={label} occupe={!!busy} onPress={onPress} style={{ marginTop: 8 }} />
+    )
   );
 }
 
@@ -97,7 +96,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   hero: { alignItems: "center", paddingHorizontal: 24, paddingBottom: 28 },
   back: { position: "absolute", left: 20, top: 60 },
   brand: { color: P.onHeader, fontSize: 34, fontWeight: "800", marginTop: 14 },
-  card: { flex: 1, backgroundColor: P.onHeader, borderTopLeftRadius: 40, borderTopRightRadius: 40, paddingHorizontal: 24, paddingTop: 28 },
+  card: { flex: 1, backgroundColor: P.background, borderTopLeftRadius: 40, borderTopRightRadius: 40, paddingHorizontal: 24, paddingTop: 28 },
   title: { color: P.primary, fontSize: 28, fontWeight: "800", marginBottom: 18 },
   field: { height: 58, borderWidth: 1.5, borderColor: P.borderForte, borderRadius: 20, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, gap: 12, backgroundColor: P.surface },
   fieldError: { borderColor: P.danger },

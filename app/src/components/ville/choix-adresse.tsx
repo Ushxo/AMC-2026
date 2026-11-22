@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 
 import { Carte, Repere } from '@/components/carte';
 import { ThemedText } from '@/components/themed-text';

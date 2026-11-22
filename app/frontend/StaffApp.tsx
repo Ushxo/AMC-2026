@@ -7,7 +7,8 @@ import { Chargement } from "@/components/ville/etat-ecran";
 import { useAcces } from "@/hooks/use-acces";
 import { useMonEquipe } from "@/hooks/use-mon-equipe";
 import { useEquipes } from "@/hooks/use-equipes";
-import { EnteteMaCarte } from "./components/EnteteMaCarte";
+import { BoutonProfil } from "./components/BoutonProfil";
+import { EnteteVert } from "./components/EnteteVert";
 import { useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
 
@@ -21,7 +22,7 @@ export default function StaffApp({ onLogout }: { onLogout: () => void }) {
 
   return (
     <View style={styles.root}>
-      <EnteteMaCarte sousTitre={nomEquipe ? `${nomEquipe} · trajet du jour` : nom ?? "Responsable d’équipe"} nom={nom} onLogout={onLogout} />
+      <EnteteVert titre="Ma carte" sousTitre={nomEquipe ? `${nomEquipe} · trajet du jour` : nom ?? "Responsable d’équipe"} droite={<BoutonProfil nom={nom} role="Employé d’équipe" onDeconnexion={onLogout} />} />
       <View style={styles.corps}>
         {chargement ? (
           <Chargement texte="Recherche de votre équipe…" />

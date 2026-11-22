@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
@@ -15,6 +16,7 @@ import { BOTTOM_NAV_HEIGHT } from '../components/BottomNav';
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { COULEUR_OMBRE } from '@/components/ville/style';
 
 
 const STEPS = ['Soumis', 'Pris en\ncharge', 'Terminé'];
@@ -92,32 +94,24 @@ export default function MyAlerts() {
   const { mes, chargement, erreur, rafraichir } = useMesSignalements();
   const adresses = useMemo(() => chargerAdresses(), []);
 
+  const vide = !chargement && !erreur && !mes.length;
   return (
-    <ScrollView
+    <FlatList
       style={styles.root}
+      data={chargement || erreur ? [] : mes}
+      keyExtractor={(a) => a.id}
       contentContainerStyle={{ paddingBottom: BOTTOM_NAV_HEIGHT + insets.bottom + 24 }}
-    >
-      <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
+      initialNumToRender={8}
+      windowSize={7}
+      ListHeaderComponent={
+        <View style={[styles.header, { paddingTop: insets.top + 24, marginBottom: -48 }]}>
         <View style={styles.headerWave} />
         <Text style={styles.title}>Mes alertes</Text>
         <Text style={styles.subtitle}>Suivez l’évolution de vos signalements.</Text>
       </View>
-
-      <View style={styles.list}>
-        {chargement ? (
-          <View style={styles.card} accessibilityRole="progressbar" accessibilityLabel="Chargement de vos alertes">
-            <Text style={styles.cardTitle}>Chargement de vos alertes…</Text>
-          </View>
-        ) : erreur ? (
-          <View style={styles.card} accessibilityRole="alert">
-            <Text style={styles.cardTitle}>{erreur}</Text>
-            <Pressable onPress={() => void rafraichir()} accessibilityRole="button" style={{ marginTop: 10 }}>
-              <Text style={[styles.detail, { fontWeight: '800', color: P.primary, textDecorationLine: 'underline' }]}>Réessayer</Text>
-            </Pressable>
-          </View>
-        ) : null}
-        {mes.map(a => {
-          const step = etapeDeLEtat(a.etat);
+      }
+      renderItem={({ item: a }) => {
+        const step = etapeDeLEtat(a.etat);
           const titre = LIBELLES_CATEGORIE[a.categorie];
           const badge = badgeDe(a.etat, step, P);
 
@@ -125,7 +119,7 @@ export default function MyAlerts() {
             <Pressable
               key={a.id}
               onPress={() => router.push({ pathname: '/suivi/[id]', params: { id: a.id } })}
-              style={styles.card}
+              style={[styles.card, { marginHorizontal: 14, marginBottom: 16 }]}
               accessibilityRole="button"
               accessibilityLabel={`${titre}, ${badge.label}. Ouvrir le suivi et l’heure de passage.`}
             >
@@ -160,18 +154,29 @@ export default function MyAlerts() {
               {a.en_attente ? <Text style={[styles.detail, { marginTop: 10 }]}>En attente d’envoi : le réseau reviendra.</Text> : null}
             </Pressable>
           );
-        })}
-
-        {!chargement && !erreur && !mes.length && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Aucune alerte pour le moment</Text>
-            <Text style={[styles.detail, { marginTop: 6 }]}>
-              Touchez « Signaler un problème » sur la carte pour envoyer un signalement.
-            </Text>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+      }}
+      ListEmptyComponent={
+        <View style={styles.list}>
+          {chargement ? (
+            <View style={styles.card} accessibilityRole="progressbar" accessibilityLabel="Chargement de vos alertes">
+              <Text style={styles.cardTitle}>Chargement de vos alertes…</Text>
+            </View>
+          ) : erreur ? (
+            <View style={styles.card} accessibilityRole="alert">
+              <Text style={styles.cardTitle}>{erreur}</Text>
+              <Pressable onPress={() => void rafraichir()} accessibilityRole="button" style={{ marginTop: 10, minHeight: 48, justifyContent: 'center' }}>
+                <Text style={[styles.detail, { fontWeight: '800', color: P.primary, textDecorationLine: 'underline' }]}>Réessayer</Text>
+              </Pressable>
+            </View>
+          ) : vide ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Aucune alerte pour le moment</Text>
+              <Text style={[styles.detail, { marginTop: 6 }]}>Touchez « Signaler un problème » sur la carte pour envoyer un signalement.</Text>
+            </View>
+          ) : null}
+        </View>
+      }
+    />
   );
 }
 
@@ -211,7 +216,6 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   },
 
   list: {
-    marginTop: -48,
     paddingHorizontal: 14,
     gap: 16,
   },
@@ -222,7 +226,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 16,
     borderRadius: 28,
-    shadowColor: '#1A261A',
+    shadowColor: COULEUR_OMBRE,
     shadowOpacity: 0.1,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -293,7 +297,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   },
 
   badge: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     paddingHorizontal: 10,
     paddingVertical: 6,

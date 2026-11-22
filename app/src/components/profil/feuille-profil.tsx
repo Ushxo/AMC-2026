@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LogoMarque } from '@/components/logo-marque';
@@ -45,7 +46,7 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onFermer}>
-      <Pressable style={styles.voile} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer le profil" />
+      <Pressable retour={false} style={styles.voile} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer le profil" />
       <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
         <ScrollView contentContainerStyle={styles.contenu}>
           <View style={styles.entete}>

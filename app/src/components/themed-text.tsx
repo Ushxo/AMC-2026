@@ -15,7 +15,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
   const styles = useStyles(creerStyles);
   const theme = useTheme();
 
-  return <Text style={[{ color: theme[themeColor ?? 'text'] }, styles[type], style]} {...rest} />;
+  return <Text style={[{ color: theme[themeColor ?? 'text'] }, styles[type], type === 'linkPrimary' ? { color: theme.primary } : null, style]} {...rest} />;
 }
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
@@ -51,7 +51,6 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   linkPrimary: {
     lineHeight: 30,
     fontSize: 14,
-    color: '#3c87f7',
   },
   code: {
     fontFamily: Fonts.mono,

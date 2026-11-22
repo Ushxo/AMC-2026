@@ -1,5 +1,6 @@
 import React from "react";
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -34,7 +35,7 @@ export function BarreOnglets<Id extends string>({ onglets, actif, onChange }: { 
             style={[styles.tab, selected && styles.tabActive]}
           >
             <Ionicons name={selected ? o.iconActive : o.icon} size={24} color={P.primary} />
-            <Text style={[styles.label, selected && styles.labelActive]} numberOfLines={1} maxFontSizeMultiplier={1.3} adjustsFontSizeToFit minimumFontScale={0.8}>
+            <Text style={[styles.label, selected && styles.labelActive]} maxFontSizeMultiplier={1.3} adjustsFontSizeToFit minimumFontScale={0.8}>
               {o.label}
             </Text>
           </Pressable>
@@ -47,7 +48,7 @@ export function BarreOnglets<Id extends string>({ onglets, actif, onChange }: { 
 const creerStyles = (P: Jetons) => StyleSheet.create({
   nav: {
     flexDirection: "row",
-    backgroundColor: P.onHeader,
+    backgroundColor: P.background,
     paddingTop: 8,
     paddingHorizontal: 6,
     gap: 4,
@@ -56,6 +57,6 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 6, borderRadius: 18, minHeight: 56, gap: 2, minWidth: 44 },
   tabActive: { backgroundColor: P.backgroundSelected },
-  label: { color: P.primary, fontSize: 11, fontWeight: "600" },
+  label: { color: P.primary, fontSize: 13, fontWeight: "600", textAlign: "center" },
   labelActive: { fontWeight: "800" },
 });

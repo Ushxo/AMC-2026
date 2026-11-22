@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -30,7 +31,7 @@ export function Entete({ options, back, navigation }: Props) {
             accessibilityLabel="Retour"
             hitSlop={8}
             style={styles.retour}>
-            <ThemedText type="smallBold" numberOfLines={1} maxFontSizeMultiplier={1.3}>
+            <ThemedText type="smallBold" maxFontSizeMultiplier={1.3}>
               ‹ Retour
             </ThemedText>
           </Pressable>

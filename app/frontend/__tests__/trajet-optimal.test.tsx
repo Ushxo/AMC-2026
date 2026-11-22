@@ -40,8 +40,9 @@ jest.mock('@/hooks/use-source', () => ({ useSource: () => ({ etat: 'en_ligne' })
 jest.mock('@/hooks/use-session-employe', () => ({ useSessionEmploye: () => ({ peutGerer: true }) }));
 jest.mock('@/hooks/use-progression-optimisation', () => ({ useProgressionOptimisation: () => ({ etape: 'envoi', fraction: 0.1 }) }));
 let mockBascule = false;
+let mockEnCours = false;
 jest.mock('@/hooks/use-optimisation', () => ({
-  useOptimisation: () => ({ lancer: mockLancer, demande: { statut: 'terminee' }, enCours: false, basculeSurPrecalcule: mockBascule, message: null }),
+  useOptimisation: () => ({ lancer: mockLancer, demande: { statut: 'terminee' }, enCours: mockEnCours, basculeSurPrecalcule: mockBascule, message: null }),
 }));
 const mockArret = (rang: number, cle: string) => ({
   rang,
@@ -86,5 +87,15 @@ describe('trajet optimal', () => {
     expect(screen.getByText(/Le vrai résultat le remplacera/)).toBeTruthy();
     expect(screen.getByText(/ne porte pas sur votre sélection/)).toBeTruthy();
     mockBascule = false;
+  });
+
+  it('pendant un calcul : le plan en place reste affiché tout de suite, avec la barre de progression', async () => {
+    mockEnCours = true;
+    await render(<TrajetOptimal cles={['a']} onRetour={jest.fn()} onDetails={jest.fn()} />);
+    expect(screen.getByText('Calcul des tournées en cours…')).toBeTruthy();
+    expect(screen.getByText(/Le plan en place est affiché tout de suite/)).toBeTruthy();
+    expect(screen.getByText('Trajet généré')).toBeTruthy();
+    expect(screen.getByText('Interventions du trajet (1)')).toBeTruthy();
+    mockEnCours = false;
   });
 });

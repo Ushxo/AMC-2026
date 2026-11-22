@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import type MapView from 'react-native-maps';
 import { Polyline } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +27,7 @@ import { EtiquetteNeutre } from '@/components/ville/etiquette';
 import { MarqueurEgout } from '@/components/ville/marqueur-egout';
 import { MarqueurVehicule } from '@/components/ville/marqueur-vehicule';
 import { SelecteurCarte } from '@/components/ville/selecteur-carte';
-import { COULEUR_ACCENT, COULEUR_ARRET_FAIT, COULEUR_TRACE_ATTENUE, couleurEquipe } from '@/components/ville/style';
+import { COULEUR_ACCENT, COULEUR_ARRET_FAIT, COULEUR_TRACE_ATTENUE, couleurEquipe, BLANC_FIXE } from '@/components/ville/style';
 import { useEquipes } from '@/hooks/use-equipes';
 import { useMonEquipe } from '@/hooks/use-mon-equipe';
 import { usePositionSuivie } from '@/hooks/use-position-suivie';
@@ -68,6 +69,7 @@ import { arretSurPlace, idArret, messageApresRecalcul, peutMarquerFait, peutPubl
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { BoutonAction } from '@/components/bouton-action';
 
 const ECART_ROUTE_VALABLE_M = 150;
 const NOM_GARAGE: DestinationNommee = { arrivee: 'au garage', direction: 'du garage' };
@@ -360,7 +362,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                     accessibilityLabel="Arrêts faits"
                     accessibilityValue={{ min: 0, max: total, now: faits }}
                     style={styles.piste}>
-                    <View style={[styles.remplissage, { width: `${total > 0 ? Math.round((faits / total) * 100) : 0}%`, backgroundColor: '#1D3A1B' }]} />
+                    <View style={[styles.remplissage, { width: `${total > 0 ? Math.round((faits / total) * 100) : 0}%`, backgroundColor: P.primary }]} />
                   </View>
                 </View>
                 {tournee && !finie ? (
@@ -488,7 +490,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                       disabled={!(peutMarquer && !estFait(courant)) || occupe}
                       onPress={() => void faire(idArret(courant))}
                       style={[styles.bouton, styles.boutonPlein, (!(peutMarquer && !estFait(courant)) || occupe) && { opacity: 0.5 }]}>
-                      <ThemedText style={[styles.boutonTexte, { color: '#FFFFFF' }]} maxFontSizeMultiplier={1.2}>
+                      <ThemedText style={[styles.boutonTexte, { color: P.onPrimary }]} maxFontSizeMultiplier={1.2}>
                         {occupe ? 'Enregistrement…' : 'Arrêt fait'}
                       </ThemedText>
                     </Pressable>
@@ -571,10 +573,9 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
             {finie ? (
               <EtiquetteNeutre texte={MESSAGE_TOURNEE_TERMINEE} />
             ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !(demarrageActif(session) && !!courant) }}
-                disabled={!(demarrageActif(session) && !!courant)}
+              <BoutonAction
+                titre={NAVIGATION_GOOGLE ? (session?.occupe ? 'Calcul de la route…' : 'Démarrer la navigation') : 'Démarrer le trajet'}
+                actif={demarrageActif(session) && !!courant}
                 onPress={() => {
                   setSuiviActif(true);
                   if (NAVIGATION_GOOGLE) session?.demarrer();
@@ -583,11 +584,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                     setLibre(false);
                   }
                 }}
-                style={[styles.demarrer, !(demarrageActif(session) && !!courant) && { opacity: 0.5 }]}>
-                <ThemedText style={styles.demarrerTexte} maxFontSizeMultiplier={1.2}>
-                  {NAVIGATION_GOOGLE ? (session?.occupe ? 'Calcul de la route…' : 'Démarrer la navigation') : 'Démarrer le trajet'}
-                </ThemedText>
-              </Pressable>
+              />
             )}
           </View>
         ) : null}
@@ -739,7 +736,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   carteArretBlanche: { backgroundColor: P.surface, borderRadius: 22, padding: 16, gap: 12 },
   arretLigne: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   arretNum: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  arretNumTexte: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  arretNumTexte: { color: BLANC_FIXE, fontSize: 16, lineHeight: 22, fontWeight: '700' },
   arretLegende: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: P.textSecondary },
   arretTitre: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
   arretLieu: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: P.textSecondary },
@@ -750,8 +747,6 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   boutonPlein: { backgroundColor: P.success },
   boutonTexte: { fontSize: 15, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
   pied: { paddingHorizontal: 20, paddingTop: 8 },
-  demarrer: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: 'center', justifyContent: 'center' },
-  demarrerTexte: { color: P.onAction, fontSize: 19, lineHeight: 26, fontWeight: '700' },
   carte: { height: 380 },
   carteArret: { padding: 14, borderRadius: 14, gap: 10 },
   avisSecours: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.94)', color: P.text },

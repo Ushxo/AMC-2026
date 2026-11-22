@@ -1,4 +1,5 @@
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -25,7 +26,7 @@ export function FicheZone({ zone, signalements, onFermer, onOuvrir }: Props) {
   const membres = zone ? signalements.filter((s) => zone.signalement_ids.includes(s.id)) : [];
   return (
     <Modal visible={!!zone} transparent animationType="slide" onRequestClose={onFermer}>
-      <Pressable style={styles.fond} onPress={onFermer} accessibilityLabel="Fermer la fiche" accessibilityRole="button" />
+      <Pressable retour={false} style={styles.fond} onPress={onFermer} accessibilityLabel="Fermer la fiche" accessibilityRole="button" />
       {zone ? (
         <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
           <ScrollView contentContainerStyle={styles.contenu}>

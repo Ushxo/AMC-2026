@@ -12,6 +12,7 @@ import {
 import { definirPolicesChargees } from "@/components/texte";
 import { abonnerOrganisations, lireMonOrganisation, lireOrganisations } from "@/lib/organisations";
 import { appliquerMarquePersonnel, chargerMarqueLocale, mettreAJourOrganisation, restaurerMarqueCitoyen } from "@/marque/magasin";
+import { BarreEtat } from "@/marque/barre-etat";
 import { useMarque } from "@/marque/utiliser";
 import { Chargement } from "@/components/ville/etat-ecran";
 import { useAcces } from "@/hooks/use-acces";
@@ -24,6 +25,15 @@ import AdminApp from "./admin/AdminApp";
 // Racine de l'app (« / ») : le citoyen arrive DIRECTEMENT sur la carte (aucune connexion). L'icône de profil ouvre la connexion
 // du personnel de la Ville ; une session gardée d'employé ou de superviseur ouvre tout de suite son espace.
 export default function AppRoot() {
+  return (
+    <>
+      <BarreEtat />
+      <ContenuRacine />
+    </>
+  );
+}
+
+function ContenuRacine() {
   // Polices de l'interface : l'écran attend leur chargement ; si le chargement échoue, tout reste en police du système.
   const [polices, erreurPolices] = useFonts({
     Montserrat_400Regular,

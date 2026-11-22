@@ -1,5 +1,6 @@
 import { Link, type Href } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 
 import { ThemedText } from '@/components/themed-text';
 

@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -59,6 +60,7 @@ import {
 import { LIBELLES_INCIDENT } from '@/types';
 import { useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
+import { BoutonAction } from '@/components/bouton-action';
 
 /** Route classique. */
 export default function Tournees() {
@@ -406,17 +408,13 @@ export function EcranTournees({
               <BarreProgression etape={progression.etape} fraction={progression.fraction} />
             </>
           ) : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${resultat ? 'Relancer le calcul' : 'Calculer le trajet optimal'} pour ${formaterNombre(selection.nombre, 'endroit', 'endroits')}`}
-              accessibilityState={{ disabled: selectionVide || enCours, busy: enCours }}
-              disabled={selectionVide || enCours}
+            <BoutonAction
+              titre={enCours ? 'Calcul…' : resultat ? 'Relancer le calcul' : 'Calculer le trajet optimal'}
+              libelleAccessible={`${resultat ? 'Relancer le calcul' : 'Calculer le trajet optimal'} pour ${formaterNombre(selection.nombre, 'endroit', 'endroits')}`}
+              actif={!selectionVide}
+              occupe={enCours}
               onPress={() => void optimiser()}
-              style={[styles.relancer, (selectionVide || enCours) && { opacity: 0.5 }]}>
-              <ThemedText style={styles.relancerTexte} maxFontSizeMultiplier={1.2}>
-                {enCours ? 'Calcul…' : resultat ? 'Relancer le calcul' : 'Calculer le trajet optimal'}
-              </ThemedText>
-            </Pressable>
+            />
           </View>
         ) : null}
       </SafeAreaView>
@@ -435,6 +433,4 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   carteBlanche: { backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 10 },
   lienIncident: { minHeight: 48, justifyContent: 'center' },
   lienIncidentTexte: { fontSize: 15, fontWeight: '700', color: P.primary, textDecorationLine: 'underline' },
-  relancer: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: 'center', justifyContent: 'center' },
-  relancerTexte: { color: P.onAction, fontSize: 19, lineHeight: 26, fontWeight: '700' },
 });

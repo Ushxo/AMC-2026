@@ -1,5 +1,6 @@
 import React from "react";
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { COULEUR_OMBRE } from '@/components/ville/style';
 
 export type CitizenTab = "carte" | "alertes";
 
@@ -61,12 +63,12 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     bottom: 0,
     flexDirection: "row",
     gap: 12,
-    backgroundColor: P.onHeader,
+    backgroundColor: P.background,
     paddingHorizontal: 16,
     paddingTop: 12,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    shadowColor: "#000",
+    shadowColor: COULEUR_OMBRE,
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: -3 },

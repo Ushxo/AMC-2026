@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -11,7 +12,7 @@ import { Bouton } from '@/components/ville/bouton';
 import { Champ } from '@/components/ville/champ';
 import { ChoixAdresse } from '@/components/ville/choix-adresse';
 import { Chargement, Erreur, Vide } from '@/components/ville/etat-ecran';
-import { couleurEquipe } from '@/components/ville/style';
+import { couleurEquipe, BLANC_FIXE } from '@/components/ville/style';
 import { useEquipes } from '@/hooks/use-equipes';
 import { useSessionEmploye } from '@/hooks/use-session-employe';
 import { useSource } from '@/hooks/use-source';
@@ -153,7 +154,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   contenu: { padding: 20, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
   carteEquipe: { backgroundColor: P.surface, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 80 },
   numero: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  numeroTexte: { color: '#FFFFFF', fontSize: 17, lineHeight: 24, fontWeight: '700' },
+  numeroTexte: { color: BLANC_FIXE, fontSize: 17, lineHeight: 24, fontWeight: '700' },
   equipeNom: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
   equipeDetail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: P.textSecondary },
   equipeCompte: { fontSize: 13, lineHeight: 19, fontWeight: '700', color: P.primary },

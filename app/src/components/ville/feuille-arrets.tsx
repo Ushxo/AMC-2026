@@ -1,4 +1,5 @@
-import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Modal, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -17,7 +18,7 @@ export function FeuilleArrets({ visible, arrets, onFermer }: Props) {
   const { bottom } = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onFermer}>
-      <Pressable style={styles.fond} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer la liste" />
+      <Pressable retour={false} style={styles.fond} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer la liste" />
       <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
         <FlatList
           data={arrets}

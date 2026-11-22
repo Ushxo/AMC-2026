@@ -63,6 +63,23 @@ describe('apparences', () => {
     expect(contraste(c.action, c.background)).toBeGreaterThanOrEqual(4.5);
     expect(problemesContraste(c)).toEqual([]);
   });
+  it('daltonisme : bleu et vermillon, lisibles, sans rouge ni vert pour dire bon ou mauvais', () => {
+    const c = appliquerApparence(base, 'daltonisme');
+    expect(c.success).not.toBe(base.success);
+    expect(contraste(c.success, c.surface)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(c.danger, c.surface)).toBeGreaterThanOrEqual(4.5);
+    expect(problemesContraste(c)).toEqual([]);
+  });
+  it('toute marque, toute apparence : tous les couples texte sur fond restent lisibles (4,5 pour 1)', () => {
+    for (const o of ORGANISATIONS_EMBARQUEES) {
+      for (const a of ['standard', 'contraste', 'sombre', 'daltonisme'] as const) {
+        const c = appliquerApparence(o.couleurs as Couleurs, a);
+        expect({ marque: o.code, apparence: a, problemes: problemesContraste(c) }).toEqual({ marque: o.code, apparence: a, problemes: [] });
+        // le bouton d'action et son texte, le plus visible de l'app
+        expect(contraste(c.onAction, c.action)).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
   it('s’applique à toute marque (Montréal en sombre)', () => {
     expect(problemesContraste(appliquerApparence(montreal.couleurs as Couleurs, 'sombre'))).toEqual([]);
     expect(problemesContraste(appliquerApparence(montreal.couleurs as Couleurs, 'contraste'))).toEqual([]);
