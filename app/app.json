@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "Signalement MTL",
+    "slug": "signalement-mtl",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "app",
+    "scheme": "signalementmtl",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -20,7 +20,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "server",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -31,6 +31,19 @@
           "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Votre position sert à centrer la carte et à placer votre signalement."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "L'appareil photo sert à joindre une photo à votre signalement.",
+          "photosPermission": "Vos photos servent à joindre une image à votre signalement."
         }
       ]
     ],

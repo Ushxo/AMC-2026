@@ -1,0 +1,288 @@
+import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
+
+export type Origine = 'officiel' | 'citoyen';
+export type Gravite = 'faible' | 'moyenne' | 'elevee';
+export type Categorie = 'grille_bouchee' | 'eau_accumulee' | 'eau_douteuse' | 'absence_eau' | 'autre';
+export type Etat = 'nouveau' | 'pris_en_charge' | 'regle' | 'rejete';
+export type TypeAvisEau = 'ebullition' | 'coupure';
+export type EtatSource = 'en_ligne' | 'repli';
+
+export const ORDRE_GRAVITE: Record<Gravite, number> = { faible: 0, moyenne: 1, elevee: 2 };
+
+export const LIBELLES_GRAVITE: Record<Gravite, string> = {
+  faible: 'Faible',
+  moyenne: 'Moyenne',
+  elevee: 'Élevée',
+};
+
+export const LIBELLES_CATEGORIE: Record<Categorie, string> = {
+  grille_bouchee: 'Grille bouchée',
+  eau_accumulee: "Eau accumulée ou inondation",
+  eau_douteuse: "Eau du robinet douteuse",
+  absence_eau: "Pas d'eau",
+  autre: 'Autre',
+};
+
+export const LIBELLES_ETAT: Record<Etat, string> = {
+  nouveau: 'Nouveau',
+  pris_en_charge: 'Pris en charge',
+  regle: 'Réglé',
+  rejete: 'Rejeté',
+};
+
+export type Coordonnees = { latitude: number; longitude: number };
+
+// Éléments officiels : propriétés des Feature des fichiers de app/src/donnees/.
+type BaseOfficielle = { id: string; origine: 'officiel'; gravite: Gravite };
+
+export type ProprietesGrille = BaseOfficielle & {
+  adresse: string | null;
+  provenance: string | null;
+};
+
+export type ProprietesAvisEau = BaseOfficielle & {
+  type: TypeAvisEau;
+  titre: string;
+  adresse: string | null;
+  debut: string; // date ISO
+  fin: string | null;
+  placement: 'geometrie_source' | 'adresse' | 'aucun';
+};
+
+export type ProprietesChantier = BaseOfficielle & {
+  entreprise: string | null;
+  debut: string | null;
+  fin: string | null;
+};
+
+export type ProprietesZoneInondable = BaseOfficielle & { source: string };
+
+export type CoucheGrilles = FeatureCollection<Point, ProprietesGrille>;
+export type CoucheAvisEau = FeatureCollection<Point | Polygon | MultiPolygon | null, ProprietesAvisEau>;
+export type CoucheChantiers = FeatureCollection<Point, ProprietesChantier>;
+export type CoucheZonesInondables = FeatureCollection<Polygon | MultiPolygon, ProprietesZoneInondable>;
+export type AvisEau = Feature<Point | Polygon | MultiPolygon | null, ProprietesAvisEau>;
+
+export type Couches = {
+  grilles: CoucheGrilles;
+  avisEau: CoucheAvisEau;
+  chantiers: CoucheChantiers;
+  zonesInondables: CoucheZonesInondables;
+  copieDu: string; // date ISO de la copie locale (meta.json)
+};
+
+export type NomCouche = 'grilles' | 'avisEau' | 'chantiers' | 'zonesInondables' | 'signalements';
+
+// Éléments citoyens.
+export type Signalement = {
+  id: string; // UUID créé par l'app
+  origine: 'citoyen';
+  cree_le: string;
+  latitude: number;
+  longitude: number;
+  categorie: Categorie;
+  gravite: Gravite; // choisie par le citoyen
+  commentaire: string | null;
+  photo_url: string | null;
+  grille_id: string | null;
+  etat: Etat;
+  etat_change_le: string;
+  exemple_demo: boolean;
+  en_attente?: boolean; // vrai tant qu'il est dans la file d'attente hors réseau (jamais stocké en base)
+  echec_envoi?: string; // motif lisible quand l'envoi est refusé pour de bon (jamais stocké en base)
+};
+
+export type NouveauSignalement = {
+  latitude: number;
+  longitude: number;
+  categorie: Categorie;
+  gravite: Gravite;
+  commentaire?: string;
+  photoUri?: string; // fichier local de l'appareil photo
+};
+
+export type ErreurValidation = { champ: keyof NouveauSignalement; message: string };
+
+export type ResultatEnvoi =
+  | { statut: 'envoye'; signalement: Signalement; sansPhoto?: boolean }
+  | { statut: 'en_attente'; signalement: Signalement; sansPhoto?: boolean }
+  | { statut: 'invalide'; erreurs: ErreurValidation[] }
+  | { statut: 'echec'; message: string };
+
+export type Endroit = {
+  cle: string;
+  position: Coordonnees;
+  nombre: number;
+  gravite_choisie_max: Gravite;
+  gravite_par_nombre: Gravite;
+  gravite_affichee: Gravite;
+  etat_dominant: Etat;
+  signalements: Signalement[];
+};
+
+export type ChangementEtat = {
+  id: string;
+  signalement_id: string;
+  ancien_etat: Etat;
+  nouvel_etat: Etat;
+  change_le: string;
+  change_par: string | null;
+};
+
+export type Employe = { user_id: string; nom: string; courriel: string };
+
+export type ResultatRecherche = { libelle: string; position: Coordonnees; source: 'local' | 'telephone' };
+
+export type ZoneEauTrouvee = { dansZone: boolean; avis: AvisEau[] };
+
+export type ResumeVille = {
+  parEtat: Record<Etat, number>;
+  parCategorie: Record<Categorie, number>;
+};
+
+// ---------- Après le pivot : tournées des équipes ----------
+
+export type StatutDemande = 'en_attente' | 'en_cours' | 'terminee' | 'echec' | 'remplacee';
+export type TypeIncident = 'accident' | 'rue_fermee' | 'autre';
+export type SourceMatrice = 'osrm_cache' | 'osrm' | 'vol_oiseau';
+export type SourceTournees = 'direct' | 'precalcule';
+
+export const LIBELLES_INCIDENT: Record<TypeIncident, string> = {
+  accident: 'Accident',
+  rue_fermee: 'Rue fermée',
+  autre: 'Autre',
+};
+
+export type Equipe = {
+  id: string;
+  nom: string;
+  membres: string[];
+  vehicule: string | null;
+  garage: Coordonnees;
+  garage_nom?: string;
+  // Compte qui suit le trajet de cette équipe et partage sa position (absent si aucun).
+  compte_id?: string | null;
+  debut_quart: string; // "08:00"
+  fin_quart: string; // "16:00"
+  active: boolean;
+  exemple_demo: boolean;
+};
+
+export type NouvelleEquipe = Omit<Equipe, 'id' | 'exemple_demo' | 'active'> & { active?: boolean };
+
+export type Incident = {
+  id: string;
+  type: TypeIncident;
+  position: Coordonnees;
+  rayon_m: number;
+  description: string | null;
+  actif: boolean;
+  simule: true; // tout incident ajouté dans l'app est simulé
+  cree_le: string;
+};
+
+export type NouvelIncident = { type: TypeIncident; position: Coordonnees; rayon_m?: number; description?: string };
+
+export type ParametresOptimisation = {
+  version: 1;
+  equipe_ids: string[];
+  date?: string;
+  debut_au_plus_tot?: string;
+  incident_ids: string[];
+  // Endroits choisis par le superviseur (clés d'endroit). Absent ou vide = tous les endroits ouverts.
+  cles_endroits?: string[];
+  affectations_forcees: { cle_endroit: string; equipe_id: string }[];
+  limite_secondes: number;
+};
+
+export type DemandeOptimisation = {
+  id: string;
+  cree_le: string;
+  statut: StatutDemande;
+  parametres: ParametresOptimisation;
+  message: string | null;
+  commence_le: string | null;
+  termine_le: string | null;
+};
+
+export type Arret = {
+  id?: string; // absent dans un résultat précalculé
+  rang: number;
+  cle_endroit: string;
+  signalement_ids: string[];
+  position: Coordonnees;
+  arrivee_prevue: string;
+  depart_prevu: string;
+  fait?: boolean;
+};
+
+export type Tournee = {
+  id?: string;
+  equipe_id: string;
+  equipe_nom: string;
+  distance_m: number;
+  duree_s: number;
+  debut_prevu: string;
+  fin_prevue: string;
+  geometrie: { type: 'LineString'; coordinates: [number, number][] } | null;
+  arrets: Arret[];
+};
+
+export type NonServi = { cle_endroit: string; gravite: Gravite; raison: string };
+
+export type PlanCompare = { distance_m: number; duree_s: number; arrets_servis: number };
+
+// Comparaison à travail égal : les deux plans servent les mêmes arrêts.
+// « ordre_arrivee » suit l'ordre des signalements, sans limite de quart.
+export type Comparaison = {
+  ordre_arrivee: PlanCompare & { depassement_quart_s: number };
+  optimise: PlanCompare;
+  gain_distance_m: number;
+  gain_duree_s: number;
+  // Mesure à part : arrêts servis dans le quart par chaque méthode.
+  dans_le_quart: { ordre_arrivee: number; optimise: number; arrets_en_plus: number };
+};
+
+export type ResultatOptimisation = {
+  version: 1;
+  demande_id: string;
+  statut: 'terminee' | 'echec';
+  message: string | null;
+  calcule_le: string;
+  duree_calcul_ms: number;
+  source_matrice: SourceMatrice;
+  precalcule: boolean;
+  incidents: Pick<Incident, 'id' | 'type' | 'position' | 'rayon_m' | 'simule'>[];
+  tournees: Tournee[];
+  non_servis: NonServi[];
+  comparaison: Comparaison;
+};
+
+// Fichiers précalculés embarqués (app/src/donnees/tournees-demo*.json).
+export type ResultatPrecalcule = ResultatOptimisation & { precalcule: true; equipes: Equipe[] };
+
+export type EtapeSuivi = 'recu' | 'planifie' | 'pris_en_charge' | 'regle' | 'rejete';
+
+export const LIBELLES_SUIVI: Record<EtapeSuivi, string> = {
+  recu: 'Reçu',
+  planifie: 'Planifié',
+  pris_en_charge: 'Pris en charge',
+  regle: 'Réglé',
+  rejete: 'Rejeté',
+};
+
+export type SuiviSignalement = {
+  etape: EtapeSuivi;
+  heure_estimee: string | null; // arrondie au quart d'heure, seulement à l'étape planifie
+  rang: number | null; // rang de l'arrêt dans la tournée, sans nom d'équipe ni de membre
+  depuis: string | null; // date du dernier changement (état ou planification)
+  precalcule: boolean; // vrai si l'heure vient d'un résultat précalculé
+};
+
+// Dernière position connue d'une équipe pendant sa tournée (visible des employés seulement).
+export type PositionEquipe = {
+  equipe_id: string;
+  position: Coordonnees;
+  cap: number | null;
+  maj_le: string;
+};
