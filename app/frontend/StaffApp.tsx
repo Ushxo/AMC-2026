@@ -1,15 +1,10 @@
-import React, { useState } from "react";
-import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Session } from "./auth";
 import EmployeeMap from "./employee/EmployeeMap";
-import AlertsManagement from "./supervisor/AlertsManagement";
-import ReportsValidation from "./supervisor/ReportsValidation";
-import RouteOptimization from "./supervisor/RouteOptimization";
-import SupervisorDashboard from "./supervisor/SupervisorDashboard";
-import TeamManagement from "./supervisor/TeamManagement";
 
 const C = {
   green: "#1D3A1B",
@@ -18,29 +13,9 @@ const C = {
   muted: "#6E7468",
 };
 
-const SUPERVISOR_TABS = ["Tableau de bord", "Alertes", "Optimisation", "Équipes", "Rapports"] as const;
-type SupervisorTab = (typeof SUPERVISOR_TABS)[number];
-
-function SupervisorScreen({ tab }: { tab: SupervisorTab }) {
-  switch (tab) {
-    case "Tableau de bord":
-      return <SupervisorDashboard />;
-    case "Alertes":
-      return <AlertsManagement />;
-    case "Optimisation":
-      return <RouteOptimization />;
-    case "Équipes":
-      return <TeamManagement />;
-    case "Rapports":
-      return <ReportsValidation />;
-  }
-}
-
-// Espace municipal : employé (une page) ou superviseur (onglets).
+// Espace employé : le responsable d'équipe et sa tournée.
 export default function StaffApp({ session, onLogout }: { session: Session; onLogout: () => void }) {
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<SupervisorTab>("Tableau de bord");
-  const isSupervisor = session.role === "superviseur";
 
   return (
     <View style={styles.root}>
@@ -50,7 +25,7 @@ export default function StaffApp({ session, onLogout }: { session: Session; onLo
         <View style={{ flex: 1 }}>
           <Text style={styles.brand}>Piorix</Text>
           <Text style={styles.who} numberOfLines={1}>
-            {isSupervisor ? "Superviseur" : session.team ?? "Responsable d’équipe"} · {session.email}
+            {session.team ?? "Responsable d’équipe"} · {session.email}
           </Text>
         </View>
         <Pressable style={styles.logout} onPress={onLogout} accessibilityLabel="Se déconnecter">
@@ -59,23 +34,9 @@ export default function StaffApp({ session, onLogout }: { session: Session; onLo
         </Pressable>
       </View>
 
-      {isSupervisor && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabs}
-          contentContainerStyle={styles.tabsContent}
-        >
-          {SUPERVISOR_TABS.map((t) => (
-            <Pressable key={t} onPress={() => setTab(t)} style={[styles.tab, tab === t && styles.tabActive]}>
-              <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
 
       <View style={{ flex: 1, paddingBottom: insets.bottom }}>
-        {isSupervisor ? <SupervisorScreen tab={tab} /> : <EmployeeMap team={session.team} />}
+        <EmployeeMap team={session.team} />
       </View>
     </View>
   );
@@ -119,28 +80,5 @@ const styles = StyleSheet.create({
     color: C.cream,
     fontWeight: "700",
     fontSize: 13,
-  },
-  tabs: {
-    flexGrow: 0,
-  },
-  tabsContent: {
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 18,
-  },
-  tabActive: {
-    backgroundColor: C.sage,
-  },
-  tabText: {
-    color: C.muted,
-    fontWeight: "700",
-  },
-  tabTextActive: {
-    color: C.green,
   },
 });

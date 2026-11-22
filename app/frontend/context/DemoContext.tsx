@@ -5,7 +5,7 @@ import {AlertKind, CitizenAlert, Tour, WorkStatus} from '../types/models';
 type DemoStore = {
   alerts: CitizenAlert[]; tours: Tour[];
   report: (sewerId:string, kind: AlertKind, photoUri?: string) => void;
-  createTour: (sewerIds:string[], teamId:string) => void;
+  createTour: (sewerIds:string[], teamId:string, keepOrder?:boolean) => void;
   mark: (tourId:string, sewerId:string, status:WorkStatus, reason?:string) => void;
   submitTour: (tourId:string) => void;
   approveTour: (tourId:string) => void;
@@ -17,10 +17,11 @@ export function DemoProvider({children}:{children:React.ReactNode}) {
  const [tours,setTours]=useState<Tour[]>([]);
  const rank=(id:string)=>alerts.filter(a=>a.sewerId===id && a.status!=='Résolue').length;
  const report=(sewerId:string,kind:AlertKind,photoUri?:string)=>setAlerts(prev=>[...prev, {id:`AL-${Date.now()}`,sewerId,kind,citizenId:'citoyen-demo',date:new Date().toISOString().slice(0,10),status:'Envoyée',photoUri}]);
- const createTour=(ids:string[],teamId:string)=>{
+ // keepOrder : garder l'ordre fourni (trajet déjà optimisé par l'écran superviseur).
+ const createTour=(ids:string[],teamId:string,keepOrder=false)=>{
    if(!ids.length)return;
    // Heuristique de démonstration : favoriser le nombre d'alertes puis la proximité.
-   let left=[...ids];let px=0,py=0;const ordered:string[]=[];
+   let left=keepOrder?[]:[...ids];let px=0,py=0;const ordered:string[]=keepOrder?[...ids]:[];
    while(left.length){left.sort((a,b)=>{
      const A=SEWERS.find(s=>s.id===a)!,B=SEWERS.find(s=>s.id===b)!;
      const score=(s:typeof A)=>Math.hypot(px-s.x,py-s.y)-rank(s.id)*25;

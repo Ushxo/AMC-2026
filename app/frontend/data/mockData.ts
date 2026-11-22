@@ -13,5 +13,8 @@ export const INITIAL_ALERTS: CitizenAlert[] = [
   {id:'AL-002',sewerId:'EG-103',kind:'Eau accumulée',citizenId:'autre',date:'2026-11-19',status:'Envoyée'},
   {id:'AL-003',sewerId:'EG-103',kind:'Égout bouché',citizenId:'autre2',date:'2026-11-20',status:'Envoyée'},
   {id:'AL-004',sewerId:'EG-105',kind:'Égout bouché',citizenId:'citoyen-demo',date:'2026-11-18',status:'Envoyée'},
+  {id:'AL-005',sewerId:'EG-101',kind:'Autre',citizenId:'autre3',date:'2026-11-21',status:'Envoyée'},
+  {id:'AL-006',sewerId:'EG-104',kind:'Eau accumulée',citizenId:'autre4',date:'2026-11-19',status:'Envoyée'},
+  {id:'AL-007',sewerId:'EG-106',kind:'Feuilles',citizenId:'autre5',date:'2026-11-18',status:'Envoyée'},
 ];
 export const TEAM_IDS = ['Équipe A', 'Équipe B', 'Équipe C'];

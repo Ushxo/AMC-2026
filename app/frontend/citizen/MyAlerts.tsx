@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BOTTOM_NAV_HEIGHT } from '../components/BottomNav';
 import { useDemo } from '../context/DemoContext';
+import { formatDate } from '../format';
 import { SEWERS } from '../data/mockData';
 import { AlertKind, CitizenAlert } from '../types/models';
 
@@ -32,7 +33,6 @@ const STEPS = ['Soumis', 'Pris en\ncharge', 'Terminé'];
 // Position du remplissage de la ligne de progression selon l'étape.
 const FILL = ['22%', '58%', '100%'] as const;
 
-const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 
 // Titre et icône de chaque catégorie (mêmes libellés que sur l'écran Carte).
 const KINDS: Record<AlertKind, { title: string; tile: string; color: string; icon?: keyof typeof Ionicons.glyphMap }> = {
@@ -53,19 +53,6 @@ const BADGES = [
   { label: 'Pris en charge', color: C.orange, bg: C.orangeSoft },
   { label: 'Terminé', color: C.greenDone, bg: C.sage },
 ];
-
-// "2026-11-18" → "18 nov. 2026" ; ajoute l'heure si la date en contient une.
-function formatDate(value: string) {
-  const [day, time] = value.split('T');
-  const [y, m, d] = day.split('-').map(Number);
-  if (!y || !m || !d) return value;
-  let text = `${d} ${MONTHS[m - 1]} ${y}`;
-  if (time) {
-    const [h, min] = time.split(':');
-    text += ` à ${Number(h)} h ${min}`;
-  }
-  return text;
-}
 
 // Grille d'égout dessinée (cercle avec barreaux).
 function GrateIcon({ color }: { color: string }) {

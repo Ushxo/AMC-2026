@@ -5,6 +5,7 @@ import CitizenApp from "./citizen/CitizenApp";
 import LoginScreen from "./citizen/LoginScreen";
 import { DemoProvider } from "./context/DemoContext";
 import StaffApp from "./StaffApp";
+import SupervisorApp from "./supervisor/SupervisorApp";
 
 // Point d'entrée : connexion, puis redirection selon le rôle.
 // Le DemoProvider est au-dessus de tout : les signalements d'un citoyen
@@ -19,6 +20,8 @@ export default function AppRoot() {
         <LoginScreen onLogin={setSession} />
       ) : session.role === "citoyen" ? (
         <CitizenApp onLogout={logout} />
+      ) : session.role === "superviseur" ? (
+        <SupervisorApp onLogout={logout} />
       ) : (
         <StaffApp session={session} onLogout={logout} />
       )}
