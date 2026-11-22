@@ -426,10 +426,12 @@ export default function CarteCitoyen({ coquille }: Props) {
         </View>
       ) : null}
 
-      {/* Légende en haut à gauche, sous l'en-tête : elle ne recouvre plus les repères du bas de la carte. */}
-      <View pointerEvents="none" style={{ position: 'absolute', left: 16, top: hauteurEntete + 10 }}>
-        <LegendeGravite />
-      </View>
+      {/* Légende en haut à gauche, sous l'en-tête. Elle laisse la place aux messages affichés au même endroit : avis d'eau à la position ou à l'adresse, résultats de recherche, chargement, erreur. */}
+      {((chargement || erreur) && regionDepart) || resultats || verifAdresse || verifPosition?.sous ? null : (
+        <View pointerEvents="none" style={{ position: 'absolute', left: 16, top: hauteurEntete + 10 }}>
+          <LegendeGravite />
+        </View>
+      )}
 
       {/* Bulle d'aide (une seule fois) : au-dessus du bouton « Signaler un problème », sans prendre aucun toucher. */}
       <View pointerEvents="none" style={[styles.aideCadre, { bottom: HAUTEUR_BARRE * (coquille ? 1 : 0) + bottom + 16 + 56 + 14 }]}>
