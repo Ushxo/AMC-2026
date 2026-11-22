@@ -1,20 +1,22 @@
 import React, { useRef, useState } from "react";
-import { Image, Pressable, StatusBar, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CameraView, useCameraPermissions as usePermissionCamera, type VueCamera } from "@/lib/camera-optionnelle";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
+import { CAMERA } from '@/components/ville/style';
 
-const C = {
-  green: "#1D341B",
-  cream: "#F8F5ED",
-  orange: "#E56C28",
-  dark: "#23271F",
-  skip: "#E4E6DA",
-  white: "#FFFFFF",
-};
+// Commandes de la caméra : couleurs fixes (fond sombre de l'objectif). Le reste de l'écran suit la marque.
+const C = { cream: CAMERA.creme, dark: CAMERA.sombre, white: CAMERA.blanc };
+
+/** Vérification de la photo par l'analyse : en cours, acceptée (égout), refusée (pas un égout) ou impossible. */
+export type VerificationPhoto = { statut: "en_cours" | "acceptee" | "refusee" | "impossible"; message: string };
 
 type Props = {
   photoUri?: string;
@@ -22,10 +24,19 @@ type Props = {
   onBack: () => void;
   onSkip: () => void;
   onContinue: () => void;
+  /** Facultatif : sans vérification, l'écran se comporte comme avant. */
+  verification?: VerificationPhoto | null;
 };
+
+function couleurVerification(statut: VerificationPhoto["statut"], P: Jetons): string {
+  if (statut === "acceptee") return P.primary;
+  if (statut === "refusee") return P.danger;
+  return P.text;
+}
 
 // Coins blancs qui encadrent la zone à photographier.
 function FrameCorners() {
+  const styles = useStyles(creerStyles);
   return (
     <View pointerEvents="none" style={styles.frame}>
       <View style={[styles.corner, styles.topLeft]} />
@@ -36,7 +47,11 @@ function FrameCorners() {
   );
 }
 
-export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinue }: Props) {
+export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinue, verification }: Props) {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
+  // Tant que la photo est en vérification, on ne peut pas continuer ; une photo refusée est déjà retirée.
+  const peutContinuer = !!photoUri && verification?.statut !== "en_cours";
   const insets = useSafeAreaInsets();
   const camera = useRef<VueCamera>(null);
   const [permission, requestPermission] = usePermissionCamera();
@@ -93,7 +108,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
           <Text style={styles.permissionText}>
             Autorisez l’accès à la caméra pour photographier le problème.
           </Text>
-          <Pressable style={styles.permissionButton} onPress={requestPermission}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Autoriser la caméra" style={styles.permissionButton} onPress={requestPermission}>
             <Text style={styles.permissionButtonText}>Autoriser la caméra</Text>
           </Pressable>
         </View>
@@ -109,7 +124,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
           onCameraReady={() => setReady(true)}
         />
         <FrameCorners />
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.flashButton}
           onPress={() => setFlash((f) => !f)}
           accessibilityLabel={flash ? "Désactiver le flash" : "Activer le flash"}
@@ -122,13 +137,12 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
 
       <View style={[styles.header, { paddingTop: insets.top + 18 }]}>
         <View style={styles.headerWave} />
         <View style={styles.headerRow}>
-          <Pressable onPress={onBack} hitSlop={10} accessibilityLabel="Retour">
-            <Ionicons name="arrow-back" size={30} color={C.cream} />
+          <Pressable accessibilityRole="button" onPress={onBack} hitSlop={10} accessibilityLabel="Retour">
+            <Ionicons name="arrow-back" size={30} color={P.onHeader} />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Prendre une photo</Text>
@@ -143,11 +157,11 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
         <View style={styles.preview}>{renderPreview()}</View>
 
         <View style={styles.controls}>
-          <Pressable onPress={chooseFromLibrary} hitSlop={10} accessibilityLabel="Choisir dans la galerie">
+          <Pressable accessibilityRole="button" onPress={chooseFromLibrary} hitSlop={10} accessibilityLabel="Choisir dans la galerie">
             <Ionicons name="image-outline" size={34} color={C.cream} />
           </Pressable>
 
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={capture}
             style={styles.shutter}
             accessibilityLabel={photoUri ? "Reprendre la photo" : "Prendre la photo"}
@@ -155,7 +169,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
             <View style={styles.shutterInner} />
           </Pressable>
 
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={flipOrRetake}
             hitSlop={10}
             accessibilityLabel={photoUri ? "Reprendre la photo" : "Changer de caméra"}
@@ -165,14 +179,39 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
         </View>
       </View>
 
+      {verification ? (
+        <View
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          style={[styles.verification, { borderColor: couleurVerification(verification.statut, P) }]}
+        >
+          <Ionicons
+            name={
+              verification.statut === "acceptee"
+                ? "checkmark-circle"
+                : verification.statut === "refusee"
+                  ? "close-circle"
+                  : verification.statut === "en_cours"
+                    ? "hourglass-outline"
+                    : "information-circle-outline"
+            }
+            size={22}
+            color={couleurVerification(verification.statut, P)}
+          />
+          <Text style={[styles.verificationText, { color: couleurVerification(verification.statut, P) }]}>
+            {verification.message}
+          </Text>
+        </View>
+      ) : null}
+
       <View style={[styles.actions, { paddingBottom: insets.bottom + 16 }]}>
-        <Pressable style={styles.skipButton} onPress={onSkip}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Passer la photo" style={styles.skipButton} onPress={onSkip}>
           <Text style={styles.skipText}>Passer</Text>
         </Pressable>
-        <Pressable
-          style={[styles.continueButton, !photoUri && { opacity: 0.55 }]}
+        <Pressable accessibilityRole="button"
+          style={[styles.continueButton, !peutContinuer && { opacity: 0.55 }]}
           onPress={onContinue}
-          disabled={!photoUri}
+          disabled={!peutContinuer}
         >
           <Text style={styles.continueText}>Continuer</Text>
         </Pressable>
@@ -183,13 +222,13 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
 
 const CORNER = 34;
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: C.cream,
+    backgroundColor: P.background,
   },
   header: {
-    backgroundColor: C.green,
+    backgroundColor: P.header,
     paddingHorizontal: 22,
     paddingBottom: 64,
     overflow: "hidden",
@@ -209,12 +248,12 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   title: {
-    color: C.cream,
+    color: P.onHeader,
     fontSize: 28,
     fontWeight: "800",
   },
   subtitle: {
-    color: "#E6E4D8",
+    color: CAMERA.clair,
     fontSize: 15,
     lineHeight: 20,
     marginTop: 6,
@@ -229,7 +268,7 @@ const styles = StyleSheet.create({
   },
   preview: {
     flex: 1,
-    backgroundColor: "#111",
+    backgroundColor: CAMERA.noir,
   },
   frame: {
     position: "absolute",
@@ -272,7 +311,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   permissionButton: {
-    backgroundColor: C.orange,
+    backgroundColor: P.action,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 24,
@@ -304,6 +343,22 @@ const styles = StyleSheet.create({
     borderRadius: 29,
     backgroundColor: C.cream,
   },
+  verification: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 16,
+    marginTop: 14,
+    padding: 12,
+    borderWidth: 2,
+    borderRadius: 16,
+    backgroundColor: C.white,
+  },
+  verificationText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+  },
   actions: {
     flexDirection: "row",
     gap: 12,
@@ -313,26 +368,26 @@ const styles = StyleSheet.create({
   skipButton: {
     flex: 1,
     height: 60,
-    backgroundColor: C.skip,
+    backgroundColor: P.backgroundSelected,
     borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
   },
   skipText: {
-    color: C.green,
+    color: P.primary,
     fontWeight: "800",
     fontSize: 18,
   },
   continueButton: {
     flex: 1.4,
     height: 60,
-    backgroundColor: C.orange,
+    backgroundColor: P.action,
     borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
   },
   continueText: {
-    color: C.white,
+    color: P.onAction,
     fontSize: 20,
     fontWeight: "800",
   },

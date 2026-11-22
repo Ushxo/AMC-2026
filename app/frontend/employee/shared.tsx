@@ -4,26 +4,33 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Texte as Text } from "@/components/texte";
+import { BLANC_FIXE, COULEUR_OMBRE } from "@/components/ville/style";
+import { Palette } from "@/constants/theme";
 import { useEndroits } from "@/hooks/use-endroits";
 import { formaterDate } from "@/lib/format";
 import { lieuDeEndroit } from "@/lib/interventions";
 import { chargerAdresses } from "@/lib/officiel";
 import { idArret } from "@/lib/trajet";
 import { LIBELLES_CATEGORIE, type Arret, type Categorie } from "@/types";
-import { ILLUSTRATION_PAR_CATEGORIE, ProblemIllustration } from "../components/ProblemIllustration";
+import { IllustrationProbleme } from "@/components/illustration-probleme";
 
+// Couleurs de l'espace employé : jetons du thème (Palette hors composant), jamais de couleur en dur.
 export const E = {
-  green: "#1D3A1B",
-  cream: "#F8F4EA",
-  card: "#FCF8F0",
-  orange: "#E0661C",
-  sageSoft: "#E3EED8",
-  sageBorder: "#3E6B36",
-  border: "#D9D8CC",
-  text: "#2B3328",
-  muted: "#6E7468",
-  white: "#FFFFFF",
-  red: "#C8221B",
+  green: Palette.header,
+  cream: Palette.background,
+  onHeader: Palette.onHeader,
+  card: Palette.surface,
+  orange: Palette.accent,
+  sageSoft: Palette.backgroundSelected,
+  sageBorder: Palette.primary,
+  border: Palette.border,
+  surfaceAlt: Palette.backgroundElement,
+  text: Palette.text,
+  textStrong: Palette.text,
+  muted: Palette.textSecondary,
+  white: BLANC_FIXE,
+  red: Palette.danger,
+  shadow: COULEUR_OMBRE,
 };
 
 /** Ce qu'on montre d'un arrêt : le problème, la photo du citoyen, l'adresse et la date du signalement. */
@@ -71,7 +78,7 @@ export function Header({ title, left, right }: { title: string; left?: Bouton; r
       <View style={styles.side}>
         {left && (
           <Pressable onPress={left.onPress} hitSlop={10} accessibilityRole="button" accessibilityLabel={left.label}>
-            <Ionicons name={left.icon} size={28} color={E.cream} />
+            <Ionicons name={left.icon} size={28} color={E.onHeader} />
           </Pressable>
         )}
       </View>
@@ -81,7 +88,7 @@ export function Header({ title, left, right }: { title: string; left?: Bouton; r
       <View style={[styles.side, { alignItems: "flex-end" }]}>
         {right && (
           <Pressable onPress={right.onPress} hitSlop={10} accessibilityRole="button" accessibilityLabel={right.label}>
-            <Ionicons name={right.icon} size={26} color={E.cream} />
+            <Ionicons name={right.icon} size={26} color={E.onHeader} />
           </Pressable>
         )}
       </View>
@@ -94,12 +101,9 @@ export function StopPhoto({ info, size = 96 }: { info: InfoArret; size?: number 
   if (info.photo) {
     return <Image source={{ uri: info.photo }} style={[styles.photo, { width: size, height: size }]} accessibilityLabel="Photo du signalement" />;
   }
-  const kind = ILLUSTRATION_PAR_CATEGORIE[info.categorie] ?? "Égout bouché";
   return (
     <View style={[styles.photo, styles.photoFallback, { width: size, height: size }]}>
-      <View style={{ transform: [{ scale: (size - 8) / 120 }] }}>
-        <ProblemIllustration kind={kind} />
-      </View>
+      <IllustrationProbleme categorie={info.categorie} taille={size - 12} />
     </View>
   );
 }
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: "center",
-    color: E.cream,
+    color: E.onHeader,
     fontSize: 20,
     fontWeight: "800",
   },
@@ -150,7 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   photoFallback: {
-    backgroundColor: "#ECEBE1",
+    backgroundColor: E.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 19,
     fontWeight: "800",
-    color: "#151A13",
+    color: E.textStrong,
     marginBottom: 6,
   },
   row: {

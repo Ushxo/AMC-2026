@@ -18,10 +18,12 @@ const RESULTAT = {
   probabilites: { invalide: 2, faible: 3, moyenne: 20, elevee: 75 },
 };
 
-function charger(url: string | undefined) {
+function charger(url: string | undefined, cle?: string) {
   jest.resetModules();
-  if (url === undefined) delete process.env.EXPO_PUBLIC_ML_URL;
-  else process.env.EXPO_PUBLIC_ML_URL = url;
+  if (url === undefined) delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+  else process.env.EXPO_PUBLIC_SUPABASE_URL = url;
+  if (cle === undefined) delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  else process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = cle;
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- rechargement du module après avoir changé l’env
   return require('../ml') as typeof import('../ml');
 }
@@ -31,15 +33,30 @@ beforeEach(() => {
 });
 
 describe('jugerPhoto', () => {
-  it('envoie la photo en multipart sur /juger et renvoie le résultat', async () => {
+  it('envoie la photo en multipart à la fonction serveur et renvoie le résultat', async () => {
     const { jugerPhoto } = charger('https://ml.example.com/');
     (globalThis.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => RESULTAT });
 
     await expect(jugerPhoto('file:///photo.jpg')).resolves.toEqual(RESULTAT);
     const [url, options] = (globalThis.fetch as jest.Mock).mock.calls[0];
-    expect(url).toBe('https://ml.example.com/juger');
+    expect(url).toBe('https://ml.example.com/functions/v1/juger-photo');
     expect(options.method).toBe('POST');
     expect(options.body).toBeInstanceOf(FormData);
+  });
+
+  it('envoie seulement la clé publique, jamais la clé du service d’analyse', async () => {
+    const { jugerPhoto } = charger('https://ml.example.com', 'secret');
+    (globalThis.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => RESULTAT });
+
+    await jugerPhoto('file:///photo.jpg');
+    expect((globalThis.fetch as jest.Mock).mock.calls[0][1].headers).toEqual({ apikey: 'secret', Authorization: 'Bearer secret' });
+  });
+
+  it('dit que l’analyse n’est pas disponible quand le serveur la refuse', async () => {
+    const { jugerPhoto } = charger('https://ml.example.com', 'mauvaise');
+    (globalThis.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 401, json: async () => ({}) });
+
+    await expect(jugerPhoto('file:///photo.jpg')).rejects.toThrow('pas disponible');
   });
 
   it('envoie un File d’expo-file-system (le fetch d’Expo refuse le format { uri })', async () => {
@@ -82,6 +99,6 @@ describe('jugerPhoto', () => {
 
   it("explique quoi faire si l'adresse du serveur manque", async () => {
     const { jugerPhoto } = charger(undefined);
-    await expect(jugerPhoto('file:///x.jpg')).rejects.toThrow('EXPO_PUBLIC_ML_URL');
+    await expect(jugerPhoto('file:///x.jpg')).rejects.toThrow('EXPO_PUBLIC_SUPABASE_URL');
   });
 });

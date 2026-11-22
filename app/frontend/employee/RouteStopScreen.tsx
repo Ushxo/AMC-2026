@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Carte, Repere, Trace } from "@/components/carte";
 import { Texte as Text } from "@/components/texte";
-import { COULEUR_ARRET_FAIT } from "@/components/ville/style";
+import { COULEUR_ACCENT, COULEUR_ARRET_FAIT, couleurEquipe } from "@/components/ville/style";
 import { useTroncon } from "@/hooks/use-troncon";
 import { distanceCourte, dureeCourte } from "@/lib/navigation";
 import { chargerRegion } from "@/lib/officiel";
@@ -16,7 +16,7 @@ import type { Arret, Coordonnees, Tournee } from "@/types";
 import { BOTTOM_NAV_HEIGHT } from "../components/BottomNav";
 import { E, type InfoArret } from "./shared";
 
-const BLEU_TRACE = "#5B9BE6";
+const BLEU_TRACE = COULEUR_ACCENT;
 
 type Props = {
   tournee: Tournee | null;
@@ -60,7 +60,7 @@ export default function RouteStopScreen(p: Props) {
             Trajet · {tournee?.equipe_nom ?? "Mon équipe"}
           </Text>
           <Pressable onPress={p.onLogout} hitSlop={10} accessibilityRole="button" accessibilityLabel="Se déconnecter">
-            <Ionicons name="log-out-outline" size={22} color={E.cream} />
+            <Ionicons name="log-out-outline" size={22} color={E.onHeader} />
           </Pressable>
         </View>
         {affiche ? (
@@ -89,7 +89,7 @@ export default function RouteStopScreen(p: Props) {
                   id={idArret(a)}
                   position={a.position}
                   numero={a.rang}
-                  couleur={fait ? COULEUR_ARRET_FAIT : choisi ? E.orange : "#3D2E6B"}
+                  couleur={fait ? COULEUR_ARRET_FAIT : choisi ? E.orange : couleurEquipe(0)}
                   etat={fait ? "fait" : choisi ? "prochain" : "normal"}
                   zIndex={choisi ? 10 : 1}
                   accessibilityLabel={`Arrêt ${a.rang}${fait ? ", évalué" : ""}`}
@@ -130,15 +130,15 @@ export default function RouteStopScreen(p: Props) {
 
           <View style={styles.actions}>
             <Pressable style={styles.action} onPress={p.onPrecedent} disabled={index <= 0} accessibilityRole="button" accessibilityLabel="Arrêt précédent">
-              <Ionicons name="chevron-back" size={22} color={index <= 0 ? E.muted : "#151A13"} />
+              <Ionicons name="chevron-back" size={22} color={index <= 0 ? E.muted : E.textStrong} />
               <Text style={[styles.actionTexte, index <= 0 && { color: E.muted }]}>Précédent</Text>
             </Pressable>
             <Pressable style={styles.action} onPress={p.onRecalculer} accessibilityRole="button" accessibilityLabel="Recalculer l’ordre des arrêts depuis ma position">
-              <Ionicons name="locate-outline" size={22} color="#151A13" />
+              <Ionicons name="locate-outline" size={22} color={E.textStrong} />
               <Text style={styles.actionTexte}>Recalculer</Text>
             </Pressable>
             <Pressable style={styles.action} onPress={p.onSuivant} disabled={index >= total - 1} accessibilityRole="button" accessibilityLabel="Arrêt suivant">
-              <Ionicons name="chevron-forward" size={22} color={index >= total - 1 ? E.muted : "#151A13"} />
+              <Ionicons name="chevron-forward" size={22} color={index >= total - 1 ? E.muted : E.textStrong} />
               <Text style={[styles.actionTexte, index >= total - 1 && { color: E.muted }]}>Suivant</Text>
             </Pressable>
           </View>
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   bandeau: {
-    backgroundColor: "#1C3A1A",
+    backgroundColor: E.green,
     borderRadius: 22,
     paddingHorizontal: 18,
     paddingTop: 14,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   bandeauTitre: {
     flex: 1,
     textAlign: "center",
-    color: E.cream,
+    color: E.onHeader,
     fontSize: 18,
   },
   bandeauLigne: {
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   resume: {
-    color: E.cream,
+    color: E.onHeader,
     fontSize: 18,
   },
   barre: {
@@ -201,13 +201,13 @@ const styles = StyleSheet.create({
   barrePleine: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#F47A1F",
+    backgroundColor: E.orange,
   },
   carte: {
     flex: 1,
     borderRadius: 18,
     overflow: "hidden",
-    backgroundColor: "#E7E4DE",
+    backgroundColor: E.surfaceAlt,
   },
   bas: {
     gap: 12,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   prochain: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#151A13",
+    color: E.textStrong,
   },
   arrivee: {
     color: E.muted,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   demarrer: {
     height: 54,
     borderRadius: 18,
-    backgroundColor: "#1C3A1A",
+    backgroundColor: E.green,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   evaluer: {
     height: 58,
     borderRadius: 18,
-    backgroundColor: "#F47A1F",
+    backgroundColor: E.orange,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   actionTexte: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#151A13",
+    color: E.textStrong,
   },
   vide: {
     alignItems: "center",

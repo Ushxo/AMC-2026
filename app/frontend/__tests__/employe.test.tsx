@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import StaffApp from '../StaffApp';
 
@@ -9,6 +9,7 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 
 const mockEquipe = jest.fn();
 jest.mock('@/hooks/use-mon-equipe', () => ({ useMonEquipe: () => mockEquipe() }));
+jest.mock('@/hooks/use-equipes', () => ({ useEquipes: () => ({ equipes: [{ id: 'eq-1', nom: 'Équipe Nord' }] }) }));
 jest.mock('@/hooks/use-acces', () => ({ useAcces: () => ({ nom: 'Équipe 1 compte' }) }));
 jest.mock('@/app/ville/trajet/[equipe]', () => {
   const { Text } = jest.requireActual('react-native');
@@ -23,7 +24,8 @@ describe('espace employé : Ma carte', () => {
     mockEquipe.mockReturnValue({ equipeId: 'eq-1', chargement: false });
     await rerender(<StaffApp onLogout={() => {}} />);
     expect(screen.getByText('Trajet de eq-1')).toBeTruthy();
-    expect(screen.getByText(/Ma carte · Équipe 1 compte/)).toBeTruthy();
+    expect(screen.getByText('Ma carte')).toBeTruthy();
+    expect(screen.getByText('Équipe Nord · trajet du jour')).toBeTruthy();
   });
 
   it('compte sans équipe : explique quoi faire', async () => {
@@ -31,5 +33,15 @@ describe('espace employé : Ma carte', () => {
     await render(<StaffApp onLogout={() => {}} />);
     expect(screen.getByText('Aucune équipe associée à ce compte')).toBeTruthy();
     expect(screen.getByText(/Demandez au superviseur/)).toBeTruthy();
+  });
+
+  it('échec de lecture de l’équipe : message distinct de « aucune équipe », avec Réessayer', async () => {
+    const reessayer = jest.fn();
+    mockEquipe.mockReturnValue({ equipeId: null, chargement: false, echec: true, reessayer });
+    await render(<StaffApp onLogout={() => {}} />);
+    expect(screen.getByText('Votre équipe n’a pas pu être lue')).toBeTruthy();
+    expect(screen.queryByText('Aucune équipe associée à ce compte')).toBeNull();
+    await fireEvent.press(screen.getByText('Réessayer'));
+    expect(reessayer).toHaveBeenCalled();
   });
 });

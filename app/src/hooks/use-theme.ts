@@ -1,20 +1,9 @@
-/**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
- */
-
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useJetons } from '@/marque/utiliser';
 
 /**
- * L'interface est claire seulement (le design du coéquipier) : le mode sombre ne concerne que le style de la carte
- * (sélecteur « Carte »). Passer INTERFACE_CLAIRE à false rendrait la palette sombre au réglage de l'appareil.
+ * Les jetons de couleur de la marque courante (organisation + apparence). Tout ce qui porte une couleur d'interface les lit ici :
+ * changer de marque ou d'apparence recolore tout l'écran en direct.
  */
-const INTERFACE_CLAIRE = true;
-
 export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = !INTERFACE_CLAIRE && scheme === 'dark' ? 'dark' : 'light';
-
-  return Colors[theme];
+  return useJetons();
 }

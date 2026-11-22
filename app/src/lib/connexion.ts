@@ -3,7 +3,7 @@ import { MESSAGE_CONNEXION_REFUSEE, MESSAGE_CONNEXION_RESEAU, MESSAGE_PANNE_EMPL
 import { definirAvertissement, definirCitoyen, definirEmploye, peutGerer } from './session';
 import { getSupabase } from './supabase';
 
-export type EcranRole = 'citoyen' | 'employe' | 'superviseur';
+export type EcranRole = 'citoyen' | 'employe' | 'superviseur' | 'admin';
 
 export type ResultatConnexion = { ok: true; ecran: EcranRole } | { ok: false; message: string };
 
@@ -34,7 +34,7 @@ export async function ouvrirSession(courriel: string, motDePasse: string): Promi
     }
     if (identite.type === 'employe') {
       definirEmploye(identite.acces.employe, identite.acces.role);
-      return { ok: true, ecran: peutGerer(identite.acces.role) ? 'superviseur' : 'employe' };
+      return { ok: true, ecran: identite.acces.role === 'admin' ? 'admin' : peutGerer(identite.acces.role) ? 'superviseur' : 'employe' };
     }
     definirCitoyen(identite.citoyen);
     return { ok: true, ecran: 'citoyen' };

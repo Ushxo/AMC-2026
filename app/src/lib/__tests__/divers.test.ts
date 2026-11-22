@@ -1,4 +1,4 @@
-import { graviteSuggeree } from '../suggestion-gravite';
+import { graviteDuSignalement, graviteSuggeree, prioriteEndroit } from '../suggestion-gravite';
 import { filtrerSignalements } from '../filtre';
 import { adressePlusProche, chercherLocal, normaliser } from '../recherche';
 import { calculerResume } from '../resume';
@@ -70,5 +70,20 @@ describe('suggestion de gravité par la photo', () => {
     expect(graviteSuggeree({ valide: false, gravite: 'elevee' })).toBeNull();
     expect(graviteSuggeree({ valide: true, gravite: null })).toBeNull();
     expect(graviteSuggeree(null)).toBeNull();
+  });
+});
+
+describe('gravité du signalement par la photo et le nombre de signalements', () => {
+  it('vient de l’analyse, et vaut faible quand la photo ne peut pas être analysée', () => {
+    expect(graviteDuSignalement({ valide: true, gravite: 'moyenne' })).toBe('moyenne');
+    expect(graviteDuSignalement({ valide: false, gravite: 'elevee' })).toBe('faible');
+    expect(graviteDuSignalement(null)).toBe('faible');
+  });
+
+  it('la priorité de l’endroit monte avec les signalements non résolus au même endroit', () => {
+    expect(prioriteEndroit('faible', 0)).toBe('faible');
+    expect(prioriteEndroit('elevee', 0)).toBe('elevee');
+    expect(prioriteEndroit('faible', 19)).toBe('moyenne'); // 20 avec le nouveau
+    expect(prioriteEndroit('moyenne', 49)).toBe('elevee'); // 50 avec le nouveau
   });
 });

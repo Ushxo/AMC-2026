@@ -12,7 +12,7 @@ import { CarteTournees } from '@/components/ville/carte-tournees';
 import { Chargement, Erreur, Vide } from '@/components/ville/etat-ecran';
 import { EtiquetteNeutre } from '@/components/ville/etiquette';
 import { SelectionEndroits } from '@/components/ville/selection-endroits';
-import { couleurEquipe } from '@/components/ville/style';
+import { couleurEquipe, COULEUR_OMBRE } from '@/components/ville/style';
 import { useEndroits } from '@/hooks/use-endroits';
 import { useZonesSignalements } from '@/hooks/use-zones-signalements';
 import { useEquipes } from '@/hooks/use-equipes';
@@ -195,9 +195,9 @@ export function EcranTournees({
             {peutGerer ? (
               <>
                 {incidents.length === 0 ? (
-                  <Bouton titre="Ajouter un incident simulé" variante="discret" onPress={() => void ajouterIncident()} />
+                  <Bouton titre="Simuler une rue barrée (démonstration)" variante="discret" onPress={() => void ajouterIncident()} />
                 ) : (
-                  <Bouton titre="Retirer l'incident" variante="discret" onPress={() => void retirerIncident()} />
+                  <Bouton titre="Retirer l'incident (rue barrée simulée)" variante="discret" onPress={() => void retirerIncident()} />
                 )}
               </>
             ) : null}
@@ -267,7 +267,7 @@ export function EcranTournees({
               ) : null}
               {!repli && peutGerer ? (
                 <ThemedText type="small" themeColor="textSecondary">
-                  Pour un incident : touchez la carte à l&apos;endroit voulu, puis « Ajouter un incident simulé ».
+                  Pour un incident : touchez la carte à l&apos;endroit voulu, puis « Simuler une rue barrée ».
                 </ThemedText>
               ) : null}
 
@@ -404,13 +404,7 @@ export function EcranTournees({
           ) : null}
             <Bouton
               pleineLargeur
-              titre={
-                enCours
-                  ? 'Calcul…'
-                  : ouverts.length > 0
-                    ? `Optimiser (${formaterNombre(selection.nombre, 'endroit', 'endroits')})`
-                    : 'Optimiser'
-              }
+              titre={enCours ? 'Calcul…' : resultat ? 'Relancer le calcul' : 'Calculer le trajet optimal'}
               onPress={() => void optimiser()}
               occupe={enCours}
               actif={!selectionVide}
@@ -432,7 +426,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     gap: 8,
-    shadowColor: '#1A261A',
+    shadowColor: COULEUR_OMBRE,
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },

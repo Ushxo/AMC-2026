@@ -13,7 +13,7 @@ import { Champ } from '@/components/ville/champ';
 import { ChoixAdresse } from '@/components/ville/choix-adresse';
 import { Chargement, Erreur, Vide } from '@/components/ville/etat-ecran';
 import { EtiquetteNeutre } from '@/components/ville/etiquette';
-import { CIBLE_MIN } from '@/components/ville/style';
+import { CIBLE_MIN, COULEUR_OMBRE } from '@/components/ville/style';
 import { useEquipes } from '@/hooks/use-equipes';
 import { useSessionEmploye } from '@/hooks/use-session-employe';
 import { useSource } from '@/hooks/use-source';
@@ -103,7 +103,7 @@ export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean 
               <Pressable
                 key={e.id}
                 accessibilityRole="button"
-                accessibilityLabel={`${e.nom}, quart de ${e.debut_quart} à ${e.fin_quart}. Ouvrir.`}
+                accessibilityLabel={`${e.nom}, quart de ${e.debut_quart} à ${e.fin_quart}, ${e.compte_id ? 'compte associé' : 'aucun compte associé'}. Ouvrir.`}
                 onPress={() => router.push({ pathname: '/ville/equipe/[id]', params: { id: e.id } })}
                 style={({ pressed }) => [
                   styles.carte,
@@ -137,6 +137,12 @@ export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean 
                       </ThemedText>
                     </View>
                   ) : null}
+                  <View style={styles.puce}>
+                    <Ionicons name={e.compte_id ? 'person-outline' : 'person-remove-outline'} size={16} color={theme.primary} />
+                    <ThemedText style={styles.puceTexte} numberOfLines={1}>
+                      {e.compte_id ? 'Compte associé' : 'Aucun compte'}
+                    </ThemedText>
+                  </View>
                 </View>
 
                 {e.garage_nom ? (
@@ -208,7 +214,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     gap: 10,
-    shadowColor: '#1A261A',
+    shadowColor: COULEUR_OMBRE,
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },

@@ -3,9 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LIBELLES_GRAVITE, type Gravite } from '@/types';
 
-import { COULEUR_GRAVITE } from './style';
+import { COULEUR_GRAVITE, BLANC_FIXE } from './style';
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 export function EtiquetteGravite({ gravite }: { gravite: Gravite }) {
+  const styles = useStyles(creerStyles);
   return (
     <View
       style={[styles.etiquette, { backgroundColor: COULEUR_GRAVITE[gravite] }]}
@@ -19,6 +22,7 @@ export function EtiquetteGravite({ gravite }: { gravite: Gravite }) {
 }
 
 export function EtiquetteNeutre({ texte }: { texte: string }) {
+  const styles = useStyles(creerStyles);
   return (
     <View style={styles.neutre} accessible accessibilityLabel={texte}>
       <ThemedText type="small" themeColor="textSecondary">
@@ -28,8 +32,8 @@ export function EtiquetteNeutre({ texte }: { texte: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   etiquette: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },
-  blanc: { color: '#ffffff' },
+  blanc: { color: BLANC_FIXE },
   neutre: { paddingVertical: 2, alignSelf: 'flex-start' },
 });

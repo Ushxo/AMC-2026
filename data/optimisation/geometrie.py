@@ -59,10 +59,12 @@ def ajouter_geometries(
         httpx.Client(timeout=8.0, headers={"User-Agent": USER_AGENT}) if utiliser_osrm else None
     )
     try:
-        for t in resultat["tournees"]:
+        tournees = resultat["tournees"]
+        for rang, t in enumerate(tournees):
             coords = [position[i] for i in t["lieux"]]
             t["geometrie"], t["geometrie_source"] = geometrie_tournee(coords, client)
-            if client is not None:
+            # Une requête par seconde au plus : la pause sert entre deux tournées, pas après la dernière.
+            if client is not None and rang < len(tournees) - 1:
                 time.sleep(PAUSE_S)
     finally:
         if client is not None:

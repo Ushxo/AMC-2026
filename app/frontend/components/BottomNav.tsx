@@ -1,35 +1,35 @@
 import React from "react";
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Palette } from "@/constants/theme";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
+import { COULEUR_OMBRE } from '@/components/ville/style';
 
 export type CitizenTab = "carte" | "alertes";
 
 // Hauteur de la barre sans la zone de sécurité du bas.
 export const BOTTOM_NAV_HEIGHT = 92;
 
-const C = {
-  green: Palette.header,
-  cream: Palette.onHeader,
-  sage: Palette.backgroundSelected,
-};
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
 export type TabDef<T extends string> = {
   id: T;
   label: string;
-  // Icône à afficher ; selected = onglet actif (icône pleine).
-  icon: (selected: boolean) => React.ReactNode;
+  /** Icône de l'onglet ; selected = onglet actif (icône pleine), color = couleur de la marque. */
+  icon: (selected: boolean, color: string) => React.ReactNode;
 };
 
-const ionicon = (outline: IconName, filled: IconName) => (selected: boolean) => (
-  <Ionicons name={selected ? filled : outline} size={30} color={C.green} />
+const ionicon = (outline: IconName, filled: IconName) => (selected: boolean, color: string) => (
+  <Ionicons name={selected ? filled : outline} size={30} color={color} />
 );
 
+// Icône pleine pour l'onglet actif, contour sinon.
 const CITIZEN_TABS: TabDef<CitizenTab>[] = [
   { id: "carte", label: "Carte", icon: ionicon("location-outline", "location-sharp") },
   { id: "alertes", label: "Mes alertes", icon: ionicon("list", "list") },
@@ -43,6 +43,8 @@ type TabBarProps<T extends string> = {
 
 // Barre d'onglets du bas, partagée par l'app citoyen et l'espace employé.
 export function TabBar<T extends string>({ tabs, active, onChange }: TabBarProps<T>) {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const insets = useSafeAreaInsets();
 
   return (
@@ -57,7 +59,7 @@ export function TabBar<T extends string>({ tabs, active, onChange }: TabBarProps
             accessibilityState={{ selected }}
             style={[styles.tab, selected && styles.tabActive]}
           >
-            {tab.icon(selected)}
+            {tab.icon(selected, P.primary)}
             <Text style={[styles.label, selected && styles.labelActive]} maxFontSizeMultiplier={1.3}>{tab.label}</Text>
           </Pressable>
         );
@@ -70,7 +72,7 @@ export function BottomNav({ active, onChange }: { active: CitizenTab; onChange: 
   return <TabBar tabs={CITIZEN_TABS} active={active} onChange={onChange} />;
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   nav: {
     position: "absolute",
     left: 0,
@@ -78,12 +80,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: "row",
     gap: 12,
-    backgroundColor: C.cream,
+    backgroundColor: P.background,
     paddingHorizontal: 16,
     paddingTop: 12,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    shadowColor: "#000",
+    shadowColor: COULEUR_OMBRE,
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: -3 },
@@ -98,12 +100,12 @@ const styles = StyleSheet.create({
     borderRadius: 26,
   },
   tabActive: {
-    backgroundColor: C.sage,
+    backgroundColor: P.backgroundSelected,
   },
   label: {
     fontSize: 17,
     fontWeight: "600",
-    color: C.green,
+    color: P.primary,
   },
   labelActive: {
     fontWeight: "700",

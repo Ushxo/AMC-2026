@@ -24,12 +24,12 @@ const TABS: TabDef<Tab>[] = [
   {
     id: "tournee",
     label: "Ma tournée",
-    icon: (sel) => <MaterialCommunityIcons name={sel ? "truck" : "truck-outline"} size={30} color={E.green} />,
+    icon: (sel, couleur) => <MaterialCommunityIcons name={sel ? "truck" : "truck-outline"} size={30} color={couleur} />,
   },
   {
     id: "rapport",
     label: "Rapport",
-    icon: (sel) => <Ionicons name={sel ? "document-text" : "document-text-outline"} size={28} color={E.green} />,
+    icon: (sel, couleur) => <Ionicons name={sel ? "document-text" : "document-text-outline"} size={28} color={couleur} />,
   },
 ];
 

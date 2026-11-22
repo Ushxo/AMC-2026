@@ -344,3 +344,48 @@ def test_deux_equipes_sur_quatre_arrets_garage_inutilise_et_arrets_proches(tmp_p
     p2 = charger_probleme(tmp_path, nombre_equipes=2, seuil=1, limite_s=0.3)
     r2 = resoudre(p2)
     assert {a["arret_id"] for t in r2["tournees"] for a in t["arrets"]} == {"A", "B", "C", "D"}
+
+
+def test_ajouter_geometries_ne_dort_pas_apres_la_derniere_tournee(monkeypatch):
+    import httpx
+
+    from optimisation import geometrie
+
+    dormis = []
+    client_reel = httpx.Client
+    monkeypatch.setattr(geometrie.time, "sleep", lambda s: dormis.append(s))
+    monkeypatch.setattr(
+        geometrie.httpx,
+        "Client",
+        lambda **kw: client_reel(
+            transport=httpx.MockTransport(
+                lambda r: httpx.Response(
+                    200,
+                    json={
+                        "code": "Ok",
+                        "routes": [
+                            {
+                                "geometry": {
+                                    "type": "LineString",
+                                    "coordinates": [[-73.5, 45.5], [-73.4, 45.6]],
+                                }
+                            }
+                        ],
+                    },
+                )
+            )
+        ),
+    )
+    from optimisation.modeles import Lieu, Probleme
+
+    p = Probleme(
+        lieux=[Lieu("a", 45.5, -73.5), Lieu("b", 45.6, -73.4)],
+        temps_s=[[0, 1], [1, 0]],
+        distance_m=[[0, 1], [1, 0]],
+        arrets=[],
+        equipes=[],
+    )
+    resultat = {"tournees": [{"lieux": ["a", "b"]}, {"lieux": ["a", "b"]}, {"lieux": ["b", "a"]}]}
+    geometrie.ajouter_geometries(resultat, p, utiliser_osrm=True)
+    assert len(dormis) == 2  # trois tournées : deux pauses, pas trois
+    assert all(t["geometrie_source"] == "osrm" for t in resultat["tournees"])

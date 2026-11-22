@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 
 import { Carte, Repere } from '@/components/carte';
 import { ThemedText } from '@/components/themed-text';
@@ -13,6 +14,8 @@ import type { Coordonnees, ResultatRecherche } from '@/types';
 import { Bouton } from './bouton';
 import { Champ } from './champ';
 import { COULEUR_ACCENT } from './style';
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 export type AdresseChoisie = { position: Coordonnees; adresse: string | null };
 
@@ -27,6 +30,7 @@ type Props = {
 
 /** Choisir une adresse : la chercher en texte, toucher la carte, ou utiliser sa position. L'adresse retenue s'affiche en clair. */
 export function ChoixAdresse({ titre, point, adresse, onChoisir, erreur }: Props) {
+  const styles = useStyles(creerStyles);
   const theme = useTheme();
   const region = useMemo(() => chargerRegion(), []);
   const adresses = useMemo(() => chargerAdresses(), []);
@@ -124,9 +128,9 @@ export function ChoixAdresse({ titre, point, adresse, onChoisir, erreur }: Props
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   bloc: { gap: 8 },
   carte: { height: 200 },
   resultat: { minHeight: 44, borderRadius: 12, paddingHorizontal: 12, justifyContent: 'center' },
-  erreur: { color: '#B3261E' },
+  erreur: { color: P.danger },
 });

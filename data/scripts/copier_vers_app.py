@@ -18,6 +18,7 @@ DESTINATION = RACINE.parent / "app" / "src" / "donnees"
 PUBLICS = (
     "adresses",
     "avis-eau",
+    "avis-eau-troncons",
     "chantiers",
     "equipes-demo",
     "grilles",
@@ -26,6 +27,7 @@ PUBLICS = (
     "signalements-demo",
     "tournees-demo",
     "tournees-demo-incident",
+    "troncons",
     "zones-inondables",
 )
 

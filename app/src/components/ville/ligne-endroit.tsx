@@ -6,9 +6,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { formaterDate, libelleNombreEndroit } from '@/lib/format';
 import { LIBELLES_CATEGORIE, LIBELLES_ETAT, LIBELLES_GRAVITE, type Categorie, type Endroit, type Etat } from '@/types';
 
-import { SmallIllustration } from '../../../frontend/supervisor/ui';
-import type { AlertKind } from '../../../frontend/types/models';
-import { CIBLE_MIN, COULEUR_GRAVITE } from './style';
+import { IllustrationProbleme } from '@/components/illustration-probleme';
+import { CIBLE_MIN, COULEUR_GRAVITE, COULEUR_OMBRE } from './style';
 
 export function ligneRecente(e: Endroit): string {
   const plus = e.signalements.reduce((m, s) => (s.cree_le > m ? s.cree_le : m), '');
@@ -16,13 +15,8 @@ export function ligneRecente(e: Endroit): string {
 }
 
 // Illustration dessinée quand elle existe pour la catégorie, sinon une icône sur fond teinté.
-const ILLUSTRATIONS: Partial<Record<Categorie, AlertKind>> = {
-  grille_bouchee: 'Égout bouché',
-  eau_accumulee: 'Eau accumulée',
-  affaissement: 'Feuilles',
-  grille_endommagee: 'Autre',
-  autre: 'Autre',
-};
+// Catégories qui ont une illustration (images de l'app) ; les autres gardent une icône sur fond teinté.
+const AVEC_ILLUSTRATION = new Set<Categorie>(['grille_bouchee', 'eau_accumulee', 'affaissement', 'grille_endommagee', 'autre']);
 const ICONES: Record<Categorie, keyof typeof Ionicons.glyphMap> = {
   grille_bouchee: 'grid-outline',
   eau_accumulee: 'water-outline',
@@ -50,7 +44,7 @@ export function LigneEndroit({
   const etat = LIBELLES_ETAT[endroit.etat_dominant];
   const gravite = endroit.gravite_affichee;
   const couleur = COULEUR_GRAVITE[gravite];
-  const illustration = ILLUSTRATIONS[premier.categorie];
+  const illustration = AVEC_ILLUSTRATION.has(premier.categorie);
   const extras = [exemple ? 'Exemple de démo' : null, attente ? "En attente d'envoi" : null].filter(Boolean).join(' · ');
 
   return (
@@ -70,7 +64,7 @@ export function LigneEndroit({
       <View style={[styles.barre, { backgroundColor: couleur }]} />
 
       {illustration ? (
-        <SmallIllustration kind={illustration} scale={0.62} />
+        <IllustrationProbleme categorie={premier.categorie} taille={60} />
       ) : (
         <View style={[styles.tuile, { backgroundColor: couleur + '1A' }]}>
           <Ionicons name={ICONES[premier.categorie]} size={30} color={couleur} />
@@ -109,7 +103,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 22,
     borderWidth: 1,
-    shadowColor: '#1A261A',
+    shadowColor: COULEUR_OMBRE,
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },

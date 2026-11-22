@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { COULEUR_GRAVITE } from '@/components/ville/style';
+import { COULEUR_GRAVITE, COULEUR_OMBRE, COULEURS_IMPORTANCE } from '@/components/ville/style';
 import { Palette } from '@/constants/theme';
 import { useMesSignalements } from '@/hooks/use-mes-signalements';
 import { formaterDate } from '@/lib/format';
@@ -13,8 +13,7 @@ import { chargerAdresses } from '@/lib/officiel';
 import { adressePlusProche } from '@/lib/recherche';
 import { LIBELLES_CATEGORIE, LIBELLES_ETAT, LIBELLES_GRAVITE, type Categorie, type Etat, type Signalement } from '@/types';
 import { BOTTOM_NAV_HEIGHT } from '../components/BottomNav';
-import { SmallIllustration } from '../supervisor/ui';
-import type { AlertKind } from '../types/models';
+import { IllustrationProbleme } from '@/components/illustration-probleme';
 
 // Couleurs : jetons du thème. « greenDone », « card » et « track » sont des teintes de la même palette.
 const C = {
@@ -23,7 +22,7 @@ const C = {
   cream: Palette.background,
   card: Palette.surface,
   orange: Palette.accent,
-  orangeSoft: '#FBDCC4',
+  orangeSoft: COULEURS_IMPORTANCE.moyenne.fond,
   sage: Palette.backgroundSelected,
   track: Palette.border,
   text: Palette.text,
@@ -38,19 +37,16 @@ const FILL = ['22%', '58%', '100%'] as const;
 const KINDS: Record<Categorie, { tile: string; color: string; icon?: keyof typeof Ionicons.glyphMap }> = {
   grille_bouchee: { tile: C.orangeSoft, color: C.orange },
   eau_accumulee: { tile: C.sage, color: C.green, icon: 'water-outline' },
-  affaissement: { tile: '#FCE6C9', color: C.orange, icon: 'trending-down-outline' },
-  grille_endommagee: { tile: '#FCE6C9', color: C.orange, icon: 'warning-outline' },
-  eau_douteuse: { tile: '#FCE6C9', color: C.orange, icon: 'flask-outline' },
-  absence_eau: { tile: '#FCE6C9', color: C.orange, icon: 'close-circle-outline' },
-  autre: { tile: '#FCE6C9', color: C.orange, icon: 'warning-outline' },
+  affaissement: { tile: COULEURS_IMPORTANCE.moyenne.fond, color: C.orange, icon: 'trending-down-outline' },
+  grille_endommagee: { tile: COULEURS_IMPORTANCE.moyenne.fond, color: C.orange, icon: 'warning-outline' },
+  eau_douteuse: { tile: COULEURS_IMPORTANCE.moyenne.fond, color: C.orange, icon: 'flask-outline' },
+  absence_eau: { tile: COULEURS_IMPORTANCE.moyenne.fond, color: C.orange, icon: 'close-circle-outline' },
+  autre: { tile: COULEURS_IMPORTANCE.moyenne.fond, color: C.orange, icon: 'warning-outline' },
 };
 
 // Illustration dessinée quand elle existe pour la catégorie (même visuel que les cartes superviseur).
-const ILLUSTRATIONS: Partial<Record<Categorie, AlertKind>> = {
-  grille_bouchee: 'Égout bouché',
-  eau_accumulee: 'Eau accumulée',
-  autre: 'Autre',
-};
+// Catégories qui ont une illustration (images de l'app) ; les autres gardent une icône sur fond teinté.
+const AVEC_ILLUSTRATION = new Set<Categorie>(['grille_bouchee', 'eau_accumulee', 'affaissement', 'grille_endommagee', 'autre']);
 
 /** Étape de la ligne de progression : 0 = soumis, 1 = pris en charge, 2 = terminé (réglé ou rejeté). */
 export function etapeDeLEtat(etat: Etat): 0 | 1 | 2 {
@@ -156,7 +152,7 @@ export default function MyAlerts() {
           const titre = LIBELLES_CATEGORIE[a.categorie];
           const badge = badgeDe(a.etat, step);
           const couleur = COULEUR_GRAVITE[a.gravite];
-          const illustration = ILLUSTRATIONS[a.categorie];
+          const illustration = AVEC_ILLUSTRATION.has(a.categorie);
 
           return (
             <Pressable
@@ -171,7 +167,7 @@ export default function MyAlerts() {
                 <View style={[styles.gravityBar, { backgroundColor: couleur }]} />
 
                 {illustration ? (
-                  <SmallIllustration kind={illustration} scale={0.62} />
+                  <IllustrationProbleme categorie={a.categorie} taille={60} />
                 ) : (
                   <View style={[styles.iconBox, { backgroundColor: kind.tile }]}>
                     {kind.icon ? (
@@ -250,7 +246,7 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
-    color: '#EDEBDF',
+    color: Palette.onHeader,
     fontSize: 16,
     marginTop: 8,
   },
@@ -267,8 +263,8 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#ECE8DC',
-    shadowColor: '#1A261A',
+    borderColor: Palette.border,
+    shadowColor: COULEUR_OMBRE,
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
@@ -324,13 +320,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '800',
-    color: '#151A13',
+    color: Palette.text,
     marginTop: 4,
   },
 
   detailMuted: {
     fontSize: 12,
-    color: '#6E7468',
+    color: Palette.textSecondary,
     marginTop: 3,
   },
 

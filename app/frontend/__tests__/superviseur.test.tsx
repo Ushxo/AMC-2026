@@ -12,6 +12,15 @@ jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 
 const mockTournees = jest.fn();
 const mockResume = jest.fn();
+jest.mock('@/hooks/use-endroits', () => ({
+  useEndroits: () => ({
+    endroits: [
+      { cle: 'a', position: { latitude: 45.5, longitude: -73.57 }, nombre: 1, gravite_choisie_max: 'elevee', gravite_par_nombre: 'elevee', gravite_affichee: 'elevee', etat_dominant: 'nouveau', signalements: [{ id: '1', etat: 'nouveau', categorie: 'grille_bouchee', cree_le: '2026-11-20T10:00:00Z' }] },
+      { cle: 'b', position: { latitude: 45.51, longitude: -73.57 }, nombre: 1, gravite_choisie_max: 'faible', gravite_par_nombre: 'faible', gravite_affichee: 'faible', etat_dominant: 'nouveau', signalements: [{ id: '2', etat: 'nouveau', categorie: 'eau_accumulee', cree_le: '2026-11-20T11:00:00Z' }] },
+    ],
+    chargement: false,
+  }),
+}));
 jest.mock('@/hooks/use-tournees', () => ({ useTournees: () => mockTournees() }));
 jest.mock('@/hooks/use-resume-ville', () => ({ useResumeVille: () => mockResume() }));
 
@@ -37,8 +46,8 @@ const tournee = (nom: string, arrets: Arret[]): Tournee => ({
 });
 const resultat = (tournees: Tournee[]) => ({ tournees }) as unknown as ResultatOptimisation;
 
-describe('rapports du superviseur : arrêts évalués par les équipes (lecture)', () => {
-  it('chargement, aucune tournée, aucun arrêt évalué', async () => {
+describe('rapports du superviseur : arrêts faits (lecture)', () => {
+  it('chargement, aucune tournée, aucun arrêt fait', async () => {
     mockTournees.mockReturnValue({ resultat: null, chargement: true });
     const { rerender } = await render(<ArretsFaits />);
     expect(screen.getByText('Chargement des tournées…')).toBeTruthy();
@@ -47,27 +56,35 @@ describe('rapports du superviseur : arrêts évalués par les équipes (lecture)
     expect(screen.getByText('Aucune tournée pour le moment.')).toBeTruthy();
     mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, false)])]), chargement: false });
     await rerender(<ArretsFaits />);
-    expect(screen.getByText('Aucun arrêt évalué pour le moment.')).toBeTruthy();
+    expect(screen.getByText('Aucun arrêt fait pour l’instant.')).toBeTruthy();
   });
 
-  it('liste les arrêts évalués de chaque équipe : réparés (faits) et pas réglés avec leur commentaire', async () => {
-    const nonRegle: Arret = { ...arret(2, false), regle: false, commentaire: 'Grille à remplacer', evalue_le: '2026-11-22T14:00:00Z' };
-    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, true), nonRegle, arret(3, true), arret(4, false)])]), chargement: false });
+  it('liste les arrêts faits de chaque équipe', async () => {
+    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, true), arret(2, false), arret(3, true)])]), chargement: false });
     await render(<ArretsFaits />);
     expect(screen.getByText('Équipe 1')).toBeTruthy();
-    expect(screen.getByText(/^3 arrêts évalués sur 4 · 1 pas réglé/)).toBeTruthy();
-    expect(screen.getByText(/^1\. Réparé à /)).toBeTruthy();
-    expect(screen.getByText(/^2\. Pas réglé à /)).toBeTruthy();
+    expect(screen.getByText('2 sur 3')).toBeTruthy();
+    expect(screen.getByLabelText(/^Arrêt 1, .*, \d+ h \d+$/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Arrêt 3, /)).toBeTruthy();
+    // le prochain arrêt à venir (le 2) suit les arrêts faits
+    expect(screen.getByLabelText(/^Arrêt 2, .*À venir$/)).toBeTruthy();
+  });
+
+  it('montre les arrêts pas réglés avec le commentaire de l’équipe', async () => {
+    const nonRegle: Arret = { ...arret(2, false), regle: false, commentaire: 'Grille à remplacer', evalue_le: '2026-11-22T14:00:00Z' };
+    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, true), nonRegle, arret(3, false)])]), chargement: false });
+    await render(<ArretsFaits />);
+    expect(screen.getByText('2 sur 3')).toBeTruthy();
+    expect(screen.getByLabelText(/^Arrêt 2, .*Pas réglé, Grille à remplacer$/)).toBeTruthy();
     expect(screen.getByText('« Grille à remplacer »')).toBeTruthy();
-    expect(screen.queryByText(/^4\. /)).toBeNull();
-    expect(screen.getByText('En cours')).toBeTruthy();
+    expect(screen.getByLabelText(/^Arrêt 3, .*À venir$/)).toBeTruthy();
   });
 
   it('montre quand le rapport de l’équipe a été reçu', async () => {
     const t = { ...tournee('Équipe 1', [arret(1, true)]), rapport_envoye_le: '2026-11-22T15:00:00Z' };
     mockTournees.mockReturnValue({ resultat: resultat([t]), chargement: false });
     await render(<ArretsFaits />);
-    expect(screen.getByText('Rapport reçu')).toBeTruthy();
+    expect(screen.getByText(/^Rapport reçu le /)).toBeTruthy();
   });
 });
 
@@ -80,9 +97,12 @@ describe('tableau de bord du superviseur', () => {
     });
     mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, false)])]), chargement: false });
     await render(<TableauDeBord />);
-    expect(screen.getByLabelText('7 signalements à traiter')).toBeTruthy();
+    expect(screen.getByLabelText('2 endroits à traiter')).toBeTruthy();
     expect(screen.getByLabelText('3 signalements réglés')).toBeTruthy();
-    expect(screen.getByText(/Total toutes équipes/)).toBeTruthy();
+    expect(screen.getByText('Plan des équipes')).toBeTruthy();
+    expect(screen.getByLabelText(/Équipe 1 : 1 arrêt, 1 h 00, 0 faits/)).toBeTruthy();
+    expect(screen.getByLabelText('Élevée : 1')).toBeTruthy();
+    expect(screen.getByLabelText('Faible : 1')).toBeTruthy();
   });
 
   it('sans plan : invite à lancer l’optimisation ; erreur de lecture : message', async () => {

@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { Appuyable as Pressable } from '@/components/appuyable';
 import type MapView from 'react-native-maps';
 import { Polyline } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +27,7 @@ import { EtiquetteNeutre } from '@/components/ville/etiquette';
 import { MarqueurEgout } from '@/components/ville/marqueur-egout';
 import { MarqueurVehicule } from '@/components/ville/marqueur-vehicule';
 import { SelecteurCarte } from '@/components/ville/selecteur-carte';
-import { COULEUR_ACCENT, COULEUR_ARRET_FAIT, COULEUR_TRACE_ATTENUE, couleurEquipe } from '@/components/ville/style';
+import { COULEUR_ACCENT, COULEUR_ARRET_FAIT, COULEUR_TRACE_ATTENUE, couleurEquipe, BLANC_FIXE } from '@/components/ville/style';
 import { useEquipes } from '@/hooks/use-equipes';
 import { useMonEquipe } from '@/hooks/use-mon-equipe';
 import { usePositionSuivie } from '@/hooks/use-position-suivie';
@@ -35,11 +36,14 @@ import { useOptimisation } from '@/hooks/use-optimisation';
 import { useSessionEmploye } from '@/hooks/use-session-employe';
 import { useSource } from '@/hooks/use-source';
 import { useSuiviTrajet } from '@/hooks/use-suivi-trajet';
-import { useTheme } from '@/hooks/use-theme';
 import { useTournees } from '@/hooks/use-tournees';
 import { useTraceTournee } from '@/hooks/use-trace-tournee';
 import { useTroncon } from '@/hooks/use-troncon';
 import { libelleReste, resteEstime, resumeTotalTournee } from '@/lib/durees';
+import { formaterDuree, interventionDe, lieuDeEndroit } from '@/lib/interventions';
+import { useEndroits } from '@/hooks/use-endroits';
+import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE } from '@/types';
+import { IMPORTANCE } from '../../../../frontend/supervisor/InterventionsAPlanifier';
 import { formaterNombre } from '@/lib/format';
 import {
   MESSAGE_ARRET_FAIT,
@@ -57,11 +61,15 @@ import {
 import { calculerGuidage, guidageDroit, messageArrivee, projeterSurTrace, type DestinationNommee } from '@/lib/guidage';
 import { distanceM } from '@/lib/geo';
 import { distanceAuTrace, distanceCourte, dureeCourte } from '@/lib/navigation';
-import { chargerRegion } from '@/lib/officiel';
+import { chargerAdresses, chargerRegion } from '@/lib/officiel';
 import { proposerRecalcul } from '@/lib/reordre';
 import { formaterHeure } from '@/lib/temps';
 import { cibleFinTournee, libelleArriveePlan, libelleDepartPlan } from '@/lib/tournees';
 import { arretSurPlace, idArret, messageApresRecalcul, peutMarquerFait, peutPublierPosition, regionAutour } from '@/lib/trajet';
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
+import { BoutonAction } from '@/components/bouton-action';
 
 const ECART_ROUTE_VALABLE_M = 150;
 const NOM_GARAGE: DestinationNommee = { arrivee: 'au garage', direction: 'du garage' };
@@ -94,8 +102,9 @@ export function EcranTrajet({
 }) {
   const demarrageDirect = demarrer && !NAVIGATION_GOOGLE;
   const TITRE_ACTION = onEvaluer ? "Évaluer l'intervention" : 'Arrêt fait';
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const { bottom } = useSafeAreaInsets();
-  const theme = useTheme();
   const { etat } = useSource();
   const { demoHorsLigne, peutGerer } = useSessionEmploye();
   const { lancer: lancerCalcul, enCours: calculEnCours, demande: demandeCalcul } = useOptimisation();
@@ -320,6 +329,14 @@ export function EcranTrajet({
     ? { texte: `Vous êtes à l'arrêt ${surPlace.rang} : le faire maintenant ?`, titre: onEvaluer ? `Évaluer l'arrêt ${surPlace.rang}` : `Arrêt ${surPlace.rang} fait`, onPress: () => void faire(idArret(surPlace)) }
     : null;
   const reste = tournee && !finie ? libelleReste(resteEstime(tournee, estFait)) : null;
+  const { endroits: tousEndroits } = useEndroits();
+  const adressesLieu = useMemo(() => chargerAdresses(), []);
+  const endroitCourant = courant ? tousEndroits.find((e) => e.cle === courant.cle_endroit) : undefined;
+  const interventionCourante = endroitCourant ? interventionDe(endroitCourant) : null;
+  const graviteCourant = endroitCourant?.gravite_affichee ?? 'moyenne';
+  const importanceCourant = IMPORTANCE[graviteCourant];
+  const titreCourant = interventionCourante ? LIBELLES_CATEGORIE[interventionCourante.categorie] : 'Intervention';
+  const lieuCourant = courant ? lieuDeEndroit(courant.position, adressesLieu) : '';
   const pastille = finie ? 'Tournée terminée' : courant ? `Arrêt ${rangCourant + 1} sur ${total}` : '';
 
   // Barre d'actions fixe pendant la navigation : « Arrêt fait » (principal à l'arrivée), « Arrêter », liste des arrêts.
@@ -358,30 +375,25 @@ export function EcranTrajet({
             <Vide texte="Aucune tournée pour cette équipe." />
           ) : (
             <>
-              <ThemedText type="subtitle" accessibilityRole="header">
-                {tournee.equipe_nom}
-              </ThemedText>
               {titreBandeau ? <BandeauNavigation titre={titreBandeau} detail={detailBandeau} /> : null}
-              <ThemedText type="small">{resumeTotalTournee(tournee)}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {libelleDepartPlan(tournee, { garage_adresse: equipeDuTrajet?.garage_adresse }, majPosition, 'Départ prévu')}
-                {'\n'}
-                {libelleArriveePlan(tournee, { garage_adresse: equipeDuTrajet?.garage_adresse, arrivee: equipeDuTrajet?.arrivee, arrivee_adresse: equipeDuTrajet?.arrivee_adresse })}
-              </ThemedText>
-              <ThemedText type="smallBold" accessibilityLabel={`${faits} arrêts faits sur ${total}`}>
-                {faits} sur {total} arrêts faits
-              </ThemedText>
-              <View
-                accessibilityRole="progressbar"
-                accessibilityLabel="Arrêts faits"
-                accessibilityValue={{ min: 0, max: total, now: faits }}
-                style={[styles.piste, { backgroundColor: theme.backgroundSelected }]}>
-                <View
-                  style={[
-                    styles.remplissage,
-                    { width: `${total > 0 ? Math.round((faits / total) * 100) : 0}%`, backgroundColor: COULEUR_ACCENT },
-                  ]}
-                />
+              <View style={styles.progression}>
+                <View style={{ flex: 1, gap: 6 }}>
+                  <ThemedText style={styles.progressionTitre} accessibilityLabel={`${faits} arrêts faits sur ${total}`}>
+                    {faits} {faits > 1 ? 'arrêts faits' : 'arrêt fait'} sur {total}
+                  </ThemedText>
+                  <View
+                    accessibilityRole="progressbar"
+                    accessibilityLabel="Arrêts faits"
+                    accessibilityValue={{ min: 0, max: total, now: faits }}
+                    style={styles.piste}>
+                    <View style={[styles.remplissage, { width: `${total > 0 ? Math.round((faits / total) * 100) : 0}%`, backgroundColor: P.primary }]} />
+                  </View>
+                </View>
+                {tournee && !finie ? (
+                  <ThemedText style={styles.dureePastille} accessibilityLabel={`Temps restant estimé ${formaterDuree(resteEstime(tournee, estFait).duree_s)}`}>
+                    {formaterDuree(resteEstime(tournee, estFait).duree_s)}
+                  </ThemedText>
+                ) : null}
               </View>
 
               {!NAVIGATION_GOOGLE ? (
@@ -454,29 +466,12 @@ export function EcranTrajet({
                 </>
               ) : null}
 
-              {finie ? (
-                <EtiquetteNeutre texte={MESSAGE_TOURNEE_TERMINEE} />
-              ) : (
-                <Bouton
-                  pleineLargeur
-                  titre={
-                    NAVIGATION_GOOGLE
-                      ? session?.occupe
-                        ? 'Calcul de la route…'
-                        : `Démarrer la navigation vers l'arrêt ${courant?.rang ?? ''}`
-                      : 'Démarrer le trajet'
-                  }
-                  actif={demarrageActif(session) && !!courant}
-                  onPress={() => {
-                    setSuiviActif(true);
-                    if (NAVIGATION_GOOGLE) session?.demarrer();
-                    else {
-                      setEnSuivi(true);
-                      setLibre(false);
-                    }
-                  }}
-                />
-              )}
+              <ThemedText type="small">{resumeTotalTournee(tournee)}</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {libelleDepartPlan(tournee, { garage_adresse: equipeDuTrajet?.garage_adresse }, majPosition, 'Départ prévu')}
+                {'\n'}
+                {libelleArriveePlan(tournee, { garage_adresse: equipeDuTrajet?.garage_adresse, arrivee: equipeDuTrajet?.arrivee, arrivee_adresse: equipeDuTrajet?.arrivee_adresse })}
+              </ThemedText>
               {!NAVIGATION_GOOGLE && !pos.position ? (
                 <ThemedText type="small" themeColor="textSecondary">
                   {pos.autorisee === false
@@ -489,18 +484,41 @@ export function EcranTrajet({
               </ThemedText>
 
               {courant && !finie ? (
-                <View style={[styles.carteArret, { backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText type="smallBold" accessibilityRole="header">
-                    {estFait(courant) ? `Arrêt ${courant.rang} (fait)` : `Prochain arrêt : ${courant.rang}`}
-                  </ThemedText>
-                  <Bouton
-                    pleineLargeur
-                    titre={occupe ? 'Enregistrement…' : TITRE_ACTION}
-                    variante="discret"
-                    occupe={occupe}
-                    actif={peutMarquer && !estFait(courant)}
-                    onPress={() => void faire(idArret(courant))}
-                  />
+                <View style={styles.carteArretBlanche}>
+                  <View style={styles.arretLigne}>
+                    <View style={[styles.arretNum, { backgroundColor: importanceCourant.plein }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                      <ThemedText style={styles.arretNumTexte}>{courant.rang}</ThemedText>
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }} accessible accessibilityRole="header" accessibilityLabel={`${estFait(courant) ? `Arrêt ${courant.rang}, fait` : `Prochain arrêt ${courant.rang}`}, ${titreCourant}, ${lieuCourant}, importance ${LIBELLES_GRAVITE[graviteCourant]}`}>
+                      <ThemedText style={styles.arretLegende}>
+                        {estFait(courant) ? `Arrêt ${courant.rang} (fait)` : `Prochain arrêt · vers ${formaterHeure(courant.arrivee_prevue)}`}
+                      </ThemedText>
+                      <ThemedText style={styles.arretTitre} maxFontSizeMultiplier={1.3}>
+                        {titreCourant}
+                      </ThemedText>
+                      <ThemedText style={styles.arretLieu}>{lieuCourant}</ThemedText>
+                    </View>
+                    <ThemedText style={[styles.arretEtiquette, { backgroundColor: importanceCourant.fond, color: importanceCourant.plein }]} maxFontSizeMultiplier={1.2}>
+                      {LIBELLES_GRAVITE[graviteCourant]}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.deuxBoutons}>
+                    <Pressable accessibilityRole="button" onPress={() => setListe(true)} style={[styles.bouton, styles.boutonContour]}>
+                      <ThemedText style={[styles.boutonTexte, { color: P.primary }]} maxFontSizeMultiplier={1.2}>
+                        Voir les {restants.length} arrêts
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: !(peutMarquer && !estFait(courant)) || occupe, busy: occupe }}
+                      disabled={!(peutMarquer && !estFait(courant)) || occupe}
+                      onPress={() => void faire(idArret(courant))}
+                      style={[styles.bouton, styles.boutonPlein, (!(peutMarquer && !estFait(courant)) || occupe) && { opacity: 0.5 }]}>
+                      <ThemedText style={[styles.boutonTexte, { color: P.onPrimary }]} maxFontSizeMultiplier={1.2}>
+                        {occupe ? 'Enregistrement…' : TITRE_ACTION}
+                      </ThemedText>
+                    </Pressable>
+                  </View>
                   {!peutMarquer ? (
                     <ThemedText type="small" themeColor="textSecondary">
                       {MESSAGE_SEUL_SUPERVISEUR_OU_EQUIPE}
@@ -574,6 +592,26 @@ export function EcranTrajet({
             </>
           )}
         </ScrollView>
+        {tournee ? (
+          <View style={[styles.pied, { paddingBottom: bottom + 12 }]}>
+            {finie ? (
+              <EtiquetteNeutre texte={MESSAGE_TOURNEE_TERMINEE} />
+            ) : (
+              <BoutonAction
+                titre={NAVIGATION_GOOGLE ? (session?.occupe ? 'Calcul de la route…' : 'Démarrer la navigation') : 'Démarrer le trajet'}
+                actif={demarrageActif(session) && !!courant}
+                onPress={() => {
+                  setSuiviActif(true);
+                  if (NAVIGATION_GOOGLE) session?.demarrer();
+                  else {
+                    setEnSuivi(true);
+                    setLibre(false);
+                  }
+                }}
+              />
+            )}
+          </View>
+        ) : null}
       </ThemedView>
     );
   }
@@ -711,15 +749,32 @@ export function EcranTrajet({
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 16, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  piste: { height: 10, borderRadius: 5, overflow: 'hidden' },
-  remplissage: { height: 10, borderRadius: 5 },
+  piste: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: P.surface },
+  remplissage: { height: 8, borderRadius: 4 },
+  progression: { backgroundColor: P.bandeau, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  progressionTitre: { fontSize: 15, lineHeight: 22, fontWeight: '700', color: P.primary },
+  dureePastille: { backgroundColor: P.surface, color: P.primary, fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
+  carteArretBlanche: { backgroundColor: P.surface, borderRadius: 22, padding: 16, gap: 12 },
+  arretLigne: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  arretNum: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  arretNumTexte: { color: BLANC_FIXE, fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  arretLegende: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: P.textSecondary },
+  arretTitre: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
+  arretLieu: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: P.textSecondary },
+  arretEtiquette: { fontSize: 13, fontWeight: '700', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: 'hidden' },
+  deuxBoutons: { flexDirection: 'row', gap: 10 },
+  bouton: { flex: 1, minHeight: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  boutonContour: { borderWidth: 2, borderColor: P.primary, backgroundColor: P.surface },
+  boutonPlein: { backgroundColor: P.success },
+  boutonTexte: { fontSize: 15, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
+  pied: { paddingHorizontal: 20, paddingTop: 8 },
   carte: { height: 380 },
   carteArret: { padding: 14, borderRadius: 14, gap: 10 },
-  avisSecours: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.94)', color: '#1A1A1A' },
+  avisSecours: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.94)', color: P.text },
   superposition: { position: 'absolute', top: 8, left: 8, right: 8 },
   commandesCarte: { position: 'absolute', right: 8, bottom: 8, gap: 8, alignItems: 'flex-end' },
 });

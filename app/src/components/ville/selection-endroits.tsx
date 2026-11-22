@@ -15,7 +15,7 @@ import { LIBELLES_GRAVITE, type Endroit, type Gravite, type Signalement } from '
 import { Bouton } from './bouton';
 import { SelecteurCarte } from './selecteur-carte';
 import { CarteSelection } from './carte-selection';
-import { CIBLE_MIN, COULEUR_REPERE } from './style';
+import { CIBLE_MIN, COULEUR_REPERE, COULEUR_OMBRE, BLANC_FIXE } from './style';
 
 const GRAVITES: Gravite[] = ['elevee', 'moyenne', 'faible'];
 const PAS_LISTE = 20;
@@ -77,7 +77,7 @@ function PastilleGravite({
         {LIBELLES_GRAVITE[gravite]}
       </ThemedText>
       <View style={[styles.nombre, { backgroundColor: tous ? couleur : theme.backgroundElement }]}>
-        <ThemedText type="smallBold" style={[styles.nombreTexte, { color: tous ? '#FFFFFF' : theme.text }]}>
+        <ThemedText type="smallBold" style={[styles.nombreTexte, { color: tous ? BLANC_FIXE : theme.text }]}>
           {nombre}
         </ThemedText>
       </View>
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 22,
     borderWidth: 1,
-    shadowColor: '#1A261A',
+    shadowColor: COULEUR_OMBRE,
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },

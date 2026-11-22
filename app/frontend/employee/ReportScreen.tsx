@@ -4,6 +4,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Texte as Text } from "@/components/texte";
+import { COULEURS_IMPORTANCE } from "@/components/ville/style";
 import { formaterDate } from "@/lib/format";
 import type { Evaluation } from "@/lib/rapport";
 import { idArret } from "@/lib/trajet";
@@ -30,8 +31,8 @@ export default function ReportScreen({ arrets, infos, evaluation, envoyeLe, envo
   const etat = envoyeLe
     ? { label: `Envoyé au superviseur le ${formaterDate(envoyeLe)}`, color: E.green, bg: E.sageSoft }
     : complet
-      ? { label: "Prêt à envoyer", color: "#8A6A05", bg: "#FBF0CE" }
-      : { label: "En cours", color: E.orange, bg: "#FCE5D2" };
+      ? { label: "Prêt à envoyer", color: COULEURS_IMPORTANCE.faible.plein, bg: COULEURS_IMPORTANCE.faible.fond }
+      : { label: "En cours", color: E.orange, bg: COULEURS_IMPORTANCE.moyenne.fond };
 
   return (
     <View style={styles.root}>
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: E.card,
     borderRadius: 22,
     padding: 16,
-    shadowColor: "#1A261A",
+    shadowColor: E.shadow,
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#151A13",
+    color: E.textStrong,
   },
   state: {
     alignSelf: "flex-start",
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "#ECE9DE",
+    borderTopColor: E.border,
   },
   itemTitle: {
     fontSize: 15,

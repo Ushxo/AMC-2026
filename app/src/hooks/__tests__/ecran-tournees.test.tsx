@@ -114,17 +114,17 @@ describe("l'écran des tournées ne plante jamais", () => {
     s.etatSource.mockReturnValue('repli');
     await render(<Tournees />);
     await vider();
-    await fireEvent.press(screen.getByText('Optimiser'));
+    await fireEvent.press(screen.getByText(/Calculer le trajet optimal|Relancer le calcul/));
     await vider();
-    await fireEvent.press(screen.getByText('Ajouter un incident simulé'));
+    await fireEvent.press(screen.getByText('Simuler une rue barrée (démonstration)'));
     await vider();
     expect(screen.getByText(/Résultat précalculé avec l/)).toBeTruthy();
-    await fireEvent.press(screen.getByText("Retirer l'incident"));
+    await fireEvent.press(screen.getByText("Retirer l'incident (rue barrée simulée)"));
     await vider();
-    await fireEvent.press(screen.getByText('Ajouter un incident simulé'));
+    await fireEvent.press(screen.getByText('Simuler une rue barrée (démonstration)'));
     await vider();
-    await fireEvent.press(screen.getByText("Retirer l'incident"));
-    await fireEvent.press(screen.getByText('Optimiser'));
+    await fireEvent.press(screen.getByText("Retirer l'incident (rue barrée simulée)"));
+    await fireEvent.press(screen.getByText(/Calculer le trajet optimal|Relancer le calcul/));
     await vider();
     expect(screen.getByText(/Tournées du dimanche 22 novembre/)).toBeTruthy();
   });
@@ -142,10 +142,10 @@ describe("l'écran des tournées ne plante jamais", () => {
     o.creerDemande.mockResolvedValue({ erreur: 'Le calcul des tournées a échoué. Réessayez.' });
     await render(<Tournees />);
     await vider();
-    await fireEvent.press(screen.getByText('Optimiser'));
+    await fireEvent.press(screen.getByText(/Calculer le trajet optimal|Relancer le calcul/));
     await vider();
     expect(screen.getByText('Le calcul des tournées a échoué. Réessayez.')).toBeTruthy();
-    await fireEvent.press(screen.getByText("Retirer l'incident"));
+    await fireEvent.press(screen.getByText("Retirer l'incident (rue barrée simulée)"));
     await vider();
     // Bascule sur le précalculé (par exemple après le délai), puis retour au résultat direct.
     const store = jest.requireActual('../../lib/store-tournees');
@@ -176,7 +176,7 @@ describe("l'écran des tournées ne plante jamais", () => {
     o.creerDemande.mockResolvedValue(undefined); // forme inattendue : rien ne revient
     await render(<Tournees />);
     await vider();
-    await fireEvent.press(screen.getByText('Optimiser'));
+    await fireEvent.press(screen.getByText(/Calculer le trajet optimal|Relancer le calcul/));
     await vider();
     expect(screen.getByText('Le calcul des tournées a échoué. Réessayez.')).toBeTruthy();
   });
@@ -221,13 +221,13 @@ describe("données mal formées : jamais d'exception de rendu", () => {
     s.etatSource.mockReturnValue('repli');
     await render(<Tournees />);
     await vider();
-    await fireEvent.press(screen.getByText('Ajouter un incident simulé'));
+    await fireEvent.press(screen.getByText('Simuler une rue barrée (démonstration)'));
     await vider();
-    const retirer = screen.getByText("Retirer l'incident");
+    const retirer = screen.getByText("Retirer l'incident (rue barrée simulée)");
     await fireEvent.press(retirer);
     await fireEvent.press(retirer);
     await vider();
     // Le même bouton change de rôle après le premier appui : le second appui rejoue l'autre action. Aucune exception.
-    expect(screen.queryByText("Retirer l'incident") ?? screen.queryByText('Ajouter un incident simulé')).toBeTruthy();
+    expect(screen.queryByText("Retirer l'incident (rue barrée simulée)") ?? screen.queryByText('Simuler une rue barrée (démonstration)')).toBeTruthy();
   });
 });

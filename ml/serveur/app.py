@@ -6,6 +6,11 @@
       score_gravite : voir ml_egouts/score.py ; null si la photo est invalide.
     GET  /sante   → {"ok": true}  (à appeler pour réveiller le serveur avant la démo)
 
+Clé d'accès : si la variable d'environnement CLE_API est réglée (sur Cloud Run),
+POST /juger exige l'en-tête « X-Cle-API: <clé> ». Sans la bonne clé, le serveur
+répond 401 tout de suite, sans lire la photo ni faire tourner le modèle.
+/sante reste ouvert : il ne fait rien de coûteux et sert à réveiller le serveur.
+
 N'utilise pas PyTorch : le modèle exporté en ONNX tourne avec onnxruntime,
 ce qui garde l'image Docker petite et la mémoire sous 200 Mo.
 
@@ -13,6 +18,7 @@ En local, depuis ml/ :
     uv run uvicorn serveur.app:app --reload
 """
 
+import hmac
 import io
 import json
 import os
@@ -20,14 +26,17 @@ from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
 
 from ml_egouts.score import resultat
 
 DOSSIER_MODELE = Path(os.environ.get("DOSSIER_MODELE", Path(__file__).parent.parent / "modeles"))
 TAILLE_MAX_OCTETS = 10 * 1024 * 1024
+CLE_API = os.environ.get("CLE_API", "")
+CHEMINS_PROTEGES = {"/juger"}
 MOYENNE = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 ECART_TYPE = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
@@ -64,8 +73,25 @@ def juger(session: ort.InferenceSession, classes: list[str], taille: int, image:
     return resultat(classes, (exp / exp.sum()).tolist())
 
 
+def cle_valide(recue: str | None) -> bool:
+    return not CLE_API or (recue is not None and hmac.compare_digest(recue, CLE_API))
+
+
 app = FastAPI(title="Juge de photos d'égouts")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"])
+
+
+@app.middleware("http")
+async def verifier_cle(requete: Request, suite):
+    # Avant de lire le corps : une requête sans clé ne coûte presque rien.
+    if requete.url.path in CHEMINS_PROTEGES and not cle_valide(requete.headers.get("x-cle-api")):
+        return JSONResponse({"detail": "Clé d'accès manquante ou invalide."}, status_code=401)
+    return await suite(requete)
+
+
+# Ajouté après la vérification de la clé : il l'enveloppe, donc les refus gardent les en-têtes CORS.
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["X-Cle-API"]
+)
 _session, _classes, _taille = charger(DOSSIER_MODELE)
 
 

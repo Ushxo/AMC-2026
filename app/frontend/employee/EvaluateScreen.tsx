@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "#E2E0D4",
+    backgroundColor: E.border,
     marginVertical: 20,
   },
   question: {
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1.5,
     borderColor: E.border,
-    backgroundColor: "#F1EEE3",
+    backgroundColor: E.surfaceAlt,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#151A13",
+    color: E.textStrong,
   },
   label: {
     color: E.text,
