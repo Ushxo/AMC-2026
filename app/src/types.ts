@@ -271,6 +271,12 @@ export type Arret = {
   depart_prevu: string;
   fait?: boolean;
   fait_le?: string | null;
+  /** Vrai quand l'équipe est passée mais n'a pas pu régler le problème. Jamais vrai en même temps que fait. */
+  non_fait?: boolean;
+  /** Mot de l'équipe sur cet arrêt (500 caractères au plus) : ce qui manque, ce qui est brisé. */
+  commentaire?: string | null;
+  /** Heure à laquelle l'équipe a donné le résultat de l'arrêt. */
+  traite_le?: string | null;
 };
 
 export type Tournee = {
