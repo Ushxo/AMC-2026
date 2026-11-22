@@ -121,6 +121,17 @@ export function OptionsCalcul({ options, onChanger, equipes, positions, texteFin
               </View>
             );
           })}
+          <Bouton
+            titre="Répartir le travail entre les équipes"
+            variante="discret"
+            selectionne={options.repartir}
+            onPress={() => onChanger({ ...options, repartir: !options.repartir })}
+          />
+          <ThemedText type="small" themeColor="textSecondary">
+            {options.repartir
+              ? 'Le travail est partagé pour que la tournée la plus longue soit la plus courte possible.'
+              : 'Désactivé : le plan réduit seulement les kilomètres, une équipe peut recevoir presque tous les arrêts.'}
+          </ThemedText>
           <ThemedText type="smallBold" accessibilityRole="header">
             Option avancée
           </ThemedText>

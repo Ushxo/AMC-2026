@@ -12,9 +12,11 @@ export type OptionsCalcul = {
   /** Option avancée globale : toutes les équipes finissent à un endroit choisi sur la carte. */
   finEndroit: boolean;
   finCle: string | null;
+  /** Répartir le travail entre les équipes (activé par défaut) : réduit la tournée la plus longue. */
+  repartir: boolean;
 };
 
-export const OPTIONS_PAR_DEFAUT: OptionsCalcul = { departParEquipe: {}, finParEquipe: {}, finEndroit: false, finCle: null };
+export const OPTIONS_PAR_DEFAUT: OptionsCalcul = { departParEquipe: {}, finParEquipe: {}, finEndroit: false, finCle: null, repartir: true };
 
 /** Une position de moins de 15 minutes est « récente » : au-delà, le service prend le garage. */
 export const POSITION_RECENTE_MS = 15 * 60 * 1000;
@@ -27,7 +29,8 @@ export function positionRecente(p: Pick<PositionEquipe, 'maj_le'> | undefined, m
 
 /** Paramètres à joindre à la demande : seulement ce qui s'écarte du défaut (garage au départ, adresse d'arrivée à la fin). */
 export function parametresDesOptions(o: OptionsCalcul): Partial<ParametresOptimisation> {
-  const p: Partial<ParametresOptimisation> = {};
+  // « repartir » est toujours envoyé, pour ne pas dépendre du défaut du service.
+  const p: Partial<ParametresOptimisation> = { repartir: o.repartir };
   const depart = Object.fromEntries(Object.entries(o.departParEquipe).filter(([, v]) => v !== 'garage'));
   if (Object.keys(depart).length > 0) p.depart_par_equipe = depart as Record<string, DepartEquipe>;
   const fin = Object.fromEntries(Object.entries(o.finParEquipe).filter(([, v]) => v !== 'arrivee'));
@@ -73,5 +76,6 @@ export function resumeOptions(o: OptionsCalcul, equipeIds: string[]): string {
   const libres = equipeIds.filter((id) => o.finParEquipe[id] === 'libre').length;
   if (libres > 0) parties.push(`${libres} ${libres > 1 ? 'finissent' : 'finit'} au dernier arrêt`);
   if (o.finEndroit) parties.push('fin à un endroit choisi');
+  if (!o.repartir) parties.push('travail non réparti');
   return parties.length > 0 ? parties.join(', ') : 'Aucune équipe';
 }

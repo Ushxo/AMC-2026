@@ -15,6 +15,8 @@ type Props = {
   arrivee?: string | null;
   /** « Reste (estimé) : 5 h 10 · 30 arrêts » */
   reste?: string | null;
+  /** Proposition en une ligne avec un bouton, par exemple « Vous êtes à l'arrêt 3 : le faire maintenant ? » */
+  suggestion?: { texte: string; titre: string; onPress: () => void } | null;
   /** Information courte, par exemple « Vous êtes à 1,2 km du départ prévu. » */
   info?: string | null;
   titreAction?: string;
@@ -33,6 +35,7 @@ export function BarreNavigation({
   arrivee,
   reste,
   info,
+  suggestion,
   titreAction = 'Arrêt fait',
   occupe,
   onAction,
@@ -52,6 +55,14 @@ export function BarreNavigation({
         </ThemedText>
         {reste ? <ThemedText type="small">{reste}</ThemedText> : null}
         {info ? <ThemedText type="small">{info}</ThemedText> : null}
+        {suggestion ? (
+          <View style={styles.suggestion}>
+            <ThemedText type="small" style={styles.texteSuggestion}>
+              {suggestion.texte}
+            </ThemedText>
+            <Bouton titre={suggestion.titre} variante="discret" onPress={suggestion.onPress} />
+          </View>
+        ) : null}
         {arrivee ? <ThemedText type="small">{arrivee}</ThemedText> : null}
         {message ? <ThemedText type="small">{message}</ThemedText> : null}
       </View>
@@ -76,6 +87,8 @@ export function BarreNavigation({
 const styles = StyleSheet.create({
   barre: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10, paddingHorizontal: 12, gap: 8 },
   texte: { gap: 2 },
+  suggestion: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  texteSuggestion: { flex: 1 },
   rangee: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   action: { flex: 1 },
 });

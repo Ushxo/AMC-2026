@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import type { Arret, Coordonnees, ResultatOptimisation, Tournee } from '../types';
+import { distanceM } from './geo';
 import type { Region } from './config';
 import { avecDelai } from './source';
 import { getSupabase } from './supabase';
@@ -115,4 +116,38 @@ export function peutPublierPosition(p: { suiviActif: boolean; compteDeLEquipe: b
 /** Un arrêt n'est marqué fait que par un superviseur ou par le compte de l'équipe de la tournée (démonstration locale : libre). */
 export function peutMarquerFait(p: { peutGerer: boolean; compteDeLEquipe: boolean; local: boolean }): boolean {
   return p.peutGerer || p.compteDeLEquipe || p.local;
+}
+
+/** Distance (m) en dessous de laquelle on est « à » un arrêt. */
+export const RAYON_SUR_PLACE_M = 50;
+
+/** Arrêt NON fait, autre que le prochain, où l'équipe se trouve (à moins de 50 m), le plus proche d'abord. */
+export function arretSurPlace(position: Coordonnees | null, restants: Arret[], prochain: Arret | null): Arret | null {
+  if (!position) return null;
+  let meilleur: { a: Arret; d: number } | null = null;
+  for (const a of restants) {
+    if (prochain && idArret(a) === idArret(prochain)) continue;
+    const d = distanceM(position, a.position);
+    if (d < RAYON_SUR_PLACE_M && (!meilleur || d < meilleur.d)) meilleur = { a, d };
+  }
+  return meilleur?.a ?? null;
+}
+
+export const MESSAGE_POSITION_NON_PRISE = 'Position non prise en compte : départ au garage.';
+
+/**
+ * Résultat d'un recalcul « depuis ma position », une fois le nouveau plan lu : le départ est-il resté au garage ?
+ * l'ordre a-t-il changé ? Rend le message à afficher.
+ */
+export function messageApresRecalcul(p: {
+  departRecu: 'garage' | 'position' | undefined;
+  prochainAvant: string | null;
+  prochainApres: Arret | null;
+}): string {
+  if ((p.departRecu ?? 'garage') === 'garage') return MESSAGE_POSITION_NON_PRISE;
+  if (!p.prochainApres) return 'Ordre recalculé depuis votre position : plus aucun arrêt à faire.';
+  const change = idArret(p.prochainApres) !== p.prochainAvant;
+  return change
+    ? `Ordre recalculé depuis votre position : prochain arrêt ${p.prochainApres.rang}.`
+    : `Ordre recalculé depuis votre position : le prochain arrêt reste le ${p.prochainApres.rang}.`;
 }

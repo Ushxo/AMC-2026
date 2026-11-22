@@ -355,3 +355,161 @@ def test_la_sortie_reste_sans_arrivee_quand_aucune_adresse(tmp_path):
     t = resoudre(p)["tournees"][0]
     assert t["fin"] == "garage" and t["fin_nom"] is None
     assert time.monotonic() > 0
+
+
+# ---------- position jointe à la demande (positions_depart) ----------
+
+
+def test_position_jointe_l_emporte_sur_la_table_sans_condition_d_age():
+    from optimisation.ecoute import positions_jointes
+
+    equipes = [ligne_equipe("e1"), ligne_equipe("e2"), ligne_equipe("e3")]
+    table_positions = [
+        position("e1", age_s=3600 * 5, lat=45.49, lng=-73.55),  # très vieille : écartée
+        position("e2", lat=45.51, lng=-73.57),
+    ]
+    jointe = {"e1": {"latitude": 45.5033, "longitude": -73.5611}}
+    d = donnees({"depart": "position", "positions_depart": jointe}, equipes, table_positions)
+    departs = {e.id: e.depart for e in d.probleme.equipes}
+    # e1 : la position jointe, même si celle de la table est périmée ; e2 : la table ; e3 : aucune, le garage.
+    assert departs == {"e1": "depart:e1", "e2": "depart:e2", "e3": None}
+    lieu = {x.id: x for x in d.probleme.lieux}
+    assert (lieu["depart:e1"].latitude, lieu["depart:e1"].longitude) == (45.5033, -73.5611)
+    assert (lieu["depart:e2"].latitude, lieu["depart:e2"].longitude) == (45.51, -73.57)
+    assert positions_jointes({"e1": {"latitude": "45.5", "longitude": "-73.6"}}) == {
+        "e1": (45.5, -73.6)
+    }
+    assert positions_jointes(None) == {} and positions_jointes({}) == {}
+
+
+def test_position_jointe_sans_position_en_table_et_par_equipe():
+    equipes = [ligne_equipe("e1"), ligne_equipe("e2")]
+    jointe = {
+        "e1": {"latitude": 45.5033, "longitude": -73.5611},
+        "e2": {"latitude": 45.5, "longitude": -73.56},
+    }
+    # Aucune position en table : seules les équipes qui partent de leur position ont un départ.
+    d = donnees({"depart_par_equipe": {"e1": "position"}, "positions_depart": jointe}, equipes)
+    assert {e.id: e.depart for e in d.probleme.equipes} == {"e1": "depart:e1", "e2": None}
+    # Départ au garage : la position jointe est ignorée.
+    d = donnees({"depart": "garage", "positions_depart": jointe}, equipes)
+    assert all(e.depart is None for e in d.probleme.equipes)
+
+
+@pytest.mark.parametrize(
+    ("valeur", "message"),
+    [
+        ({"e1": {"latitude": 50.0, "longitude": -73.56}}, "hors de Montréal"),
+        ({"e1": {"latitude": 45.5, "longitude": -80.0}}, "hors de Montréal"),
+        ({"e1": {"latitude": 45.5}}, "pas valable"),
+        ({"e1": {"latitude": "abc", "longitude": -73.5}}, "pas valable"),
+        ({"e1": None}, "pas valable"),
+        ({"e1": {"latitude": float("nan"), "longitude": -73.5}}, "pas valable"),
+        ([1, 2], "pas valable"),
+        ("45.5,-73.5", "pas valable"),
+    ],
+)
+def test_position_jointe_invalide_refusee_en_francais_simple(valeur, message):
+    with pytest.raises(ErreurDemande, match=message):
+        donnees({"depart": "position", "positions_depart": valeur}, [ligne_equipe("e1")])
+
+
+def test_recalcul_depuis_ma_position_pour_le_superviseur():
+    """Sans aucune position en table, la position jointe suffit : le recalcul part de là."""
+    m = MagasinPlan(
+        demandes=[demande("d1")],
+        equipes=[{**equipe("e1", 45.50, -73.58), "fin_quart": "16:00:00"}],
+        signalements=[
+            sig(f"s{i}", lat=45.50 + 0.001 * i, lng=-73.57, grille=f"g{i}") for i in range(6)
+        ],
+    )
+    traiter_demande(m, m.demandes["d1"], None, utiliser_osrm=False, journal=lambda *_: None)
+    assert m.positions_equipes() == [] if hasattr(m, "positions_equipes") else True
+    # L'équipe se tient près du dernier endroit du plan : il doit passer en premier.
+    dernier = m.en_place[0]["arrets"][-1]
+    ici = {"latitude": dernier["latitude"] + 0.00001, "longitude": dernier["longitude"]}
+
+    class AvecPositions(MagasinPlan):
+        def positions_equipes(self):
+            return []
+
+    m2 = AvecPositions(demandes=[], equipes=m._equipes, signalements=m._signalements)
+    m2.en_place = m.en_place
+    m2.demandes["d2"] = demande(
+        "d2",
+        cree="2026-11-22T08:00:00Z",
+        equipe_ids=["e1"],
+        recalcul="tournee",
+        depart="position",
+        positions_depart={"e1": ici},
+    )
+    traiter_demande(m2, m2.demandes["d2"], None, utiliser_osrm=False, journal=lambda *_: None)
+    t = m2.tournees["d2"]["tournees"][0]
+    assert t["depart"] == "position" and t["depart_position"] == ici
+    assert t["arrets"][0]["cle_endroit"] == dernier["cle_endroit"]
+
+
+# ---------- répartir entre les équipes (repartir) ----------
+
+
+def donnees_proches(**params):
+    """Huit endroits tout près d'un même garage, deux équipes au même garage."""
+    sigs8 = [sig(f"s{i}", lat=45.5000 + 0.0006 * i, lng=-73.5700, grille=f"g{i}") for i in range(8)]
+    equipes = [
+        ligne_equipe("e1", garage_latitude=45.4990, garage_longitude=-73.5700),
+        ligne_equipe("e2", garage_latitude=45.4990, garage_longitude=-73.5700),
+    ]
+    return construire_donnees(
+        {"date": "2026-11-22", "limite_secondes": 1, **params}, equipes, [], sigs8, None, MAINTENANT
+    )[0]
+
+
+def test_sans_repartir_une_seule_equipe_prend_tout_et_avec_repartir_les_deux_partagent():
+    sans = donnees_proches()
+    assert sans.probleme.parametres.equilibrage == 0
+    r0 = resoudre(sans.probleme)
+    nb0 = sorted(len(t["arrets"]) for t in r0["tournees"])
+    avec = donnees_proches(repartir=True)
+    assert avec.probleme.parametres.equilibrage == 1
+    r1 = resoudre(avec.probleme)
+    nb1 = sorted(len(t["arrets"]) for t in r1["tournees"])
+    assert nb0 == [0, 8]  # tout sur une équipe : moins de km, mais une tournée plus longue
+    assert nb1[0] >= 3 and sum(nb1) == 8  # les deux équipes travaillent
+    assert max(t["duree_s"] for t in r1["tournees"]) < max(t["duree_s"] for t in r0["tournees"])
+    assert r0["non_servis"] == [] and r1["non_servis"] == []
+
+
+def test_repartir_garde_les_priorites_de_gravite():
+    sigs = [
+        sig("g1", lat=45.5000, lng=-73.5700, grille="a", gravite="elevee"),
+        sig("g2", lat=45.5006, lng=-73.5700, grille="b", gravite="elevee"),
+        sig("g3", lat=45.5012, lng=-73.5700, grille="c", gravite="faible"),
+    ]
+    equipes = [ligne_equipe("e1", fin_quart="08:20:00"), ligne_equipe("e2", fin_quart="08:20:00")]
+    d = construire_donnees(
+        {"date": "2026-11-22", "limite_secondes": 1, "repartir": True},
+        equipes,
+        [],
+        sigs,
+        None,
+        MAINTENANT,
+    )[0]
+    r = resoudre(d.probleme)
+    servis = {a["arret_id"] for t in r["tournees"] for a in t["arrets"]}
+    assert {"grille:a", "grille:b"} <= servis  # les graves d'abord, répartis ou non
+
+
+@pytest.mark.parametrize("valeur", ["oui", 1, "true", None])
+def test_repartir_doit_etre_un_booleen(valeur):
+    from optimisation.ecoute import MESSAGE_REPARTIR_INVALIDE
+
+    if valeur is None:
+        assert donnees_proches(repartir=valeur) is not None  # absent ou nul : défaut
+        return
+    with pytest.raises(ErreurDemande, match=MESSAGE_REPARTIR_INVALIDE):
+        donnees_proches(repartir=valeur)
+
+
+def test_defaut_sans_repartir_inchange():
+    d = donnees_proches()
+    assert d.probleme.parametres.equilibrage == 0

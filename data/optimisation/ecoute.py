@@ -10,6 +10,7 @@ Realtime sert à réveiller la boucle ; l'interrogation toutes les 3 s garantit 
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import threading
 import time
@@ -44,11 +45,24 @@ MESSAGE_FIN_INTROUVABLE = "L'endroit de fin choisi est introuvable."
 MESSAGE_FIN_INCONNUE = "Cette façon de finir la tournée n'existe pas."
 MESSAGE_RIEN_A_REPLANIFIER = "Il ne reste aucun arrêt à replanifier pour cette équipe."
 MESSAGE_DEPART_INCONNU = "Cette façon de partir n'existe pas."
+MESSAGE_PENALITES_INCONNUES = "Ce réglage des pénalités de chantier n'existe pas."
+MESSAGE_REPARTIR_INVALIDE = "Le choix de répartir les arrêts n'est pas valable."
+MESSAGE_POSITION_INVALIDE = "La position de départ choisie n'est pas valable."
+MESSAGE_POSITION_HORS_MONTREAL = "La position de départ choisie est hors de Montréal."
 MESSAGE_RECALCUL_INCONNU = "Ce type de recalcul n'existe pas."
 MESSAGE_RECALCUL_SANS_EQUIPE = "Choisissez l'équipe dont il faut recalculer la tournée."
 
 # Une position d'équipe plus vieille que cela n'est plus fiable : l'équipe part de son garage.
 AGE_MAX_POSITION_S = 15 * 60
+
+# Répartir : poids de l'étendue globale sur la dimension temps (durée de la tournée la plus longue).
+# Mesuré sur 26 arrêts : 1 suffit (4 h 40 sur une équipe -> 1 h 18 sur quatre) ; 3, 10 et 30 ne font pas mieux.
+POIDS_REPARTITION = 1
+
+# Pénalités de chantier des calculs en direct : « barrees » (rues barrées seulement, défaut du service),
+# « toutes » (aussi les voies obstruées) ou « aucune ». Le précalculé figé, lui, garde toutes les pénalités.
+PENALITES_DEFAUT = "barrees"
+TYPES_PENALISES = {"barrees": frozenset({"Rue barrée"}), "toutes": None, "aucune": frozenset()}
 
 
 class ErreurDemande(Exception):
@@ -101,6 +115,32 @@ def _secondes_depuis_minuit(iso_str: str, jour: date) -> int | None:
     if dt.date() != jour:
         return None
     return dt.hour * 3600 + dt.minute * 60 + dt.second
+
+
+BOITE_MONTREAL = (45.40, 45.71, -73.98, -73.47)  # latitude min et max, longitude min et max
+
+
+def positions_jointes(brut: Any) -> dict[str, tuple[float, float]]:
+    """Positions de départ jointes à la demande (`positions_depart`), vérifiées : des nombres, dans Montréal."""
+    if brut in (None, {}):
+        return {}
+    if not isinstance(brut, dict):
+        raise ErreurDemande(MESSAGE_POSITION_INVALIDE)
+    resultat: dict[str, tuple[float, float]] = {}
+    for equipe_id, valeur in brut.items():
+        try:
+            lat, lng = float(valeur["latitude"]), float(valeur["longitude"])
+        except (KeyError, TypeError, ValueError):
+            raise ErreurDemande(MESSAGE_POSITION_INVALIDE) from None
+        if math.isnan(lat) or math.isnan(lng):
+            raise ErreurDemande(MESSAGE_POSITION_INVALIDE)
+        if not (
+            BOITE_MONTREAL[0] <= lat <= BOITE_MONTREAL[1]
+            and BOITE_MONTREAL[2] <= lng <= BOITE_MONTREAL[3]
+        ):
+            raise ErreurDemande(MESSAGE_POSITION_HORS_MONTREAL)
+        resultat[equipe_id] = (lat, lng)
+    return resultat
 
 
 def position_fraiche(
@@ -173,6 +213,15 @@ def construire_donnees(
     depart_mode = params.get("depart") or "garage"
     fin_mode = params.get("fin") or "garage"
     depart_par_equipe = params.get("depart_par_equipe") or {}
+    jointes = positions_jointes(params.get("positions_depart"))
+    penalites = params.get("penalites") or PENALITES_DEFAUT
+    if penalites not in TYPES_PENALISES:
+        raise ErreurDemande(MESSAGE_PENALITES_INCONNUES)
+    repartir = params.get("repartir")
+    if repartir is None:
+        repartir = False
+    if not isinstance(repartir, bool):
+        raise ErreurDemande(MESSAGE_REPARTIR_INVALIDE)
     fin_par_equipe = params.get("fin_par_equipe") or {}
     if fin_mode not in ("garage", "libre", "endroit"):
         raise ErreurDemande(MESSAGE_FIN_INCONNUE)
@@ -213,7 +262,8 @@ def construire_donnees(
         lieux.append(Lieu(garage, e["garage_latitude"], e["garage_longitude"]))
         depart = None
         if depart_par_equipe.get(e["id"], depart_mode) == "position":
-            position = position_fraiche(positions, e["id"], maintenant)
+            # La position jointe à la demande l'emporte sur la table, sans condition d'âge.
+            position = jointes.get(e["id"]) or position_fraiche(positions, e["id"], maintenant)
             if position is not None:  # sinon (position absente ou périmée) : le garage
                 depart = f"depart:{e['id']}"
                 lieux_departs.append(Lieu(depart, position[0], position[1]))
@@ -299,7 +349,7 @@ def construire_donnees(
     indices_departs = list(range(n_arrets, n_arrets + len(lieux_departs)))
     indices_fins = list(range(n_arrets + len(lieux_departs), len(lieux)))
     temps, dist, pen, source = construire_matrices(
-        lieux, cache, client_osrm, indices_departs, indices_fins
+        lieux, cache, client_osrm, indices_departs, indices_fins, TYPES_PENALISES[penalites]
     )
 
     arrets = []
@@ -307,7 +357,7 @@ def construire_donnees(
         lieu_cache = cache.trouver(next(x for x in lieux if x.id == e.cle)) if cache else None
         supplement = (
             cache.penalite_arret_s.get(cache.ids[lieu_cache], 0)
-            if cache and lieu_cache is not None
+            if cache and lieu_cache is not None and penalites != "aucune"
             else 0
         )
         arrets.append(
@@ -329,6 +379,7 @@ def construire_donnees(
         parametres=Parametres(
             intervention_s=INTERVENTION_S,
             limite_s=limite,
+            equilibrage=POIDS_REPARTITION if repartir else 0,
             fin=fin_mode,
             fin_lieu=lieu_fin.id if lieu_fin is not None else None,
         ),

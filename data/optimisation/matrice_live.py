@@ -202,6 +202,7 @@ def construire_matrices(
     client: httpx.Client | None = None,
     departs: list[int] | None = None,
     fins: list[int] | None = None,
+    types_penalises: frozenset[str] | None = None,
 ) -> tuple[list[list[int]], list[list[int]], list[list[int]], str]:
     """Rend (temps_s, distance_m, penalites_chantiers_s, source). Source « vol_oiseau » si au moins une paire
     est estimée à vol d'oiseau.
@@ -209,7 +210,10 @@ def construire_matrices(
     Les lieux qui ne sont pas dans le cache (nouveaux endroits, départs à la position d'une équipe, endroit
     de fin) reçoivent leurs trajets d'OSRM (service `table`) quand un `client` est donné : seulement les lignes
     et colonnes qui manquent. `departs` et `fins` sont des indices de lieux : un départ n'a besoin que de sa
-    ligne, une fin que de sa colonne."""
+    ligne, une fin que de sa colonne.
+
+    `types_penalises` : types d'impact de chantier qui pénalisent les trajets (None : tous ; ensemble
+    vide : aucun)."""
     n = len(lieux)
     ref = [cache.trouver(l) if cache else None for l in lieux]
     temps = [[0] * n for _ in range(n)]
@@ -249,6 +253,8 @@ def construire_matrices(
     if cache:
         for permis in cache.permis:
             if not permis.get("penalite_s"):
+                continue
+            if types_penalises is not None and permis.get("type_impact") not in types_penalises:
                 continue
             zone = Incident(
                 permis["latitude"], permis["longitude"], cache.rayon_m, int(permis["penalite_s"])

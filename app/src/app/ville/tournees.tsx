@@ -286,7 +286,13 @@ export default function Tournees() {
                       {t.arrets.length} arrêts, {formaterKm(t.distance_m)}, de {formaterHeure(t.debut_prevu)} à{' '}
                       {formaterHeure(t.fin_prevue)}
                     </ThemedText>
-                    <ThemedText type="small">{resumeTotalTournee(t)}</ThemedText>
+                    {t.arrets.length === 0 ? (
+                      <ThemedText type="small" accessibilityRole="alert">
+                        Aucun arrêt pour cette équipe dans ce plan.
+                      </ThemedText>
+                    ) : (
+                      <ThemedText type="small">{resumeTotalTournee(t)}</ThemedText>
+                    )}
                     <ThemedText type="small" themeColor="textSecondary">
                       {libelleDepartPlan(t, equipes.find((q) => q?.id === t.equipe_id), positions.find((q) => q.equipe_id === t.equipe_id)?.maj_le)}
                       {'\n'}

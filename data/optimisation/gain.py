@@ -1,5 +1,8 @@
 """Comparaison avec l'ordre d'arrivée des signalements (même matrice, mêmes équipes).
 
+Les durées sorties sont des temps réels (route plus interventions) ; les pénalités de chantier ne servent
+qu'au modèle (objectif, quart, choix de l'équipe de la référence).
+
 Référence « à travail égal » : l'ordre d'arrivée sert les mêmes arrêts que le plan optimisé, sans limite
 de quart ; son dépassement du quart est donné à part. Mesure séparée : les arrêts servis dans le quart
 par chaque plan. L'ordre d'arrivée est notre règle de comparaison, pas une pratique de la Ville.
@@ -29,7 +32,8 @@ def tournees_ordre_arrivee(
         {
             "equipe": e,
             "pos": index[e.depart or e.garage],
-            "t": e.debut_s,
+            "t": e.debut_s,  # horloge du modèle (trajet + pénalités) : elle décide des affectations et du quart
+            "t_reel": e.debut_s,  # horloge réelle (trajet + interventions) : elle donne les durées sorties
             "noeuds": [index[e.depart or e.garage]],
             "arrets": [],
         }
@@ -45,6 +49,12 @@ def tournees_ordre_arrivee(
         if a is None or b is None:
             return 0
         return int(p.temps_s[a][b]) + int(pen[a][b])
+
+    def trajet_reel(a: int | None, b: int | None) -> int:
+        """Temps de route seul, sans les pénalités de chantier."""
+        if a is None or b is None:
+            return 0
+        return int(p.temps_s[a][b])
 
     non_servis = []
     for a in sorted(p.arrets, key=lambda x: (x.ordre_arrivee, x.id)):
@@ -66,13 +76,15 @@ def tournees_ordre_arrivee(
         s, arrivee, duree = meilleur
         s["arrets"].append(a.id)
         s["noeuds"].append(k)
+        s["t_reel"] += trajet_reel(s["pos"], k) + duree
         s["pos"], s["t"] = k, arrivee + duree
     tournees = []
     for s in etat:
         fin = fin_de(s["equipe"])
         noeuds = s["noeuds"] + ([fin] if fin is not None else [])
         distance = sum(p.distance_m[x][y] for x, y in pairwise(noeuds))
-        retour = s["t"] + (trajet(s["pos"], fin) if len(noeuds) > 1 else 0)
+        # Durées sorties : temps réels (route et interventions), sans les pénalités du modèle.
+        retour = s["t_reel"] + (trajet_reel(s["pos"], fin) if len(noeuds) > 1 else 0)
         duree_equipe = int(retour - s["equipe"].debut_s) if s["arrets"] else 0
         tournees.append(
             {

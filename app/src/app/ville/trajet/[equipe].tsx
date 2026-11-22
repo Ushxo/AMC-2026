@@ -36,6 +36,7 @@ import { useSessionEmploye } from '@/hooks/use-session-employe';
 import { useSource } from '@/hooks/use-source';
 import { useSuiviTrajet } from '@/hooks/use-suivi-trajet';
 import { useTheme } from '@/hooks/use-theme';
+import { useTournees } from '@/hooks/use-tournees';
 import { useTraceTournee } from '@/hooks/use-trace-tournee';
 import { useTroncon } from '@/hooks/use-troncon';
 import { libelleReste, resteEstime, resumeTotalTournee } from '@/lib/durees';
@@ -59,8 +60,8 @@ import { distanceAuTrace, distanceCourte, dureeCourte } from '@/lib/navigation';
 import { chargerRegion } from '@/lib/officiel';
 import { proposerRecalcul } from '@/lib/reordre';
 import { formaterHeure } from '@/lib/temps';
-import { cibleFinTournee, libelleArriveePlan, libelleDepartPlan, MESSAGE_POSITION_TROP_ANCIENNE, positionTropAncienne } from '@/lib/tournees';
-import { idArret, peutMarquerFait, peutPublierPosition, regionAutour } from '@/lib/trajet';
+import { cibleFinTournee, libelleArriveePlan, libelleDepartPlan } from '@/lib/tournees';
+import { arretSurPlace, idArret, messageApresRecalcul, peutMarquerFait, peutPublierPosition, regionAutour } from '@/lib/trajet';
 
 const ECART_ROUTE_VALABLE_M = 150;
 const NOM_GARAGE: DestinationNommee = { arrivee: 'au garage', direction: 'du garage' };
@@ -86,6 +87,8 @@ export default function Trajet() {
   const [arrivee, setArrivee] = useState<string | null>(null);
   const [liste, setListe] = useState(false);
   const [navEchec, setNavEchec] = useState<string | null>(null);
+  const [recalculDemande, setRecalculDemande] = useState<{ prochainAvant: string | null } | null>(null);
+  const { resultat: resultatLu } = useTournees();
   const routeur = useRouter();
   const carteSecours = useRef<CarteCommandes>(null);
   const carte = useRef<MapView>(null);
@@ -183,6 +186,8 @@ export default function Trajet() {
           equipe_ids: [tournee.equipe_id],
           recalcul: 'tournee', // exigé pour le compte d'une équipe ; garde les arrêts faits en tête
           depart: 'position',
+          // La position du TÉLÉPHONE part avec la demande : le service n'a peut-être aucune position fraîche pour l'équipe.
+          positions_depart: { [tournee.equipe_id]: { latitude: pos.position.latitude, longitude: pos.position.longitude } },
           // Une adresse d'arrivée se demande par équipe ; les autres fins sont globales.
           ...(finPlan === 'arrivee'
             ? { fin_par_equipe: { [tournee.equipe_id]: 'arrivee' as const } }
@@ -198,6 +203,7 @@ export default function Trajet() {
       setMessage(`${MESSAGE_RECALCUL_INDISPONIBLE} ${MESSAGE_ORDRE_ESTIME}`);
       return;
     }
+    setRecalculDemande({ prochainAvant: courant ? idArret(courant) : null });
     setMessage(MESSAGE_RECALCUL_DEMANDE);
   }
 
@@ -271,6 +277,18 @@ export default function Trajet() {
   // Après « Démarrer », le guidage part de la position réelle : on dit à quelle distance elle est du départ prévu.
   const ecartDepartM = suiviActif && faits === 0 && pos.position && departPlan ? distanceM(pos.position, departPlan) : 0;
   const infoDepart = ecartDepartM > 300 ? `Vous êtes à ${distanceCourte(ecartDepartM)} du départ prévu.` : null;
+  // Après un recalcul « depuis ma position » : une fois le nouveau plan lu, on dit si le départ est resté au garage et si l'ordre a changé.
+  const nouveauPlanLu = !!recalculDemande && demandeCalcul?.statut === 'terminee' && resultatLu?.demande_id === demandeCalcul.id;
+  const messageRecalcul =
+    nouveauPlanLu && tournee && recalculDemande
+      ? messageApresRecalcul({ departRecu: tournee.depart, prochainAvant: recalculDemande.prochainAvant, prochainApres: courant })
+      : null;
+  const messageAffiche = messageRecalcul ?? message;
+  // L'équipe est à un arrêt non fait qui n'est pas le prochain : on propose de le faire maintenant (l'ordre des autres ne change pas).
+  const surPlace = !finie && peutMarquer ? arretSurPlace(pos.position, restants, courant) : null;
+  const suggestion = surPlace
+    ? { texte: `Vous êtes à l'arrêt ${surPlace.rang} : le faire maintenant ?`, titre: `Arrêt ${surPlace.rang} fait`, onPress: () => void faire(idArret(surPlace)) }
+    : null;
   const reste = tournee && !finie ? libelleReste(resteEstime(tournee, estFait)) : null;
   const pastille = finie ? 'Tournée terminée' : courant ? `Arrêt ${rangCourant + 1} sur ${total}` : '';
 
@@ -283,13 +301,14 @@ export default function Trajet() {
         arrivee={messageArriveeEcran}
         reste={reste}
         info={infoDepart}
+        suggestion={suggestion}
         titreAction={arriveeFin ? 'Terminer' : 'Arrêt fait'}
         occupe={occupe}
         actionActive={arriveeFin || (peutMarquer && !!courant && !estFait(courant))}
         onAction={() => (arriveeFin ? arreter() : courant ? void faire(idArret(courant)) : undefined)}
         onArreter={arreter}
         onListe={() => setListe(true)}
-        message={message ?? (peutMarquer ? null : MESSAGE_SEUL_SUPERVISEUR_OU_EQUIPE)}
+        message={messageAffiche ?? (peutMarquer ? null : MESSAGE_SEUL_SUPERVISEUR_OU_EQUIPE)}
       />
     );
   }
@@ -481,11 +500,6 @@ export default function Trajet() {
               {demandeCalcul?.statut === 'echec' && demandeCalcul.message ? (
                 <ThemedText accessibilityRole="alert">{demandeCalcul.message}</ThemedText>
               ) : null}
-              {tournee && demandeCalcul?.statut === 'terminee' && positionTropAncienne(demandeCalcul.parametres.depart, tournee) ? (
-                <ThemedText type="small" accessibilityRole="alert">
-                  {MESSAGE_POSITION_TROP_ANCIENNE}
-                </ThemedText>
-              ) : null}
               {suivi.ordreLocal ? (
                 <ThemedText type="small" themeColor="textSecondary">
                   {MESSAGE_ORDRE_ESTIME}
@@ -502,7 +516,13 @@ export default function Trajet() {
                   />
                 </View>
               ) : null}
-              {message ? <ThemedText accessibilityRole="alert">{message}</ThemedText> : null}
+              {suggestion ? (
+                <View accessibilityRole="alert" style={styles.rangee}>
+                  <ThemedText type="smallBold">{suggestion.texte}</ThemedText>
+                  <Bouton titre={suggestion.titre} variante="discret" actif={!occupe} onPress={suggestion.onPress} />
+                </View>
+              ) : null}
+              {messageAffiche ? <ThemedText accessibilityRole="alert">{messageAffiche}</ThemedText> : null}
 
               <ThemedText type="smallBold" accessibilityRole="header">
                 Arrêts restants ({restants.length})

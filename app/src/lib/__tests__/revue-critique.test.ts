@@ -3,7 +3,7 @@ import type { Arret, ResultatOptimisation, Tournee } from '../../types';
 import { calculerGuidage, guidageDroit, messageArrivee } from '../guidage';
 import { essayerLancer } from '../lancer-navigation';
 import { cibleFinTournee } from '../tournees';
-import { peutMarquerFait, peutPublierPosition, tourneeTerminee } from '../trajet';
+import { arretSurPlace, messageApresRecalcul, MESSAGE_POSITION_NON_PRISE, peutMarquerFait, peutPublierPosition, tourneeTerminee } from '../trajet';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -111,5 +111,26 @@ describe('P10 : le dernier plan valide est gardé', () => {
     expect(retenirPlan(a, b)).toBe(b);
     expect(retenirPlan(null, a)).toBe(a);
     expect(retenirPlan(null, null)).toBeNull();
+  });
+});
+
+describe('retour iPhone : recalcul depuis la position, arrêt sur place', () => {
+  const A = (rang: number, lat: number, lng: number): Arret => ({ rang, cle_endroit: `k${rang}`, signalement_ids: ['s'], position: { latitude: lat, longitude: lng }, arrivee_prevue: '', depart_prevu: '' });
+  const M = 1 / 110540;
+  const restants = [A(1, 45.5 + 800 * M, -73.57), A(2, 45.5 + 2000 * M, -73.57), A(3, 45.5 + 10 * M, -73.57)];
+
+  it('arretSurPlace : un arrêt non fait, autre que le prochain, à moins de 50 m', () => {
+    expect(arretSurPlace({ latitude: 45.5, longitude: -73.57 }, restants, restants[0])?.rang).toBe(3);
+    expect(arretSurPlace({ latitude: 45.5, longitude: -73.57 }, restants, restants[2])).toBeNull(); // c'est déjà le prochain
+    expect(arretSurPlace({ latitude: 45.5 + 400 * M, longitude: -73.57 }, restants, restants[0])).toBeNull(); // trop loin
+    expect(arretSurPlace(null, restants, restants[0])).toBeNull();
+  });
+
+  it('messages après recalcul : départ resté au garage, ordre changé, ordre inchangé', () => {
+    expect(messageApresRecalcul({ departRecu: 'garage', prochainAvant: 'k1', prochainApres: restants[0] })).toBe(MESSAGE_POSITION_NON_PRISE);
+    expect(messageApresRecalcul({ departRecu: undefined, prochainAvant: 'k1', prochainApres: restants[0] })).toBe(MESSAGE_POSITION_NON_PRISE);
+    expect(messageApresRecalcul({ departRecu: 'position', prochainAvant: 'k1', prochainApres: restants[2] })).toBe('Ordre recalculé depuis votre position : prochain arrêt 3.');
+    expect(messageApresRecalcul({ departRecu: 'position', prochainAvant: 'k3', prochainApres: restants[2] })).toBe('Ordre recalculé depuis votre position : le prochain arrêt reste le 3.');
+    expect(messageApresRecalcul({ departRecu: 'position', prochainAvant: 'k3', prochainApres: null })).toContain('plus aucun arrêt');
   });
 });

@@ -208,6 +208,11 @@ export type ParametresOptimisation = {
   // Départ : son garage ou sa dernière position connue. Fin : son adresse d'arrivée (le garage si elle n'en a pas) ou fin libre.
   depart_par_equipe?: Record<string, 'garage' | 'position'>;
   fin_par_equipe?: Record<string, 'arrivee' | 'libre'>;
+  // Position de départ donnée avec la demande (celle du téléphone qui demande le recalcul), par équipe.
+  // Elle l'emporte sur la dernière position partagée quand depart vaut 'position' pour cette équipe.
+  positions_depart?: Record<string, Coordonnees>;
+  // Répartir le travail entre les équipes (réduire la tournée la plus longue) plutôt que de minimiser seulement les kilomètres.
+  repartir?: boolean;
   affectations_forcees: { cle_endroit: string; equipe_id: string }[];
   limite_secondes: number;
 };

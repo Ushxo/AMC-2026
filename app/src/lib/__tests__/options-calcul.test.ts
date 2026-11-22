@@ -12,8 +12,9 @@ import {
 const MAINTENANT = Date.parse('2026-11-22T22:30:00Z');
 
 describe('options du calcul, par équipe', () => {
-  it('par défaut : rien à joindre à la demande (tout le monde part du garage et y revient)', () => {
-    expect(parametresDesOptions(OPTIONS_PAR_DEFAUT)).toEqual({});
+  it('par défaut : seul « repartir » est envoyé (tout le monde part du garage et y revient, le travail est réparti)', () => {
+    expect(parametresDesOptions(OPTIONS_PAR_DEFAUT)).toEqual({ repartir: true });
+    expect(parametresDesOptions({ ...OPTIONS_PAR_DEFAUT, repartir: false })).toEqual({ repartir: false });
     expect(finIncomplete(OPTIONS_PAR_DEFAUT)).toBe(false);
   });
 
@@ -23,14 +24,14 @@ describe('options du calcul, par équipe', () => {
       departParEquipe: { e1: 'position' as const, e2: 'garage' as const },
       finParEquipe: { e1: 'arrivee' as const, e3: 'libre' as const },
     };
-    expect(parametresDesOptions(o)).toEqual({ depart_par_equipe: { e1: 'position' }, fin_par_equipe: { e3: 'libre' } });
+    expect(parametresDesOptions(o)).toEqual({ repartir: true, depart_par_equipe: { e1: 'position' }, fin_par_equipe: { e3: 'libre' } });
   });
 
   it('« Finir à un endroit » (global) : incomplet sans endroit, envoyé avec', () => {
     const sans = { ...OPTIONS_PAR_DEFAUT, finEndroit: true };
     expect(finIncomplete(sans)).toBe(true);
-    expect(parametresDesOptions(sans)).toEqual({});
-    expect(parametresDesOptions({ ...sans, finCle: 'k1' })).toEqual({ fin: 'endroit', fin_cle_endroit: 'k1' });
+    expect(parametresDesOptions(sans)).toEqual({ repartir: true });
+    expect(parametresDesOptions({ ...sans, finCle: 'k1' })).toEqual({ repartir: true, fin: 'endroit', fin_cle_endroit: 'k1' });
   });
 
   it('position récente : moins de 15 minutes', () => {

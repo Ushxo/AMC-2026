@@ -209,21 +209,25 @@ def resoudre(p: Probleme) -> dict[str, Any]:
         while not routing.IsEnd(i):
             node = manager.IndexToNode(i)
             if ids[node] in arrets_par_id:
-                arrivee = solution.Value(temps.CumulVar(i))
-                suite.append(
-                    {
-                        "arret_id": ids[node],
-                        "ordre": len(suite) + 1,
-                        "arrivee_s": arrivee,
-                        "depart_s": arrivee + service[node],
-                    }
-                )
+                suite.append({"arret_id": ids[node], "ordre": len(suite) + 1})
                 servis.add(ids[node])
                 noeuds.append(node)
             i = solution.Value(routing.NextVar(i))
         if modes[v][0] != "libre":
             noeuds.append(ends[v])
-        retour = solution.Value(temps.CumulVar(i))
+        # Heures et durées RÉELLES : route (OSRM) plus interventions, sans les pénalités de chantier.
+        # Les pénalités restent dans l'objectif et dans le respect du quart du modèle ; le temps réel
+        # étant plus court, le quart est tenu a fortiori.
+        horloge = e.debut_s
+        for precedent, a in zip(noeuds, suite, strict=False):
+            noeud = index[a["arret_id"]]
+            horloge += int(p.temps_s[precedent][noeud])
+            a["arrivee_s"] = horloge
+            horloge += service[noeud]
+            a["depart_s"] = horloge
+        if modes[v][0] != "libre":
+            horloge += int(p.temps_s[noeuds[-2]][noeuds[-1]])
+        retour = horloge
         tournees.append(_tournee(e, suite, noeuds, retour, p, modes[v][0]))
 
     non_servis = [a.id for a in p.arrets if a.id not in servis]
