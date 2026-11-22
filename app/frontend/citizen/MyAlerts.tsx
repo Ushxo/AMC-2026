@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { texteSur } from '@/marque/couleurs';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
@@ -73,7 +74,7 @@ function Progress({ step }: { step: number }) {
                   : { backgroundColor: P.surface, borderColor: P.border },
               ]}
             >
-              {reached && <Ionicons name="checkmark" size={16} color="white" />}
+              {reached && <Ionicons name="checkmark" size={16} color={texteSur(active)} />}
             </View>
             <Text style={styles.stepText}>{label}</Text>
           </View>

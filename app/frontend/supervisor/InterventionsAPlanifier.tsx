@@ -249,7 +249,6 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   lienTexte: { color: P.primary, fontWeight: "800", textDecorationLine: "underline", fontSize: 15 },
   bas: { backgroundColor: P.background, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: P.border },
   calculer: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.action, borderRadius: 30, paddingHorizontal: 24, paddingVertical: 8, minHeight: 56 },
-  separateur: { width: 1, alignSelf: "stretch", backgroundColor: "rgba(255,255,255,0.5)" },
   calculerTitre: { color: P.surface, fontSize: 18, fontWeight: "800" },
   calculerSous: { color: P.surface, fontSize: 14, marginTop: 2 },
 });

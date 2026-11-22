@@ -8,7 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { BlurView } from '@/lib/flou-optionnel';
 import { CATEGORIES_PROPOSEES, LIBELLES_CATEGORIE, type Categorie } from '@/types';
-import { useStyles } from '@/marque/utiliser';
+import { useMarque, useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
 import { BoutonAction } from '@/components/bouton-action';
 
@@ -39,15 +39,16 @@ export function FeuilleProbleme({
   const styles = useStyles(creerStyles);
   const { bottom } = useSafeAreaInsets();
   const theme = useTheme();
+  const { sombre } = useMarque();
   return (
     <View style={styles.plein} pointerEvents="box-none">
       <Pressable retour={false} style={styles.plein} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer sans signaler">
         {BlurView ? (
-          <BlurView intensity={25} tint="light" style={styles.plein}>
-            <View style={[styles.plein, styles.teinte]} />
+          <BlurView intensity={25} tint={sombre ? 'dark' : 'light'} style={styles.plein}>
+            <View style={[styles.plein, sombre ? styles.teinteSombre : styles.teinte]} />
           </BlurView>
         ) : (
-          <View style={[styles.plein, styles.voile]} />
+          <View style={[styles.plein, sombre ? styles.voileSombre : styles.voile]} />
         )}
       </Pressable>
       <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 20 }]}>
@@ -94,6 +95,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   plein: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   teinte: { backgroundColor: 'rgba(248, 244, 234, 0.35)' },
   voile: { backgroundColor: 'rgba(248, 244, 234, 0.72)' },
+  teinteSombre: { backgroundColor: 'rgba(10, 15, 22, 0.35)' },
+  voileSombre: { backgroundColor: 'rgba(10, 15, 22, 0.72)' },
   feuille: { position: 'absolute', left: 0, right: 0, bottom: 0, ...FEUILLE_BASE, paddingHorizontal: 20, paddingTop: 12, gap: 16 },
   poignee: { alignSelf: 'center', width: 48, height: 5, borderRadius: 3 },
   titre: { textAlign: 'center', fontSize: 24, lineHeight: 30 },

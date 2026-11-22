@@ -807,7 +807,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   pied: { paddingHorizontal: 20, paddingTop: 8 },
   carte: { height: 380 },
   carteArret: { padding: 16, borderRadius: 16, gap: 12 },
-  avisSecours: { padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.94)', color: P.text },
+  avisSecours: { padding: 12, borderRadius: 12, backgroundColor: P.surface, color: P.text },
   superposition: { position: 'absolute', top: 8, left: 8, right: 8 },
   commandesCarte: { position: 'absolute', right: 8, bottom: 8, gap: 8, alignItems: 'flex-end' },
 });
