@@ -7,16 +7,19 @@ import { Palette } from "@/constants/theme";
 import { Chargement } from "@/components/ville/etat-ecran";
 import { useAcces } from "@/hooks/use-acces";
 import { useMonEquipe } from "@/hooks/use-mon-equipe";
-import { EnteteCoquille } from "./components/EnteteCoquille";
+import { useEquipes } from "@/hooks/use-equipes";
+import { EnteteMaCarte } from "./components/EnteteMaCarte";
 
 // Espace employé : une seule page, « Ma carte » = le trajet de l'équipe du compte (aperçu, navigation, « Arrêt fait », recalcul).
 export default function StaffApp({ onLogout }: { onLogout: () => void }) {
   const { nom } = useAcces();
   const { equipeId, chargement } = useMonEquipe();
+  const { equipes } = useEquipes();
+  const nomEquipe = equipes.find((e) => e.id === equipeId)?.nom ?? null;
 
   return (
     <View style={styles.root}>
-      <EnteteCoquille sousTitre={`Ma carte · ${nom ?? "Responsable d’équipe"}`} onLogout={onLogout} />
+      <EnteteMaCarte sousTitre={nomEquipe ? `${nomEquipe} · trajet du jour` : nom ?? "Responsable d’équipe"} nom={nom} onLogout={onLogout} />
       <View style={styles.corps}>
         {chargement ? (
           <Chargement texte="Recherche de votre équipe…" />

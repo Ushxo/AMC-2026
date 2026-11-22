@@ -1,12 +1,12 @@
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COULEUR_AVIS } from '@/components/citoyen-essai/style';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { BandeauSource } from '@/components/ville/bandeau-source';
 import { Bouton } from '@/components/ville/bouton';
 import { Carte, Repere, type CarteCommandes } from '@/components/carte';
@@ -26,7 +26,8 @@ import { jugerPhoto } from '@/lib/ml';
 import { analyseDisponible, graviteSuggeree, MESSAGE_ANALYSE_INDISPONIBLE, MESSAGE_PHOTO_PAS_EGOUT } from '@/lib/suggestion-gravite';
 import PhotoStep from '../../../frontend/citizen/PhotoStep';
 import { IllustrationProbleme } from '@/components/illustration-probleme';
-import { chargerRegion } from '@/lib/officiel';
+import { lieuDeEndroit } from '@/lib/interventions';
+import { chargerAdresses, chargerRegion } from '@/lib/officiel';
 import {
   MESSAGE_ECHEC_ENVOI,
   MESSAGE_EN_ATTENTE,
@@ -57,7 +58,7 @@ const TITRE_CARTE: Partial<Record<Categorie, string>> = {
 type Etape = 'probleme' | 'photo' | 'formulaire';
 
 export default function Signaler() {
-  const { bottom } = useSafeAreaInsets();
+  const { bottom, top } = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
   const couleursTexte = useCouleursTexte();
@@ -80,7 +81,7 @@ export default function Signaler() {
   const [gravite, setGravite] = useState<Gravite | null>(null);
   const [commentaire, setCommentaire] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [photoOuverte, setPhotoOuverte] = useState(false);
+  const [lieuOuvert, setLieuOuvert] = useState(false);
   const [etape, setEtape] = useState<Etape>('probleme');
   const [analyse, setAnalyse] = useState<{ enCours: boolean; texte: string | null }>({ enCours: false, texte: null });
   const [messages, setMessages] = useState<string[]>([]);
@@ -244,20 +245,55 @@ export default function Signaler() {
     );
   }
 
-  return (
-    <ThemedView style={styles.fond}>
-      <Stack.Screen options={{ title: 'Signaler un problème' }} />
-      <SafeAreaView style={styles.fond} edges={[]}>
-        <View style={styles.fond}>
-          <ScrollView
-            automaticallyAdjustKeyboardInsets
-            keyboardDismissMode="interactive"
-            contentContainerStyle={[styles.contenu, { paddingBottom: bottom + 24 }]}
-            keyboardShouldPersistTaps="handled">
-            <BandeauSource etat={etat} />
+  const lieuConnu = point !== null;
+  const adresseLieu = point ? lieuDeEndroit(point, chargerAdresses()) : null;
 
-            <ThemedText type="smallBold" accessibilityRole="header">
-              1. Où est le problème ?
+  // Étape 3 : derniers détails (résumé, lieu, importance, commentaire), puis l'envoi.
+  return (
+    <View style={styles.fond}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.enteteVert, { paddingTop: top + 14 }]}>
+        <Pressable onPress={() => setEtape('photo')} accessibilityRole="button" accessibilityLabel="Retour à la photo" hitSlop={8} style={styles.retour}>
+          <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <ThemedText accessibilityRole="header" style={styles.enteteTitre} maxFontSizeMultiplier={1.3}>
+            Derniers détails
+          </ThemedText>
+          <ThemedText style={styles.enteteSous} maxFontSizeMultiplier={1.3}>
+            Étape 3 sur 3
+          </ThemedText>
+        </View>
+      </View>
+
+      <ScrollView
+        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode="interactive"
+        contentContainerStyle={[styles.contenu, { paddingBottom: 16 }]}
+        keyboardShouldPersistTaps="handled">
+        <BandeauSource etat={etat} />
+
+        <View style={styles.resume}>
+          <View style={styles.vignette}>
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.vignetteImage} contentFit="cover" accessibilityLabel="Photo jointe" />
+            ) : categorie ? (
+              <IllustrationProbleme categorie={categorie} taille={52} />
+            ) : null}
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <ThemedText style={styles.resumeTitre}>{categorie ? LIBELLES_CATEGORIE[categorie] : ''}</ThemedText>
+            <ThemedText style={styles.resumeLieu}>{adresseLieu ?? 'Lieu à choisir'}</ThemedText>
+          </View>
+          <Pressable onPress={() => setEtape('probleme')} accessibilityRole="button" accessibilityLabel="Changer de problème" style={styles.changer}>
+            <ThemedText style={styles.changerTexte}>Changer</ThemedText>
+          </Pressable>
+        </View>
+
+        {!lieuConnu || lieuOuvert ? (
+          <View style={styles.bloc}>
+            <ThemedText style={styles.blocTitre} accessibilityRole="header">
+              Où est le problème ?
             </ThemedText>
             <View style={styles.rangee}>
               <Bouton titre="Utiliser ma position" variante="discret" onPress={() => void maPosition()} />
@@ -307,123 +343,114 @@ export default function Signaler() {
                 {messageCarte}
               </ThemedText>
             ) : null}
-            {point ? (
-              <ThemedText type="small">Lieu choisi : {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}</ThemedText>
-            ) : null}
             {erreursChamps.lieu && !point ? (
               <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
                 {erreursChamps.lieu}
               </ThemedText>
             ) : null}
-            {zone.dansZone ? (
-              <View accessibilityRole="alert" style={[styles.avis, { borderColor: COULEUR_AVIS }]}>
-                <ThemedText type="smallBold">Avis d&apos;eau près de ce lieu</ThemedText>
-                {zone.avis.map((a) => (
-                  <ThemedText key={a.properties.id} type="small">
-                    {a.properties.titre}
-                  </ThemedText>
-                ))}
-              </View>
-            ) : null}
-
-            <ThemedText type="smallBold" accessibilityRole="header">
-              2. Problème choisi
-            </ThemedText>
-            <View style={styles.rangee}>
-              <ThemedText>{categorie ? LIBELLES_CATEGORIE[categorie] : ''}</ThemedText>
-              <Bouton titre="Changer" variante="discret" onPress={() => setEtape('probleme')} />
-            </View>
-
-            <ThemedText type="smallBold" accessibilityRole="header">
-              3. Quelle est la gravité ?
-            </ThemedText>
-            <View style={styles.rangee}>
-              {GRAVITES.map((g) => (
-                <Bouton
-                  key={g}
-                  titre={LIBELLES_GRAVITE[g]}
-                  variante="discret"
-                  selectionne={gravite === g}
-                  onPress={() => setGravite(g)}
-                />
-              ))}
-            </View>
-
-            {erreursChamps.gravite && !gravite ? (
-              <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
-                {erreursChamps.gravite}
-              </ThemedText>
-            ) : null}
-
-            <ThemedText type="smallBold" accessibilityRole="header">
-              4. Un détail à ajouter ? (facultatif)
-            </ThemedText>
-            <Champ
-              etiquette="Commentaire (500 caractères au plus)"
-              value={commentaire}
-              onChangeText={setCommentaire}
-              multiline
-              maxLength={500}
-              style={styles.commentaire}
-              erreur={erreursChamps.commentaire}
-            />
-            <View style={styles.rangee}>
-              <Bouton titre={photoUri ? 'Changer la photo' : 'Ajouter une photo (facultatif)'} variante="discret" onPress={() => setPhotoOuverte(true)} />
-            </View>
-            {analyse.enCours ? (
-              <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
-                Analyse de la photo…
-              </ThemedText>
-            ) : analyse.texte ? (
-              <ThemedText type="small" accessibilityLiveRegion="polite">
-                {analyse.texte}
-              </ThemedText>
-            ) : null}
-            {photoUri ? (
-              <View style={styles.photoBloc}>
-                <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" accessibilityLabel="Photo jointe" />
-                <Bouton titre="Retirer la photo" variante="discret" onPress={() => { setPhotoUri(null); setAnalyse({ enCours: false, texte: null }); }} />
-              </View>
-            ) : null}
-
-            {messages.map((m) => (
-              <ThemedText key={m} accessibilityRole="alert">
-                {m}
+          </View>
+        ) : (
+          <Pressable onPress={() => setLieuOuvert(true)} accessibilityRole="button" style={styles.lienLieu}>
+            <ThemedText style={styles.changerTexte}>Changer le lieu</ThemedText>
+          </Pressable>
+        )}
+        {zone.dansZone ? (
+          <View accessibilityRole="alert" style={[styles.avis, { borderColor: COULEUR_AVIS }]}>
+            <ThemedText type="smallBold">Avis d&apos;eau près de ce lieu</ThemedText>
+            {zone.avis.map((a) => (
+              <ThemedText key={a.properties.id} type="small">
+                {a.properties.titre}
               </ThemedText>
             ))}
-            {termine ? (
-              <View style={styles.rangee}>
-                <Bouton
-                  pleineLargeur
-                  titre="Suivre mon signalement"
-                  onPress={() => router.replace({ pathname: '/suivi/[id]', params: { id: envoyeId } })}
-                />
-                <Bouton titre="Retour à la carte" variante="discret" onPress={() => router.replace('/')} />
-              </View>
-            ) : (
-              <Bouton
-                pleineLargeur
-                titre={envoiEnCours ? 'Envoi…' : 'Envoyer le signalement'}
-                onPress={() => void valider()}
-                actif={!envoiEnCours}
-              />
-            )}
-          </ScrollView>
+          </View>
+        ) : null}
+
+        <View style={styles.bloc}>
+          <ThemedText style={styles.blocTitre} accessibilityRole="header">
+            Importance
+          </ThemedText>
+          <View style={styles.troisColonnes}>
+            {GRAVITES.map((g) => {
+              const choisi = gravite === g;
+              return (
+                <Pressable
+                  key={g}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: choisi }}
+                  onPress={() => setGravite(g)}
+                  style={[styles.importance, choisi && { borderColor: '#B84A0B', backgroundColor: '#FDE7D6' }]}>
+                  <ThemedText style={[styles.importanceTexte, choisi && { fontWeight: '700', color: '#7A2F05' }]} maxFontSizeMultiplier={1.2}>
+                    {LIBELLES_GRAVITE[g]}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+          {erreursChamps.gravite && !gravite ? (
+            <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
+              {erreursChamps.gravite}
+            </ThemedText>
+          ) : null}
+          {analyse.enCours ? (
+            <View style={styles.suggestion} accessibilityLiveRegion="polite">
+              <ThemedText style={styles.suggestionTexte}>Analyse de la photo…</ThemedText>
+            </View>
+          ) : analyse.texte ? (
+            <View style={styles.suggestion} accessibilityLiveRegion="polite">
+              <ThemedText style={styles.suggestionTexte}>{analyse.texte}</ThemedText>
+            </View>
+          ) : null}
         </View>
-      </SafeAreaView>
-      <Modal visible={photoOuverte} animationType="slide" onRequestClose={() => setPhotoOuverte(false)}>
-        <PhotoStep
-          photoUri={photoUri ?? undefined}
-          onPhoto={(u) => setPhotoUri(u ?? null)}
-          onBack={() => setPhotoOuverte(false)}
-          onSkip={() => setPhotoOuverte(false)}
-          onContinue={() => {
-            setPhotoOuverte(false);
-            if (photoUri) void analyserPhoto(photoUri);
-          }}
-        />
-      </Modal>
-    </ThemedView>
+
+        <View style={styles.bloc}>
+          <Champ
+            etiquette="Commentaire (facultatif)"
+            placeholder="Ce que vous voyez, depuis quand…"
+            value={commentaire}
+            onChangeText={setCommentaire}
+            multiline
+            maxLength={500}
+            style={styles.commentaire}
+            erreur={erreursChamps.commentaire}
+          />
+          <View style={styles.rangee}>
+            <Bouton titre={photoUri ? 'Changer la photo' : 'Ajouter une photo (facultatif)'} variante="discret" onPress={() => setEtape('photo')} />
+            {photoUri ? (
+              <Bouton titre="Retirer la photo" variante="discret" onPress={() => { setPhotoUri(null); setAnalyse({ enCours: false, texte: null }); }} />
+            ) : null}
+          </View>
+        </View>
+
+        <ThemedText type="small" themeColor="textSecondary">
+          Sans réseau, le signalement part dès que la connexion revient.
+        </ThemedText>
+        {messages.map((m) => (
+          <ThemedText key={m} accessibilityRole="alert">
+            {m}
+          </ThemedText>
+        ))}
+      </ScrollView>
+
+      <View style={[styles.pied, { paddingBottom: bottom + 16 }]}>
+        {termine ? (
+          <View style={{ gap: 8 }}>
+            <Bouton pleineLargeur titre="Suivre mon signalement" onPress={() => router.replace({ pathname: '/suivi/[id]', params: { id: envoyeId } })} />
+            <Bouton pleineLargeur titre="Retour à la carte" variante="discret" onPress={() => router.replace('/')} />
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: envoiEnCours }}
+            disabled={envoiEnCours}
+            onPress={() => void valider()}
+            style={[styles.envoyer, envoiEnCours && { opacity: 0.6 }]}>
+            <ThemedText style={styles.envoyerTexte} maxFontSizeMultiplier={1.2}>
+              {envoiEnCours ? 'Envoi…' : 'Envoyer le signalement'}
+            </ThemedText>
+          </Pressable>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -433,6 +460,28 @@ const styles = StyleSheet.create({
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   ligne: { minHeight: CIBLE_MIN, padding: 12, borderRadius: 12, justifyContent: 'center' },
   carte: { height: 240, borderRadius: 14 },
+  enteteVert: { backgroundColor: '#1D3A1B', paddingHorizontal: 18, paddingBottom: 22, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  retour: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  enteteTitre: { color: '#FFFFFF', fontSize: 26, lineHeight: 34, fontWeight: '700' },
+  enteteSous: { color: '#DCE5CC', fontSize: 15, fontWeight: '500' },
+  resume: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  vignette: { width: 64, height: 64, borderRadius: 16, backgroundColor: '#DCE5CC', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  vignetteImage: { width: 64, height: 64 },
+  resumeTitre: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
+  resumeLieu: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: '#5E5548' },
+  changer: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingHorizontal: 4 },
+  changerTexte: { fontSize: 15, fontWeight: '600', color: '#1D3A1B', textDecorationLine: 'underline' },
+  lienLieu: { minHeight: 48, justifyContent: 'center' },
+  bloc: { gap: 10 },
+  blocTitre: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  troisColonnes: { flexDirection: 'row', gap: 10 },
+  importance: { flex: 1, height: 56, borderRadius: 16, borderWidth: 2, borderColor: '#C9CFBD', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  importanceTexte: { fontSize: 15, fontWeight: '600' },
+  suggestion: { backgroundColor: '#DCE5CC', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  suggestionTexte: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
+  pied: { paddingHorizontal: 20, paddingTop: 12 },
+  envoyer: { height: 60, borderRadius: 30, backgroundColor: '#B84A0B', alignItems: 'center', justifyContent: 'center' },
+  envoyerTexte: { color: '#FFFFFF', fontSize: 19, lineHeight: 26, fontWeight: '700' },
   avis: { borderWidth: 2, borderRadius: 12, padding: 12, gap: 4 },
   commentaire: { minHeight: 96, textAlignVertical: 'top', paddingTop: 12 },
   photoBloc: { gap: 8 },

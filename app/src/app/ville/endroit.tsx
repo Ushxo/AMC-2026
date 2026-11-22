@@ -1,79 +1,142 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Carte, Repere } from '@/components/carte';
+import { IllustrationProbleme } from '@/components/illustration-probleme';
+import { Texte as Text } from '@/components/texte';
 import { Bouton } from '@/components/ville/bouton';
 import { Chargement, Erreur, Vide } from '@/components/ville/etat-ecran';
-import { EtiquetteGravite, EtiquetteNeutre } from '@/components/ville/etiquette';
-import { CIBLE_MIN } from '@/components/ville/style';
+import { COULEUR_REPERE } from '@/components/ville/style';
+import { Palette } from '@/constants/theme';
 import { useSignalements } from '@/hooks/use-signalements';
-import { useTheme } from '@/hooks/use-theme';
 import { formaterDate } from '@/lib/format';
+import { interventionDe, lieuDeEndroit } from '@/lib/interventions';
 import { regrouper } from '@/lib/gravite';
-import { LIBELLES_CATEGORIE, LIBELLES_ETAT } from '@/types';
+import { chargerAdresses } from '@/lib/officiel';
+import { LIBELLES_CATEGORIE, LIBELLES_ETAT, LIBELLES_GRAVITE, type Gravite } from '@/types';
+import { IMPORTANCE } from '../../../frontend/supervisor/InterventionsAPlanifier';
 
-/** Liste des signalements d'un même endroit. */
+/** Fiche d'un endroit : carte centrée, problème et importance, liste de ses signalements (chacun ouvre sa fiche, où l'on change l'état). */
 export default function Endroit() {
-  const { bottom } = useSafeAreaInsets();
+  const { bottom, top } = useSafeAreaInsets();
   const { cle } = useLocalSearchParams<{ cle: string }>();
   const router = useRouter();
-  const theme = useTheme();
   const { signalements, chargement, erreur, rafraichir } = useSignalements();
   const endroit = useMemo(() => regrouper(signalements).find((e) => e.cle === cle), [signalements, cle]);
-  const liste = useMemo(
-    () => [...(endroit?.signalements ?? [])].sort((a, b) => b.cree_le.localeCompare(a.cree_le)),
-    [endroit],
-  );
+  const liste = useMemo(() => [...(endroit?.signalements ?? [])].sort((a, b) => b.cree_le.localeCompare(a.cree_le)), [endroit]);
+  const adresses = useMemo(() => chargerAdresses(), []);
+  const lieu = endroit ? lieuDeEndroit(endroit.position, adresses) : '';
+  const principal = endroit ? interventionDe(endroit) : null;
+  const gravite: Gravite = endroit?.gravite_affichee ?? 'moyenne';
+  const c = IMPORTANCE[gravite];
+  const ouverts = endroit ? endroit.signalements.filter((s) => s.etat === 'nouveau' || s.etat === 'pris_en_charge').length : 0;
 
   return (
-    <ThemedView style={styles.fond}>
-      <SafeAreaView style={styles.fond} edges={[]}>
-        <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: bottom + 24 }]}>
-          {chargement ? (
-            <Chargement />
-          ) : erreur ? (
-            <Erreur message={erreur} onReessayer={() => void rafraichir()} />
-          ) : !endroit ? (
-            <Vide texte="Cet endroit n'a plus de signalement." />
-          ) : (
-            <>
-              <View style={styles.entete}>
-                <EtiquetteGravite gravite={endroit.gravite_affichee} />
-                <ThemedText type="smallBold">
-                  {endroit.nombre} signalement{endroit.nombre > 1 ? 's' : ''} ouvert{endroit.nombre > 1 ? 's' : ''}
-                </ThemedText>
+    <View style={styles.fond}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.entete, { paddingTop: top + 14 }]}>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Retour aux interventions" hitSlop={8} style={styles.retour}>
+          <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
+            Intervention
+          </Text>
+          {endroit ? (
+            <Text style={styles.sousTitre} maxFontSizeMultiplier={1.3}>
+              {lieu}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: bottom + 24 }]}>
+        {chargement ? (
+          <Chargement />
+        ) : erreur ? (
+          <Erreur message={erreur} onReessayer={() => void rafraichir()} />
+        ) : !endroit ? (
+          <Vide texte="Cet endroit n'a plus de signalement." />
+        ) : (
+          <>
+            <View style={styles.carteCadre}>
+              <Carte
+                style={styles.carte}
+                regionInitiale={{ latitude: endroit.position.latitude, longitude: endroit.position.longitude, latitudeDelta: 0.004, longitudeDelta: 0.004 }}
+                accessibilityLabel={`Carte centrée sur l'endroit, ${lieu}`}>
+                <Repere id="endroit" position={endroit.position} couleur={COULEUR_REPERE[gravite]} titre={`Importance ${LIBELLES_GRAVITE[gravite]}`} />
+              </Carte>
+            </View>
+
+            <View style={styles.resume}>
+              <View style={styles.vignette}>
+                <IllustrationProbleme categorie={principal?.categorie ?? 'autre'} taille={52} />
               </View>
-              {liste.map((s) => (
-                <Pressable
-                  key={s.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${LIBELLES_CATEGORIE[s.categorie]}, ${LIBELLES_ETAT[s.etat]}. Ouvrir la fiche.`}
-                  onPress={() => router.push({ pathname: '/ville/signalement/[id]', params: { id: s.id } })}
-                  style={[styles.ligne, { backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText>{LIBELLES_CATEGORIE[s.categorie]}</ThemedText>
-                  <View style={styles.pied}>
-                    <EtiquetteNeutre texte={LIBELLES_ETAT[s.etat]} />
-                    <EtiquetteNeutre texte={formaterDate(s.cree_le)} />
-                    {s.exemple_demo ? <EtiquetteNeutre texte="Exemple de démo" /> : null}
-                  </View>
-                </Pressable>
-              ))}
-            </>
-          )}
-          <Bouton titre="Retour" variante="discret" onPress={() => router.back()} />
-        </ScrollView>
-      </SafeAreaView>
-    </ThemedView>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.resumeTitre} maxFontSizeMultiplier={1.3}>
+                  {principal ? LIBELLES_CATEGORIE[principal.categorie] : 'Intervention'}
+                </Text>
+                <Text style={styles.resumeSous}>
+                  {endroit.nombre} signalement{endroit.nombre > 1 ? 's' : ''} au même endroit{ouverts !== endroit.nombre ? `, ${ouverts} ouvert${ouverts > 1 ? 's' : ''}` : ''}
+                </Text>
+              </View>
+              <Text style={[styles.etiquette, { backgroundColor: c.fond, color: c.plein }]} accessibilityLabel={`Importance ${LIBELLES_GRAVITE[gravite]}`} maxFontSizeMultiplier={1.2}>
+                {LIBELLES_GRAVITE[gravite]}
+              </Text>
+            </View>
+
+            <Text style={styles.section} accessibilityRole="header">
+              Signalements
+            </Text>
+            {liste.map((s) => (
+              <Pressable
+                key={s.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${LIBELLES_CATEGORIE[s.categorie]}, ${LIBELLES_ETAT[s.etat]}, signalé le ${formaterDate(s.cree_le)}. Ouvrir la fiche pour changer l'état.`}
+                onPress={() => router.push({ pathname: '/ville/signalement/[id]', params: { id: s.id } })}
+                style={styles.ligne}>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.ligneDate}>Signalé le {formaterDate(s.cree_le)}</Text>
+                  <Text style={styles.ligneDetail}>
+                    {s.commentaire ? `« ${s.commentaire} »` : 'Sans commentaire'}
+                    {s.photo_url ? ' · avec photo' : ''}
+                  </Text>
+                  <Text style={styles.ligneEtat}>
+                    {LIBELLES_ETAT[s.etat]}
+                    {s.exemple_demo ? ' · exemple de démo' : ''}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color={Palette.text} />
+              </Pressable>
+            ))}
+            <Bouton titre="Retour" variante="discret" pleineLargeur onPress={() => router.back()} />
+          </>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fond: { flex: 1 },
-  contenu: { padding: 20, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  entete: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  ligne: { minHeight: CIBLE_MIN, padding: 14, borderRadius: 14, gap: 4 },
-  pied: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12 },
+  fond: { flex: 1, backgroundColor: Palette.background },
+  entete: { backgroundColor: Palette.header, paddingHorizontal: 18, paddingBottom: 22, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  retour: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  titre: { color: '#FFFFFF', fontSize: 26, fontWeight: '700' },
+  sousTitre: { color: '#DCE5CC', fontSize: 15, fontWeight: '500' },
+  contenu: { padding: 20, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  carteCadre: { height: 150, borderRadius: 22, overflow: 'hidden', backgroundColor: '#DCE5CC' },
+  carte: { flex: 1 },
+  resume: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  vignette: { width: 60, height: 60, borderRadius: 16, backgroundColor: Palette.background, alignItems: 'center', justifyContent: 'center' },
+  resumeTitre: { fontSize: 18, fontWeight: '700', color: Palette.text },
+  resumeSous: { fontSize: 14, fontWeight: '500', color: '#5E5548' },
+  etiquette: { fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
+  section: { fontSize: 16, fontWeight: '700', color: Palette.text },
+  ligne: { backgroundColor: '#FFFFFF', borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 64 },
+  ligneDate: { fontSize: 15, fontWeight: '600', color: Palette.text },
+  ligneDetail: { fontSize: 14, fontWeight: '500', color: '#5E5548', lineHeight: 20 },
+  ligneEtat: { fontSize: 13, fontWeight: '700', color: Palette.header },
 });

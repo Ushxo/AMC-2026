@@ -40,7 +40,11 @@ describe('signalement : feuille des quatre problèmes', () => {
     await fireEvent.press(screen.getByText('Continuer'));
     expect(screen.getByText('Étape photo')).toBeTruthy();
     await fireEvent.press(screen.getByText('Étape photo'));
-    expect(screen.getByText('2. Problème choisi')).toBeTruthy();
+    expect(screen.getByText('Derniers détails')).toBeTruthy();
+    expect(screen.getByText('Étape 3 sur 3')).toBeTruthy();
+    expect(screen.getByText('Égout bouché')).toBeTruthy();
+    expect(screen.getByText('Importance')).toBeTruthy();
+    expect(screen.getByText('Envoyer le signalement')).toBeTruthy();
   });
 
   it('ne continue pas sans choisir un problème', async () => {
