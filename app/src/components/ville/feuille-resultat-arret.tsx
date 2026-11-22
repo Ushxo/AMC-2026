@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ModaleAnimee } from '@/components/mouvement/modale-animee';
@@ -27,6 +27,7 @@ type Props = {
 
 /** Petite feuille de confirmation d'un arrêt : Oui (commentaire facultatif) ou Non (commentaire obligatoire, avec des raisons en un toucher). */
 export function FeuilleResultatArret(props: Props) {
+  const styles = useStyles(creerStyles);
   // Chaque ouverture repart d'un contenu neuf (choix, texte, erreur), même si la fenêtre reste montée le temps de sa sortie.
   const [ouverture, setOuverture] = useState(props.visible ? 1 : 0);
   const [etaitVisible, setEtaitVisible] = useState(props.visible);
@@ -36,7 +37,9 @@ export function FeuilleResultatArret(props: Props) {
   }
   return (
     <ModaleAnimee visible={props.visible} onFermer={props.onFermer} libelleFermer="Fermer sans enregistrer">
-      <Contenu key={ouverture} {...props} />
+      <View style={styles.feuille}>
+        <Contenu key={ouverture} {...props} />
+      </View>
     </ModaleAnimee>
   );
 }
@@ -71,9 +74,7 @@ function Contenu({ rang, choixInitial, commentaireInitial = '', onEnregistrer, o
 
   const libelle = choix === 'non' ? "Pourquoi l'arrêt n'est-il pas fait ? (obligatoire)" : 'Quelque chose à signaler ? (facultatif)';
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={[styles.feuille, { paddingBottom: bottom + 16 }]}>
-        <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: bottom + 20 }]} keyboardShouldPersistTaps="handled">
           <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
             Arrêt {rang}
           </Text>
@@ -130,15 +131,13 @@ function Contenu({ rang, choixInitial, commentaireInitial = '', onEnregistrer, o
           ) : null}
           <BoutonAction titre={occupe ? 'Enregistrement…' : 'Enregistrer'} actif={!!choix} occupe={occupe} onPress={() => sansBruit(enregistrer, 'résultat de l’arrêt')} />
           <Bouton titre="Annuler" variante="discret" pleineLargeur onPress={onFermer} actif={!occupe} />
-        </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+    </ScrollView>
   );
 }
 
 const creerStyles = (P: Jetons) =>
   StyleSheet.create({
-    feuille: { maxHeight: '85%', backgroundColor: P.background, ...FEUILLE_BASE },
+    feuille: { backgroundColor: P.background, ...FEUILLE_BASE },
     contenu: { padding: 20, gap: 12 },
     titre: { fontSize: 22, lineHeight: 30, fontWeight: '700', color: P.text },
     question: { fontSize: 17, lineHeight: 24, fontWeight: '600', color: P.text },

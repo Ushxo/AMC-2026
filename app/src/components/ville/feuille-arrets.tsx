@@ -33,7 +33,7 @@ export function FeuilleArrets({ visible, arrets, statutDe = () => null, commenta
   const restants = arrets.filter((a) => statutDe(a) === null).length;
   return (
     <ModaleAnimee visible={visible} onFermer={onFermer} libelleFermer="Fermer la liste">
-      <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
+      <View testID="feuille-arrets" style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
         <FlatList
           data={arrets}
           keyExtractor={(a) => String(a.id ?? a.cle_endroit)}
@@ -87,7 +87,7 @@ export function FeuilleArrets({ visible, arrets, statutDe = () => null, commenta
 }
 
 const styles = StyleSheet.create({
-  feuille: { maxHeight: '70%', ...FEUILLE_BASE },
+  feuille: { ...FEUILLE_BASE },
   contenu: { padding: 20, gap: 8 },
   ligne: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cible: { minHeight: 48, justifyContent: 'center' },

@@ -1,16 +1,17 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 
 import { BarreOnglets } from '../../../../frontend/components/BarreOnglets';
 import { EcranOuverture } from '../../../../frontend/components/EcranOuverture';
 import { Appuyable } from '../../appuyable';
+import { FeuilleArrets } from '../../ville/feuille-arrets';
 import { BoutonAction, DUREE_SUCCES_MS } from '../../bouton-action';
 import { ApparitionDouce } from '../apparition-douce';
 import { BulleAide } from '../bulle-aide';
-import { ChiffreGlissant } from '../chiffre-glissant';
+import { ChiffreGlissant, INTERVALLE_ANIMATION_MS } from '../chiffre-glissant';
 import { IconeAnimee } from '../icone-animee';
-import { ModaleAnimee } from '../modale-animee';
+import { ModaleAnimee, PART_HAUTEUR_MAX } from '../modale-animee';
 import { PastilleGlissante } from '../pastille-glissante';
 import { RebondEchelle } from '../rebond-echelle';
 import { DELAI_AIDE_MS, DUREE_AIDE_MS, reinitialiserAides, useAideUneFois } from '../use-aide-une-fois';
@@ -18,7 +19,7 @@ import { DELAI_AIDE_MS, DUREE_AIDE_MS, reinitialiserAides, useAideUneFois } from
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
-jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }) }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const reanimated = require('react-native-reanimated') as { __definirMouvementReduit: (v: boolean) => void };
@@ -147,6 +148,25 @@ describe.each([false, true])('mouvements de l’interface, animations réduites 
     expect(screen.getByLabelText('13')).toBeTruthy();
   });
 
+  it('ChiffreGlissant : cinq changements en une seconde = une seule animation, la dernière valeur tout de suite', async () => {
+    const { rerender } = await render(<ChiffreGlissant valeur="4 min · 1,3 km" style={{ fontSize: 16 }} />);
+    await rerender(<ChiffreGlissant valeur="4 min · 1,2 km" style={{ fontSize: 16 }} />); // première : animée (si animations)
+    for (const v of ['4 min · 1,1 km', '3 min · 1,0 km', '3 min · 950 m', '3 min · 900 m']) {
+      await act(async () => {
+        jest.advanceTimersByTime(200);
+      });
+      await rerender(<ChiffreGlissant valeur={v} style={{ fontSize: 16 }} />);
+      expect(screen.getByLabelText(v)).toBeTruthy();
+    }
+    // une seule valeur « sortante » à la fois, jamais une pile d'anciennes valeurs
+    expect(screen.getByText('3 min · 900 m', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.queryByText('4 min · 1,2 km', { includeHiddenElements: true })).toBeNull();
+    await act(async () => {
+      jest.advanceTimersByTime(INTERVALLE_ANIMATION_MS);
+    });
+    expect(screen.queryByText('3 min · 950 m', { includeHiddenElements: true })).toBeNull();
+  });
+
   it('ModaleAnimee : montre la feuille, appelle onFermer au toucher du voile, se retire après la sortie', async () => {
     const onFermer = jest.fn();
     const { rerender } = await render(
@@ -186,6 +206,33 @@ describe.each([false, true])('mouvements de l’interface, animations réduites 
     await render(<EcranOuverture />);
     expect(screen.getByText(/^Ouverture de /)).toBeTruthy();
     expect(screen.getByText('Propulsé par Priorix')).toBeTruthy();
+  });
+});
+
+describe('feuille plafonnée à la hauteur de l’écran', () => {
+  it('une feuille de 60 arrêts ne dépasse jamais 90 % de la fenêtre moins la zone sûre, en points (jamais en pourcentage)', async () => {
+    const hauteur = Dimensions.get('window').height;
+    const arrets = Array.from({ length: 60 }, (_, i) => ({
+      id: `A${i + 1}`, rang: i + 1, cle_endroit: `c${i + 1}`, signalement_ids: ['s'], position: { latitude: 45.5, longitude: -73.57 },
+      arrivee_prevue: '2026-11-22T12:00:00Z', depart_prevu: '2026-11-22T12:10:00Z',
+    }));
+    await render(<FeuilleArrets visible arrets={arrets} onFermer={jest.fn()} />);
+    const feuille = aplati(screen.getByTestId('feuille-arrets'));
+    expect(feuille.maxHeight).toBe(PART_HAUTEUR_MAX * hauteur - 47);
+    expect(feuille.flexShrink).toBe(1);
+    expect(typeof feuille.maxHeight).toBe('number');
+  });
+
+  it('plafonne toute feuille donnée en enfant, même sans maxHeight chez elle', async () => {
+    const hauteur = Dimensions.get('window').height;
+    await render(
+      <ModaleAnimee visible onFermer={jest.fn()}>
+        <View testID="f" style={{ maxHeight: '90%' }}>
+          <Text>feuille</Text>
+        </View>
+      </ModaleAnimee>,
+    );
+    expect(aplati(screen.getByTestId('f')).maxHeight).toBe(PART_HAUTEUR_MAX * hauteur - 47);
   });
 });
 
