@@ -1,3 +1,4 @@
+import { graviteSuggeree } from '../suggestion-gravite';
 import { filtrerSignalements } from '../filtre';
 import { adressePlusProche, chercherLocal, normaliser } from '../recherche';
 import { calculerResume } from '../resume';
@@ -60,5 +61,14 @@ describe('adresse la plus proche', () => {
     ];
     expect(adressePlusProche({ latitude: 45.50045, longitude: -73.57 }, index)?.libelle).toBe('200 rue B');
     expect(adressePlusProche({ latitude: 45.6, longitude: -73.57 }, index)).toBeNull();
+  });
+});
+
+describe('suggestion de gravité par la photo', () => {
+  it('seulement si la photo est valide et que l’analyse donne une gravité', () => {
+    expect(graviteSuggeree({ valide: true, gravite: 'elevee' })).toBe('elevee');
+    expect(graviteSuggeree({ valide: false, gravite: 'elevee' })).toBeNull();
+    expect(graviteSuggeree({ valide: true, gravite: null })).toBeNull();
+    expect(graviteSuggeree(null)).toBeNull();
   });
 });

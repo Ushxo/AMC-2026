@@ -1,8 +1,7 @@
 import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COULEUR_AVIS } from '@/components/citoyen-essai/style';
@@ -23,6 +22,9 @@ import { useSource } from '@/hooks/use-source';
 import { useTheme } from '@/hooks/use-theme';
 import { useZoneEau } from '@/hooks/use-zone-eau';
 import { erreursSignalement } from '@/lib/champs';
+import { jugerPhoto } from '@/lib/ml';
+import { analyseDisponible, graviteSuggeree, MESSAGE_ANALYSE_INDISPONIBLE, MESSAGE_PHOTO_PAS_EGOUT } from '@/lib/suggestion-gravite';
+import PhotoStep from '../../../frontend/citizen/PhotoStep';
 import { chargerRegion } from '@/lib/officiel';
 import {
   MESSAGE_ECHEC_ENVOI,
@@ -62,6 +64,8 @@ export default function Signaler() {
   const [gravite, setGravite] = useState<Gravite | null>(null);
   const [commentaire, setCommentaire] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoOuverte, setPhotoOuverte] = useState(false);
+  const [analyse, setAnalyse] = useState<{ enCours: boolean; texte: string | null }>({ enCours: false, texte: null });
   const [messages, setMessages] = useState<string[]>([]);
   const [aEssaye, setAEssaye] = useState(false);
   const [envoyeId, setEnvoyeId] = useState<string | null>(null);
@@ -104,23 +108,20 @@ export default function Signaler() {
     setResultats(await chercher(texteAdresse));
   }
 
-  async function ajouterPhoto(source: 'camera' | 'galerie') {
+  // La photo est jugée par le service d'analyse quand il est réglé ; la gravité suggérée n'écrase jamais un choix déjà fait et rien ne bloque.
+  async function analyserPhoto(uri: string) {
+    if (!analyseDisponible()) return;
+    setAnalyse({ enCours: true, texte: null });
     try {
-      const droit =
-        source === 'camera'
-          ? await ImagePicker.requestCameraPermissionsAsync()
-          : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!droit.granted) {
-        setMessages(["L'accès à la photo est refusé. Vous pouvez envoyer le signalement sans photo."]);
-        return;
-      }
-      const r =
-        source === 'camera'
-          ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
-          : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-      if (!r.canceled && r.assets[0]) setPhotoUri(r.assets[0].uri);
+      const r = await jugerPhoto(uri);
+      const g = graviteSuggeree(r);
+      if (!r.valide) setAnalyse({ enCours: false, texte: MESSAGE_PHOTO_PAS_EGOUT });
+      else if (g) {
+        setGravite((avant) => avant ?? g);
+        setAnalyse({ enCours: false, texte: `Gravité suggérée par l'analyse de la photo : ${LIBELLES_GRAVITE[g]}. Vous pouvez la changer.` });
+      } else setAnalyse({ enCours: false, texte: null });
     } catch {
-      setMessages(["La photo n'a pas pu être ajoutée. Vous pouvez envoyer le signalement sans photo."]);
+      setAnalyse({ enCours: false, texte: MESSAGE_ANALYSE_INDISPONIBLE });
     }
   }
 
@@ -290,13 +291,21 @@ export default function Signaler() {
               erreur={erreursChamps.commentaire}
             />
             <View style={styles.rangee}>
-              <Bouton titre="Prendre une photo" variante="discret" onPress={() => void ajouterPhoto('camera')} />
-              <Bouton titre="Choisir une photo" variante="discret" onPress={() => void ajouterPhoto('galerie')} />
+              <Bouton titre={photoUri ? 'Changer la photo' : 'Ajouter une photo (facultatif)'} variante="discret" onPress={() => setPhotoOuverte(true)} />
             </View>
+            {analyse.enCours ? (
+              <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
+                Analyse de la photo…
+              </ThemedText>
+            ) : analyse.texte ? (
+              <ThemedText type="small" accessibilityLiveRegion="polite">
+                {analyse.texte}
+              </ThemedText>
+            ) : null}
             {photoUri ? (
               <View style={styles.photoBloc}>
                 <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" accessibilityLabel="Photo jointe" />
-                <Bouton titre="Retirer la photo" variante="discret" onPress={() => setPhotoUri(null)} />
+                <Bouton titre="Retirer la photo" variante="discret" onPress={() => { setPhotoUri(null); setAnalyse({ enCours: false, texte: null }); }} />
               </View>
             ) : null}
 
@@ -325,6 +334,18 @@ export default function Signaler() {
           </ScrollView>
         </View>
       </SafeAreaView>
+      <Modal visible={photoOuverte} animationType="slide" onRequestClose={() => setPhotoOuverte(false)}>
+        <PhotoStep
+          photoUri={photoUri ?? undefined}
+          onPhoto={(u) => setPhotoUri(u ?? null)}
+          onBack={() => setPhotoOuverte(false)}
+          onSkip={() => setPhotoOuverte(false)}
+          onContinue={() => {
+            setPhotoOuverte(false);
+            if (photoUri) void analyserPhoto(photoUri);
+          }}
+        />
+      </Modal>
     </ThemedView>
   );
 }

@@ -3,15 +3,17 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Palette } from "@/constants/theme";
+
 export type CitizenTab = "carte" | "alertes";
 
 // Hauteur de la barre sans la zone de sécurité du bas.
 export const BOTTOM_NAV_HEIGHT = 92;
 
 const C = {
-  green: "#1D341B",
-  cream: "#F8F5ED",
-  sage: "#DCE5CC",
+  green: Palette.header,
+  cream: Palette.onHeader,
+  sage: Palette.backgroundSelected,
 };
 
 type IconName = keyof typeof Ionicons.glyphMap;
