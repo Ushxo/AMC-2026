@@ -22,9 +22,16 @@ import { useSource } from '@/hooks/use-source';
 import { useTheme } from '@/hooks/use-theme';
 import { useZoneEau } from '@/hooks/use-zone-eau';
 import { erreursSignalement } from '@/lib/champs';
-import { jugerPhoto } from '@/lib/ml';
-import { analyseDisponible, graviteSuggeree, MESSAGE_ANALYSE_INDISPONIBLE, MESSAGE_PHOTO_PAS_EGOUT } from '@/lib/suggestion-gravite';
-import PhotoStep from '../../../frontend/citizen/PhotoStep';
+import { jugerPhoto, type ResultatPhoto } from '@/lib/ml';
+import {
+  analyseDisponible,
+  graviteDuSignalement,
+  MESSAGE_ANALYSE_INDISPONIBLE,
+  MESSAGE_PHOTO_ACCEPTEE,
+  MESSAGE_PHOTO_EN_VERIFICATION,
+  MESSAGE_PHOTO_PAS_EGOUT,
+} from '@/lib/suggestion-gravite';
+import PhotoStep, { type VerificationPhoto } from '../../../frontend/citizen/PhotoStep';
 import { IllustrationProbleme } from '@/components/illustration-probleme';
 import { chargerRegion } from '@/lib/officiel';
 import {
@@ -38,15 +45,34 @@ import {
 import {
   CATEGORIES_PROPOSEES,
   LIBELLES_CATEGORIE,
-  LIBELLES_GRAVITE,
   type Categorie,
   type Coordonnees,
-  type Gravite,
   type ResultatRecherche,
 } from '@/types';
 
 const CATEGORIES: Categorie[] = CATEGORIES_PROPOSEES;
-const GRAVITES: Gravite[] = ['faible', 'moyenne', 'elevee'];
+
+/**
+ * Analyse de la photo par le serveur de ML, lancée dès que la photo est prise ou choisie.
+ * Une photo qui ne montre pas un égout est refusée (retirée). Le citoyen ne voit jamais le niveau de gravité.
+ */
+type EtatAnalyse =
+  | { statut: 'aucune' }
+  | { statut: 'en_cours'; uri: string }
+  | { statut: 'acceptee'; uri: string; resultat: ResultatPhoto }
+  | { statut: 'refusee' }
+  | { statut: 'impossible'; uri: string };
+
+const MESSAGES_VERIFICATION: Record<VerificationPhoto['statut'], string> = {
+  en_cours: MESSAGE_PHOTO_EN_VERIFICATION,
+  acceptee: MESSAGE_PHOTO_ACCEPTEE,
+  refusee: MESSAGE_PHOTO_PAS_EGOUT,
+  impossible: MESSAGE_ANALYSE_INDISPONIBLE,
+};
+
+function verificationAffichee(a: EtatAnalyse): VerificationPhoto | null {
+  return a.statut === 'aucune' ? null : { statut: a.statut, message: MESSAGES_VERIFICATION[a.statut] };
+}
 
 const TITRE_CARTE: Partial<Record<Categorie, string>> = {
   grille_bouchee: 'Égout bouché',
@@ -77,15 +103,21 @@ export default function Signaler() {
   const [texteAdresse, setTexteAdresse] = useState('');
   const [resultats, setResultats] = useState<ResultatRecherche[] | null>(null);
   const [categorie, setCategorie] = useState<Categorie | null>(null);
-  const [gravite, setGravite] = useState<Gravite | null>(null);
   const [commentaire, setCommentaire] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoOuverte, setPhotoOuverte] = useState(false);
   const [etape, setEtape] = useState<Etape>('probleme');
-  const [analyse, setAnalyse] = useState<{ enCours: boolean; texte: string | null }>({ enCours: false, texte: null });
+  const [analyse, setAnalyse] = useState<EtatAnalyse>({ statut: 'aucune' });
+  // Analyse en cours ou finie de la photo actuelle : l'envoi l'attend si elle n'est pas finie.
+  const analyseRef = useRef<{ uri: string; promesse: Promise<ResultatPhoto | null> } | null>(null);
+  const [attenteAnalyse, setAttenteAnalyse] = useState(false);
   const [messages, setMessages] = useState<string[]>([]);
   const [aEssaye, setAEssaye] = useState(false);
   const [envoyeId, setEnvoyeId] = useState<string | null>(null);
+  // La gravité n'est pas choisie par le citoyen : elle vient de l'analyse de la photo (faible sans analyse).
+  // Le nombre de signalements non résolus au même endroit s'ajoute ensuite côté ville (regrouper, gravite.ts).
+  const gravite = graviteDuSignalement(analyse.statut === 'acceptee' && analyse.uri === photoUri ? analyse.resultat : null);
+  const verification = verificationAffichee(analyse);
   // Après un premier essai d'envoi, chaque champ invalide le dit et l'erreur disparaît dès qu'il est corrigé.
   const erreursChamps = aEssaye ? erreursSignalement({ point, categorie, gravite, commentaire }) : {};
   const zone = useZoneEau(point);
@@ -125,33 +157,67 @@ export default function Signaler() {
     setResultats(await chercher(texteAdresse));
   }
 
-  // La photo est jugée par le service d'analyse quand il est réglé ; la gravité suggérée n'écrase jamais un choix déjà fait et rien ne bloque.
-  async function analyserPhoto(uri: string) {
-    if (!analyseDisponible()) return;
-    setAnalyse({ enCours: true, texte: null });
-    try {
-      const r = await jugerPhoto(uri);
-      const g = graviteSuggeree(r);
-      if (!r.valide) setAnalyse({ enCours: false, texte: MESSAGE_PHOTO_PAS_EGOUT });
-      else if (g) {
-        setGravite((avant) => avant ?? g);
-        setAnalyse({ enCours: false, texte: `Gravité suggérée par l'analyse de la photo : ${LIBELLES_GRAVITE[g]}. Vous pouvez la changer.` });
-      } else setAnalyse({ enCours: false, texte: null });
-    } catch {
-      setAnalyse({ enCours: false, texte: MESSAGE_ANALYSE_INDISPONIBLE });
+  // Dès qu'une photo est prise ou choisie, elle part au serveur d'analyse ; une analyse d'une ancienne photo est ignorée.
+  function changerPhoto(uri: string | undefined) {
+    setPhotoUri(uri ?? null);
+    if (!uri) {
+      analyseRef.current = null;
+      setAnalyse({ statut: 'aucune' });
+      return;
     }
+    if (analyseRef.current?.uri === uri) return;
+    if (!analyseDisponible()) {
+      analyseRef.current = { uri, promesse: Promise.resolve(null) };
+      setAnalyse({ statut: 'impossible', uri });
+      return;
+    }
+    setAnalyse({ statut: 'en_cours', uri });
+    const promesse = jugerPhoto(uri).then(
+      (resultat) => {
+        if (analyseRef.current?.uri !== uri) return resultat;
+        if (resultat.valide) setAnalyse({ statut: 'acceptee', uri, resultat });
+        else {
+          // Pas un égout : la photo n'est pas gardée.
+          analyseRef.current = null;
+          setPhotoUri(null);
+          setAnalyse({ statut: 'refusee' });
+        }
+        return resultat;
+      },
+      () => {
+        if (analyseRef.current?.uri === uri) setAnalyse({ statut: 'impossible', uri });
+        return null;
+      },
+    );
+    analyseRef.current = { uri, promesse };
   }
 
   async function valider() {
     setMessages([]);
     setAEssaye(true);
     const invalides = erreursSignalement({ point, categorie, gravite, commentaire });
-    if (!point || !categorie || !gravite || invalides.commentaire) return;
+    if (!point || !categorie || invalides.commentaire) return;
+    // Si la vérification de la photo n'est pas finie, on l'attend ; une photo refusée bloque l'envoi.
+    let graviteEnvoyee = gravite;
+    if (photoUri && analyseRef.current?.uri === photoUri) {
+      setAttenteAnalyse(true);
+      let resultat: ResultatPhoto | null;
+      try {
+        resultat = await analyseRef.current.promesse;
+      } finally {
+        setAttenteAnalyse(false);
+      }
+      if (resultat && !resultat.valide) {
+        setMessages([MESSAGE_PHOTO_PAS_EGOUT]);
+        return;
+      }
+      graviteEnvoyee = graviteDuSignalement(resultat);
+    }
     const r = await envoyer({
       latitude: point.latitude,
       longitude: point.longitude,
       categorie,
-      gravite,
+      gravite: graviteEnvoyee,
       commentaire: commentaire.trim() || undefined,
       photoUri: photoUri ?? undefined,
     });
@@ -232,13 +298,11 @@ export default function Signaler() {
         <Stack.Screen options={{ headerShown: false }} />
         <PhotoStep
           photoUri={photoUri ?? undefined}
-          onPhoto={(u) => setPhotoUri(u ?? null)}
+          onPhoto={changerPhoto}
+          verification={verification}
           onBack={() => setEtape('probleme')}
           onSkip={() => setEtape('formulaire')}
-          onContinue={() => {
-            setEtape('formulaire');
-            if (photoUri) void analyserPhoto(photoUri);
-          }}
+          onContinue={() => setEtape('formulaire')}
         />
       </View>
     );
@@ -335,23 +399,20 @@ export default function Signaler() {
             </View>
 
             <ThemedText type="smallBold" accessibilityRole="header">
-              3. Quelle est la gravité ?
+              3. Photo du problème
             </ThemedText>
             <View style={styles.rangee}>
-              {GRAVITES.map((g) => (
-                <Bouton
-                  key={g}
-                  titre={LIBELLES_GRAVITE[g]}
-                  variante="discret"
-                  selectionne={gravite === g}
-                  onPress={() => setGravite(g)}
-                />
-              ))}
+              <Bouton titre={photoUri ? 'Changer la photo' : 'Ajouter une photo'} variante="discret" onPress={() => setPhotoOuverte(true)} />
             </View>
-
-            {erreursChamps.gravite && !gravite ? (
-              <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
-                {erreursChamps.gravite}
+            {photoUri ? (
+              <View style={styles.photoBloc}>
+                <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" accessibilityLabel="Photo jointe" />
+                <Bouton titre="Retirer la photo" variante="discret" onPress={() => changerPhoto(undefined)} />
+              </View>
+            ) : null}
+            {verification ? (
+              <ThemedText type="small" accessibilityLiveRegion="polite" themeColor={verification.statut === 'en_cours' ? 'textSecondary' : undefined}>
+                {verification.message}
               </ThemedText>
             ) : null}
 
@@ -367,24 +428,6 @@ export default function Signaler() {
               style={styles.commentaire}
               erreur={erreursChamps.commentaire}
             />
-            <View style={styles.rangee}>
-              <Bouton titre={photoUri ? 'Changer la photo' : 'Ajouter une photo (facultatif)'} variante="discret" onPress={() => setPhotoOuverte(true)} />
-            </View>
-            {analyse.enCours ? (
-              <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
-                Analyse de la photo…
-              </ThemedText>
-            ) : analyse.texte ? (
-              <ThemedText type="small" accessibilityLiveRegion="polite">
-                {analyse.texte}
-              </ThemedText>
-            ) : null}
-            {photoUri ? (
-              <View style={styles.photoBloc}>
-                <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" accessibilityLabel="Photo jointe" />
-                <Bouton titre="Retirer la photo" variante="discret" onPress={() => { setPhotoUri(null); setAnalyse({ enCours: false, texte: null }); }} />
-              </View>
-            ) : null}
 
             {messages.map((m) => (
               <ThemedText key={m} accessibilityRole="alert">
@@ -403,9 +446,9 @@ export default function Signaler() {
             ) : (
               <Bouton
                 pleineLargeur
-                titre={envoiEnCours ? 'Envoi…' : 'Envoyer le signalement'}
+                titre={attenteAnalyse ? 'Analyse de la photo…' : envoiEnCours ? 'Envoi…' : 'Envoyer le signalement'}
                 onPress={() => void valider()}
-                actif={!envoiEnCours}
+                actif={!envoiEnCours && !attenteAnalyse}
               />
             )}
           </ScrollView>
@@ -414,13 +457,11 @@ export default function Signaler() {
       <Modal visible={photoOuverte} animationType="slide" onRequestClose={() => setPhotoOuverte(false)}>
         <PhotoStep
           photoUri={photoUri ?? undefined}
-          onPhoto={(u) => setPhotoUri(u ?? null)}
+          onPhoto={changerPhoto}
+          verification={verification}
           onBack={() => setPhotoOuverte(false)}
           onSkip={() => setPhotoOuverte(false)}
-          onContinue={() => {
-            setPhotoOuverte(false);
-            if (photoUri) void analyserPhoto(photoUri);
-          }}
+          onContinue={() => setPhotoOuverte(false)}
         />
       </Modal>
     </ThemedView>

@@ -103,7 +103,7 @@ export type Signalement = {
   latitude: number;
   longitude: number;
   categorie: Categorie;
-  gravite: Gravite; // choisie par le citoyen
+  gravite: Gravite; // estimée par l'analyse de la photo (faible sans photo analysable)
   commentaire: string | null;
   photo_url: string | null;
   grille_id: string | null;

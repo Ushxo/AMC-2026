@@ -16,12 +16,24 @@ const C = {
   white: "#FFFFFF",
 };
 
+/** Vérification de la photo par l'analyse : en cours, acceptée (égout), refusée (pas un égout) ou impossible. */
+export type VerificationPhoto = { statut: "en_cours" | "acceptee" | "refusee" | "impossible"; message: string };
+
 type Props = {
   photoUri?: string;
   onPhoto: (uri: string | undefined) => void;
   onBack: () => void;
   onSkip: () => void;
   onContinue: () => void;
+  /** Facultatif : sans vérification, l'écran se comporte comme avant. */
+  verification?: VerificationPhoto | null;
+};
+
+const COULEUR_VERIFICATION: Record<VerificationPhoto["statut"], string> = {
+  en_cours: C.dark,
+  acceptee: C.green,
+  refusee: "#B3261E",
+  impossible: C.dark,
 };
 
 // Coins blancs qui encadrent la zone à photographier.
@@ -36,7 +48,9 @@ function FrameCorners() {
   );
 }
 
-export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinue }: Props) {
+export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinue, verification }: Props) {
+  // Tant que la photo est en vérification, on ne peut pas continuer ; une photo refusée est déjà retirée.
+  const peutContinuer = !!photoUri && verification?.statut !== "en_cours";
   const insets = useSafeAreaInsets();
   const camera = useRef<VueCamera>(null);
   const [permission, requestPermission] = usePermissionCamera();
@@ -165,14 +179,39 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
         </View>
       </View>
 
+      {verification ? (
+        <View
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          style={[styles.verification, { borderColor: COULEUR_VERIFICATION[verification.statut] }]}
+        >
+          <Ionicons
+            name={
+              verification.statut === "acceptee"
+                ? "checkmark-circle"
+                : verification.statut === "refusee"
+                  ? "close-circle"
+                  : verification.statut === "en_cours"
+                    ? "hourglass-outline"
+                    : "information-circle-outline"
+            }
+            size={22}
+            color={COULEUR_VERIFICATION[verification.statut]}
+          />
+          <Text style={[styles.verificationText, { color: COULEUR_VERIFICATION[verification.statut] }]}>
+            {verification.message}
+          </Text>
+        </View>
+      ) : null}
+
       <View style={[styles.actions, { paddingBottom: insets.bottom + 16 }]}>
         <Pressable style={styles.skipButton} onPress={onSkip}>
           <Text style={styles.skipText}>Passer</Text>
         </Pressable>
         <Pressable
-          style={[styles.continueButton, !photoUri && { opacity: 0.55 }]}
+          style={[styles.continueButton, !peutContinuer && { opacity: 0.55 }]}
           onPress={onContinue}
-          disabled={!photoUri}
+          disabled={!peutContinuer}
         >
           <Text style={styles.continueText}>Continuer</Text>
         </Pressable>
@@ -303,6 +342,22 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 29,
     backgroundColor: C.cream,
+  },
+  verification: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 16,
+    marginTop: 14,
+    padding: 12,
+    borderWidth: 2,
+    borderRadius: 16,
+    backgroundColor: C.white,
+  },
+  verificationText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
   },
   actions: {
     flexDirection: "row",
