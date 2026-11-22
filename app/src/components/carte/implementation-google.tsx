@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useImperativeHandle,
 import { View, type LayoutChangeEvent } from 'react-native';
 import type * as Nav from '@googlemaps/react-native-navigation-sdk';
 
-import { useOngletActif } from '@/components/mouvement/onglets-gardes';
+import { useOngletActifRef } from '@/components/mouvement/onglets-gardes';
 import { useThemeCarte } from '@/hooks/use-theme-carte';
 import { deltasPourRayon } from '@/lib/position-citoyen';
 import { cadrerPoints, regionDepuisCamera, zoomDepuisDelta } from '@/lib/camera';
@@ -63,8 +63,9 @@ function ll(c: Coordonnees): Nav.LatLng {
 export function Carte({ commandes, children, regionInitiale, onPress, onRegionChangeComplete, onTaille, style, accessibilityLabel, positionUtilisateur }: CarteProps) {
   const nav = biblio();
   const theme = useThemeCarte();
-  // Carte cachée par une coquille à onglets : on arrête de relire la caméra (10 fois par seconde) ; au retour, relecture immédiate.
-  const onglet = useOngletActif();
+  // Carte cachée par une coquille à onglets : on ne relit pas la caméra. La visibilité se lit dans le minuteur, SANS rendu ni effet
+  // relancé : une rafale de bascules ne coûte rien à la carte (ni redémarrage de minuteur, ni lecture native au retour).
+  const ongletActif = useOngletActifRef();
   const mapId = choisirIdCarte(envCarte(), theme);
   const cleVue = `google-${theme}-${mapId ?? 'defaut'}`;
   // Chaque vue native (recréée quand le style change) a son propre contrôleur et son propre « prête » : l'état d'une ancienne vue ne compte jamais.
@@ -80,6 +81,7 @@ export function Carte({ commandes, children, regionInitiale, onPress, onRegionCh
   const touche = useRef(false);
   const finGeste = useRef(0);
   const derniereLecture = useRef(0);
+  const lectureEnVol = useRef(false); // une seule lecture de caméra en vol à la fois
   const declencher = () => {
     finGeste.current = Date.now();
   };
@@ -166,33 +168,34 @@ export function Carte({ commandes, children, regionInitiale, onPress, onRegionCh
 
   // La bibliothèque n'a pas d'événement de caméra : on relit la caméra par rafales courtes pendant un geste (toutes les
   // 100 ms) et 1 s après sa fin, puis très rarement au repos (filet de sécurité, pour un déplacement qui ne passe pas par un toucher).
+  // Le minuteur n'est créé qu'une fois par contrôleur ; carte cachée, il ne fait rien.
   useEffect(() => {
-    if (!controleur || !onglet) return;
-    derniereLecture.current = 0; // au (re)démarrage : une relecture tout de suite (le regroupement se recale)
-    let occupe = false;
+    if (!controleur) return;
     const minuteur = setInterval(() => {
-      if (!surRegion.current || occupe) return;
+      if (!ongletActif.current()) return; // onglet caché : aucune lecture native
+      if (!surRegion.current || lectureEnVol.current) return;
       const maintenant = Date.now();
       const rafale = touche.current || maintenant - finGeste.current < RAFALE_APRES_GESTE_MS;
       if (!rafale && maintenant - derniereLecture.current < PERIODE_REPOS_MS) return;
       derniereLecture.current = maintenant;
-      occupe = true;
+      lectureEnVol.current = true;
       void controleur
         .getCameraPosition()
         .then((c) => {
+          if (!ongletActif.current()) return; // le résultat arrive alors que l'onglet est caché : ignoré
           const r = regionDepuisCamera({ latitude: c.target.lat, longitude: c.target.lng }, c.zoom ?? 12, taille.current.largeur, taille.current.hauteur);
           const cle = `${r.latitude.toFixed(5)}|${r.longitude.toFixed(5)}|${r.longitudeDelta.toFixed(5)}`;
-          if (cle === derniereRegion.current) return;
+          if (cle === derniereRegion.current) return; // caméra inchangée : ni regroupement ni mise à jour des repères
           derniereRegion.current = cle;
           surRegion.current?.(r);
         })
         .catch(() => {})
         .finally(() => {
-          occupe = false;
+          lectureEnVol.current = false;
         });
     }, PERIODE_RAFALE_MS);
     return () => clearInterval(minuteur);
-  }, [controleur, onglet]);
+  }, [controleur, ongletActif]);
 
   const Vue = nav.MapView;
   return (

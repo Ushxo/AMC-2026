@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, type GestureResponderEvent, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 import { DUREE_BREVE_MS, ECHELLE_PRESSE, RESSORT_VIF } from '@/components/mouvement/reglages';
 
@@ -35,6 +35,16 @@ export function Appuyable({ style, retour = true, onPressIn, onPressOut, ...rest
     opacity: base * (1 - (1 - OPACITE_APPUI) * presse.value),
     transform: [{ scale: echelle.value }],
   }));
+
+  // Démontage pendant un appui (changement d'onglet) : rien ne reste pressé.
+  useEffect(
+    () => () => {
+      cancelAnimation(echelle);
+      presse.set(0);
+      echelle.set(1);
+    },
+    [echelle, presse],
+  );
 
   function enfonce(e: GestureResponderEvent) {
     if (enFonction) setEtat(true);

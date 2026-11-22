@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { RESSORT_DOUX } from './reglages';
 
@@ -24,9 +24,12 @@ export function PastilleGlissante({ cible, style, testID }: { cible: CiblePastil
       largeur.value = cible.largeur;
       return;
     }
+    // Une rafale : l'animation en cours est annulée avant la suivante (jamais de ressorts empilés).
+    cancelAnimation(x);
+    cancelAnimation(largeur);
     x.value = withSpring(cible.x, RESSORT_DOUX);
     largeur.value = withSpring(cible.largeur, RESSORT_DOUX);
-  }, [cible, reduit, x, largeur]);
+  }, [cible?.x, cible?.largeur, reduit, x, largeur]); // eslint-disable-line react-hooks/exhaustive-deps
   const anime = useAnimatedStyle(() => ({ width: largeur.value, transform: [{ translateX: x.value }] }));
   if (!cible) return null;
   return (

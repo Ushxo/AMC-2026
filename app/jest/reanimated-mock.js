@@ -4,6 +4,7 @@ const React = require('react');
 const { View, Text, ScrollView, Image } = require('react-native');
 
 let mouvementReduit = false;
+const compteurs = { springs: 0, timings: 0, annulations: 0 };
 
 function useSharedValue(initial) {
   const [, forcer] = React.useState(0);
@@ -60,12 +61,21 @@ module.exports = {
   __definirMouvementReduit: (v) => {
     mouvementReduit = !!v;
   },
-  withSpring: identite,
-  withTiming: identite,
+  withSpring: (v) => {
+    compteurs.springs++;
+    return v;
+  },
+  withTiming: (v) => {
+    compteurs.timings++;
+    return v;
+  },
   withDelay: (_d, v) => v,
   withSequence: (...v) => v[v.length - 1],
   withRepeat: identite,
-  cancelAnimation: () => {},
+  cancelAnimation: () => {
+    compteurs.annulations++;
+  },
+  __compteurs: compteurs,
   runOnJS: (f) => f,
   runOnUI: (f) => f,
   interpolate: (v, entree, sortie) => {

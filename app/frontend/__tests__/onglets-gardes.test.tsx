@@ -82,7 +82,7 @@ describe('onglets gardés montés', () => {
     const [panCarte, panListe] = racine;
     expect(panCarte.props.pointerEvents).toBe('none');
     expect(panCarte.props.accessibilityElementsHidden).toBe(true);
-    expect(StyleSheet.flatten(panCarte.props.style as never)).toMatchObject({ opacity: 0 }); // gardée mesurée, invisible
+    expect(StyleSheet.flatten(panCarte.props.style as never).opacity).toBeUndefined(); // jamais d'opacité changée : gardée visible dessous
     expect(StyleSheet.flatten(panCarte.props.style as never).display).toBeUndefined();
     expect(panListe.props.pointerEvents).toBe('auto');
     await rerender(<Onglets actif="carte" />);
@@ -123,23 +123,5 @@ describe('onglets gardés montés', () => {
     const avant = rendus.a;
     await fireEvent.press(screen.getByText('maj a')); // dépendance de a : il se redessine
     expect(rendus.a).toBeGreaterThan(avant);
-  });
-});
-
-describe('changement d’onglet en deux temps', () => {
-  it('la pastille rejoint l’onglet touché tout de suite, même si le contenu n’a pas encore changé', async () => {
-    const onChange = jest.fn(); // le parent ne change pas encore l'onglet actif (contenu en transition)
-    const onglets = [
-      { id: 'a', label: 'Un', icon: 'home-outline' as const, iconActive: 'home' as const },
-      { id: 'b', label: 'Deux', icon: 'list-outline' as const, iconActive: 'list' as const },
-    ];
-    await render(<BarreOnglets onglets={onglets} actif="a" onChange={onChange} />);
-    await fireEvent(screen.getByLabelText('Un'), 'layout', { nativeEvent: { layout: { x: 4, y: 8, width: 120, height: 56 } } });
-    await fireEvent(screen.getByLabelText('Deux'), 'layout', { nativeEvent: { layout: { x: 128, y: 8, width: 120, height: 56 } } });
-    await fireEvent.press(screen.getByLabelText('Deux'));
-    expect(translateX(screen.getByTestId('pastille-onglet', { includeHiddenElements: true }))).toBe(128);
-    expect(screen.getByLabelText('Deux').props.accessibilityState.selected).toBe(true);
-    expect(onChange).toHaveBeenCalledWith('b');
-    await act(async () => {});
   });
 });

@@ -6,6 +6,7 @@ import { OngletsGardes } from "@/components/mouvement/onglets-gardes";
 import { FeuilleProfil } from "@/components/profil/feuille-profil";
 import { BOTTOM_NAV_HEIGHT, BottomNav, CitizenTab } from "../components/BottomNav";
 import MyAlerts from "./MyAlerts";
+import { useTheme } from '@/hooks/use-theme';
 import { useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
 
@@ -13,6 +14,7 @@ import type { Jetons } from '@/marque/jetons';
 // L'icône de profil ouvre la connexion du personnel de la Ville ; un compte citoyen déjà connecté peut s'y déconnecter.
 export default function CitizenApp({ compteConnecte, nom, demoHorsLigne, onLogout, onStaffLogin }: { compteConnecte: boolean; nom?: string | null; demoHorsLigne?: boolean; onLogout: () => void; onStaffLogin: () => void }) {
   const styles = useStyles(creerStyles);
+  const theme = useTheme();
   const [tab, setTab] = useState<CitizenTab>("carte");
   // La feuille « Quel problème ? » couvre tout le bas de l'écran : la barre du bas se retire pendant qu'elle est ouverte.
   const [feuille, setFeuille] = useState(false);
@@ -21,8 +23,10 @@ export default function CitizenApp({ compteConnecte, nom, demoHorsLigne, onLogou
   return (
     <View style={styles.root}>
       {/* Les deux onglets restent montés une fois visités : revenir sur la carte ne recrée plus la carte native ni ses repères. */}
+      {/* La carte reste visible sous « Mes alertes » (jamais d'opacité changée) : l'onglet des alertes a un fond opaque et la recouvre. */}
       <OngletsGardes
         actif={tab}
+        fond={theme.background}
         onglets={[
           { id: "carte", gardeTaille: true, rendu: () => <EcranCarteCitoyen coquille={{ espaceBas: BOTTOM_NAV_HEIGHT, onOpenProfile: () => setProfil(true), onFeuille: setFeuille }} /> },
           { id: "alertes", rendu: () => <MyAlerts /> },
