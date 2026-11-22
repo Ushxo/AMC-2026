@@ -2,6 +2,7 @@ import 'react-native-url-polyfill/auto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { AppState, Platform } from 'react-native';
 
 let client: SupabaseClient | null | undefined;
 
@@ -25,6 +26,14 @@ export function getSupabase(): SupabaseClient | null {
         detectSessionInUrl: false,
       },
     });
+    // Sur téléphone, le jeton ne se rafraîchit que quand l'app est au premier plan.
+    if (surAppareil && Platform.OS !== 'web') {
+      const cree = client;
+      AppState.addEventListener('change', (etat) => {
+        if (etat === 'active') void cree.auth.startAutoRefresh();
+        else void cree.auth.stopAutoRefresh();
+      });
+    }
   } catch {
     client = null;
   }
