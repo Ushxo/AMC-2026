@@ -11,6 +11,7 @@ import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
 import { MESSAGE_ASTUCE_PHOTO } from '@/lib/messages-seuil';
+import { IconeAnimee } from '@/components/mouvement/icone-animee';
 import { reveillerUneFois } from '@/lib/reveil-ml';
 import { sansBruit, tracer } from '@/lib/trace';
 import { CAMERA } from '@/components/ville/style';
@@ -194,7 +195,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
           accessibilityLabel={!arriere ? "Pas d'éclairage avec la caméra avant" : lampe ? "Éteindre l'éclairage" : "Allumer l'éclairage"}
           accessibilityState={{ disabled: !arriere, selected: lampe }}
         >
-          <Ionicons name={lampe ? "flash" : "flash-off"} size={22} color={lampe ? C.dark : C.white} />
+          <IconeAnimee nom={lampe ? "flash" : "flash-off"} taille={22} couleur={lampe ? C.dark : C.white} />
         </Pressable>
       </>
     );

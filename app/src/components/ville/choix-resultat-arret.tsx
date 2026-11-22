@@ -1,7 +1,7 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, View } from 'react-native';
 
 import { Appuyable as Pressable } from '@/components/appuyable';
+import { IconeAnimee } from '@/components/mouvement/icone-animee';
 import { Texte as Text } from '@/components/texte';
 import { useTheme } from '@/hooks/use-theme';
 import { useStyles } from '@/marque/utiliser';
@@ -24,9 +24,10 @@ export function ChoixResultatArret({
 }) {
   const P = useTheme();
   const styles = useStyles(creerStyles);
-  const boutons: { id: ChoixResultat; mot: string; libelle: string; icone: 'checkmark-circle' | 'close-circle'; couleur: string }[] = [
-    { id: 'oui', mot: 'Oui', libelle: "Oui, l'arrêt est fait", icone: 'checkmark-circle', couleur: P.success },
-    { id: 'non', mot: 'Non', libelle: "Non, l'arrêt n'est pas fait", icone: 'close-circle', couleur: P.danger },
+  const boutons: { id: ChoixResultat; mot: string; libelle: string; icone: 'checkmark-circle' | 'close-circle';
+    iconeVide: 'checkmark-circle-outline' | 'close-circle-outline'; couleur: string }[] = [
+    { id: 'oui', mot: 'Oui', libelle: "Oui, l'arrêt est fait", icone: 'checkmark-circle', iconeVide: 'checkmark-circle-outline', couleur: P.success },
+    { id: 'non', mot: 'Non', libelle: "Non, l'arrêt n'est pas fait", icone: 'close-circle', iconeVide: 'close-circle-outline', couleur: P.danger },
   ];
   return (
     <View style={styles.rangee}>
@@ -41,7 +42,7 @@ export function ChoixResultatArret({
             disabled={!actif}
             onPress={() => onChoisir(b.id)}
             style={[styles.bouton, { borderColor: b.couleur }, choisi && styles.choisi, !actif && styles.inactif]}>
-            <Ionicons name={b.icone} size={24} color={b.couleur} />
+            <IconeAnimee nom={choisi ? b.icone : b.iconeVide} taille={24} couleur={b.couleur} />
             <Text style={styles.mot} maxFontSizeMultiplier={1.2}>
               {b.mot}
             </Text>

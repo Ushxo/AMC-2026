@@ -1,4 +1,4 @@
-import { libelleProblemeEtLieu, libelleProchainArret, libelleTempsRestant } from '../libelles-navigation';
+import { etatArretNavigation, libelleProblemeEtLieu, libelleProchainArret, libelleTempsRestant } from '../libelles-navigation';
 
 describe('libellés du panneau de navigation', () => {
   it('temps restant : moins d’une minute, minutes, heures', () => {
@@ -21,7 +21,6 @@ describe('libellés du panneau de navigation', () => {
   });
 });
 
-import { etatArretNavigation } from '../libelles-navigation';
 
 describe('repères d’arrêts sur la carte de navigation', () => {
   const arrets = Array.from({ length: 8 }, (_, i) => ({ rang: i + 1 }));

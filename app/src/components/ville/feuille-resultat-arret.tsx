@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Appuyable as Pressable } from '@/components/appuyable';
+import { ModaleAnimee } from '@/components/mouvement/modale-animee';
 import { BoutonAction } from '@/components/bouton-action';
 import { ChampTexte as TextInput, Texte as Text } from '@/components/texte';
 import { useStyles } from '@/marque/utiliser';
@@ -12,7 +12,7 @@ import { erreurCommentaire, LIMITE_COMMENTAIRE, QUESTION_ARRET_FAIT, RAISONS_NON
 
 import { Bouton } from './bouton';
 import { ChoixResultatArret, type ChoixResultat } from './choix-resultat-arret';
-import { FEUILLE_BASE, VOILE_FEUILLE } from './style';
+import { FEUILLE_BASE } from './style';
 
 type Props = {
   visible: boolean;
@@ -27,10 +27,17 @@ type Props = {
 
 /** Petite feuille de confirmation d'un arrêt : Oui (commentaire facultatif) ou Non (commentaire obligatoire, avec des raisons en un toucher). */
 export function FeuilleResultatArret(props: Props) {
+  // Chaque ouverture repart d'un contenu neuf (choix, texte, erreur), même si la fenêtre reste montée le temps de sa sortie.
+  const [ouverture, setOuverture] = useState(props.visible ? 1 : 0);
+  const [etaitVisible, setEtaitVisible] = useState(props.visible);
+  if (props.visible !== etaitVisible) {
+    setEtaitVisible(props.visible);
+    if (props.visible) setOuverture((n) => n + 1);
+  }
   return (
-    <Modal visible={props.visible} transparent animationType="slide" onRequestClose={props.onFermer}>
-      {props.visible ? <Contenu {...props} /> : null}
-    </Modal>
+    <ModaleAnimee visible={props.visible} onFermer={props.onFermer} libelleFermer="Fermer sans enregistrer">
+      <Contenu key={ouverture} {...props} />
+    </ModaleAnimee>
   );
 }
 
@@ -64,8 +71,7 @@ function Contenu({ rang, choixInitial, commentaireInitial = '', onEnregistrer, o
 
   const libelle = choix === 'non' ? "Pourquoi l'arrêt n'est-il pas fait ? (obligatoire)" : 'Quelque chose à signaler ? (facultatif)';
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.cadre}>
-      <Pressable retour={false} style={styles.fond} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer sans enregistrer" />
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.feuille, { paddingBottom: bottom + 16 }]}>
         <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
           <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
@@ -132,8 +138,6 @@ function Contenu({ rang, choixInitial, commentaireInitial = '', onEnregistrer, o
 
 const creerStyles = (P: Jetons) =>
   StyleSheet.create({
-    cadre: { flex: 1 },
-    fond: { flex: 1, backgroundColor: VOILE_FEUILLE },
     feuille: { maxHeight: '85%', backgroundColor: P.background, ...FEUILLE_BASE },
     contenu: { padding: 20, gap: 12 },
     titre: { fontSize: 22, lineHeight: 30, fontWeight: '700', color: P.text },

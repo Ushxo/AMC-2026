@@ -72,7 +72,8 @@
   "jest": {
     "preset": "jest-expo",
     "moduleNameMapper": {
-      "\\.css$": "<rootDir>/jest/css-mock.js"
+      "\\.css$": "<rootDir>/jest/css-mock.js",
+      "^react-native-reanimated$": "<rootDir>/jest/reanimated-mock.js"
     }
   }
 }

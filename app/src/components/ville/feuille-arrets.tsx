@@ -1,6 +1,7 @@
-import { FlatList, Modal, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
-import { FEUILLE_BASE, VOILE_FEUILLE } from '@/components/ville/style';
+import { ModaleAnimee } from '@/components/mouvement/modale-animee';
+import { FEUILLE_BASE } from '@/components/ville/style';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -31,8 +32,7 @@ export function FeuilleArrets({ visible, arrets, statutDe = () => null, commenta
   const { bottom } = useSafeAreaInsets();
   const restants = arrets.filter((a) => statutDe(a) === null).length;
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onFermer}>
-      <Pressable retour={false} style={styles.fond} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer la liste" />
+    <ModaleAnimee visible={visible} onFermer={onFermer} libelleFermer="Fermer la liste">
       <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
         <FlatList
           data={arrets}
@@ -82,12 +82,11 @@ export function FeuilleArrets({ visible, arrets, statutDe = () => null, commenta
           ListFooterComponent={<Bouton titre="Fermer" variante="discret" pleineLargeur onPress={onFermer} />}
         />
       </View>
-    </Modal>
+    </ModaleAnimee>
   );
 }
 
 const styles = StyleSheet.create({
-  fond: { flex: 1, backgroundColor: VOILE_FEUILLE },
   feuille: { maxHeight: '70%', ...FEUILLE_BASE },
   contenu: { padding: 20, gap: 8 },
   ligne: { flexDirection: 'row', alignItems: 'center', gap: 12 },

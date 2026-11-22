@@ -1,10 +1,13 @@
-import React from "react";
-import { StyleSheet, View } from 'react-native';
+import React, { useState } from "react";
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { IconeAnimee } from '@/components/mouvement/icone-animee';
+import { PastilleGlissante, type CiblePastille } from '@/components/mouvement/pastille-glissante';
+import { RebondEchelle } from '@/components/mouvement/rebond-echelle';
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
@@ -33,9 +36,16 @@ export function BottomNav({ active, onChange }: Props) {
   const P = useTheme();
   const styles = useStyles(creerStyles);
   const insets = useSafeAreaInsets();
+  // La pastille de l'onglet actif glisse d'un onglet à l'autre.
+  const [mesures, setMesures] = useState<Record<string, CiblePastille>>({});
+  const mesurer = (id: string) => (e: LayoutChangeEvent) => {
+    const { x, y, width, height } = e.nativeEvent.layout;
+    setMesures((m) => (m[id] && m[id].x === x && m[id].y === y && m[id].largeur === width && m[id].hauteur === height ? m : { ...m, [id]: { x, y, largeur: width, hauteur: height } }));
+  };
 
   return (
     <View style={[styles.nav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <PastilleGlissante cible={mesures[active] ?? null} style={styles.pastille} />
       {TABS.map((tab) => {
         const selected = tab.id === active;
         return (
@@ -44,9 +54,12 @@ export function BottomNav({ active, onChange }: Props) {
             onPress={() => onChange(tab.id)}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            style={[styles.tab, selected && styles.tabActive]}
+            onLayout={mesurer(tab.id)}
+            style={styles.tab}
           >
-            <Ionicons name={selected ? tab.iconActive : tab.icon} size={30} color={P.primary} />
+            <RebondEchelle actif={selected}>
+              <IconeAnimee nom={selected ? tab.iconActive : tab.icon} taille={30} couleur={P.primary} />
+            </RebondEchelle>
             <Text style={[styles.label, selected && styles.labelActive]} maxFontSizeMultiplier={1.3}>{tab.label}</Text>
           </Pressable>
         );
@@ -82,8 +95,9 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 30,
   },
-  tabActive: {
+  pastille: {
     backgroundColor: P.backgroundSelected,
+    borderRadius: 30,
   },
   label: {
     fontSize: 17,

@@ -1,6 +1,7 @@
 import { StyleSheet, Switch, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 
+import { ApparitionDouce } from '@/components/mouvement/apparition-douce';
 import { ThemedText } from '@/components/themed-text';
 import { Coche } from '@/components/ville/coche';
 import { useTheme } from '@/hooks/use-theme';
@@ -46,11 +47,11 @@ export function ChoixTheme() {
               onPress={() => definirTheme(id)}
               style={[styles.carte, { backgroundColor: actif ? theme.backgroundSelected : theme.backgroundElement, borderColor: actif ? theme.primary : theme.border }]}>
               <ApercuTheme jetons={jetonsDuTheme(organisation, id)} />
-              {actif ? (
-                <View style={[styles.coche, { backgroundColor: theme.primary }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <ApparitionDouce visible={actif} style={[styles.coche, { backgroundColor: theme.primary }]}>
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                   <Coche taille={14} couleur={theme.onPrimary} />
                 </View>
-              ) : null}
+              </ApparitionDouce>
               <ThemedText type={actif ? 'smallBold' : 'small'} numberOfLines={1} style={styles.nom} maxFontSizeMultiplier={1.2}>
                 {id === 'organisation' ? 'Organisation' : LIBELLES_THEME_APP[id]}
               </ThemedText>
