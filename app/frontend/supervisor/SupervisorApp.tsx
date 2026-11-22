@@ -24,7 +24,7 @@ const ONGLETS: Onglet<Id>[] = [
 // Espace superviseur : leur coquille (en-tête, onglets), NOS écrans à l'intérieur (signalements, optimisation, équipes, arrêts faits).
 export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
   const { nom } = useAcces();
-  const [onglet, setOnglet] = useState<Id>("optimisation");
+  const [onglet, setOnglet] = useState<Id>("tableau");
 
   return (
     <View style={styles.root}>
