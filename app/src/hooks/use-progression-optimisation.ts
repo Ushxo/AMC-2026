@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 
 import {
@@ -20,8 +20,9 @@ export function useProgressionOptimisation(
   demande: DemandeOptimisation | null,
   options: { envoi?: boolean; tracesEnAttente?: boolean; precalcule?: boolean } = {},
 ): { etape: EtapeProgression; fraction: number; libelle: string; reduireMouvement: boolean } {
-  const [maintenant, setMaintenant] = useState(0);
-  const [debut, setDebut] = useState(0);
+  // On ne garde en état que le pourcentage affiché : l'écran ne se redessine que quand ce nombre change.
+  const [pourcent, setPourcent] = useState(0);
+  const debut = useRef(0);
   const [reduire, setReduire] = useState(false);
 
   useEffect(() => {
@@ -36,26 +37,31 @@ export function useProgressionOptimisation(
     };
   }, []);
 
+  const etape = etapeDepuisStatut(demande?.statut ?? null, options);
+  const actifEnCalcul = etape === 'envoi' || etape === 'en_attente' || etape === 'en_cours';
+
   // Le temps écoulé repart de zéro à chaque nouvelle demande.
   const id = demande?.id ?? null;
   useEffect(() => {
     const depart = setTimeout(() => {
-      const t = Date.now();
-      setDebut(t);
-      setMaintenant(t);
+      debut.current = Date.now();
+      setPourcent(0);
     }, 0);
     return () => clearTimeout(depart);
   }, [id]);
 
-  const etape = etapeDepuisStatut(demande?.statut ?? null, options);
-  const actifEnCalcul = etape === 'envoi' || etape === 'en_attente' || etape === 'en_cours';
-
   useEffect(() => {
     if (!actifEnCalcul) return;
-    const minuteur = setInterval(() => setMaintenant(Date.now()), reduire ? PAS_REDUIT_MS : PAS_FLUIDE_MS);
+    const minuteur = setInterval(
+      () => {
+        if (debut.current === 0) return;
+        setPourcent(Math.round(calculerFraction(etape, Date.now() - debut.current) * 100));
+      },
+      reduire ? PAS_REDUIT_MS : PAS_FLUIDE_MS,
+    );
     return () => clearInterval(minuteur);
-  }, [actifEnCalcul, reduire]);
+  }, [actifEnCalcul, etape, reduire]);
 
-  const fraction = calculerFraction(etape, debut === 0 ? 0 : maintenant - debut);
+  const fraction = actifEnCalcul ? pourcent / 100 : calculerFraction(etape, 0);
   return { etape, fraction, libelle: LIBELLES_ETAPE[etape], reduireMouvement: reduire };
 }

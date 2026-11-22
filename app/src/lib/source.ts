@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import { BUCKET_PHOTOS, CLE_ETATS_DEMO, DELAI_SUPABASE_MS } from './config';
 import { analyserErreurEnvoi } from './erreurs-envoi';
+import { abonnerTable } from './canal-partage';
 import { ajouter, lister, marquerEchec, retirer, type ElementFile } from './file-attente';
 import {
   MESSAGE_CHANGEMENT_ECHEC,
@@ -456,17 +457,5 @@ export async function lireHistorique(id: string): Promise<ChangementEtat[]> {
 
 /** Réveille `rappel` à chaque changement des signalements (Realtime). Rend la fonction d'arrêt. */
 export function abonnerSignalementsRealtime(rappel: () => void): () => void {
-  const client = getSupabase();
-  if (!client) return () => {};
-  try {
-    const canal = client
-      .channel(`signalements-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'signalements' }, rappel)
-      .subscribe();
-    return () => {
-      void client.removeChannel(canal);
-    };
-  } catch {
-    return () => {};
-  }
+  return abonnerTable('signalements', rappel);
 }

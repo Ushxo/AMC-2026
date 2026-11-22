@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { chargerPrecalcule, lireArretPourSignalement, type Passage } from '../lib/optimisation';
+import { demarrerReleve } from '../lib/releve';
 import { etatSource } from '../lib/source';
 import { abonnerTournees, lireEtatTournees } from '../lib/store-tournees';
 import { calculerSuivi, trouverArret } from '../lib/suivi';
@@ -42,11 +43,11 @@ export function usePassage(signalementId: string): {
       }
     };
     const t = setTimeout(() => void lire(), 0);
-    const minuteur = setInterval(() => void lire(), 15000);
+    const arretReleve = demarrerReleve({ table: 'demandes_optimisation', lire: () => void lire(), rapideMs: 15000 });
     return () => {
       actif.current = false;
       clearTimeout(t);
-      clearInterval(minuteur);
+      arretReleve();
     };
   }, [signalementId, etat, store.version]);
 

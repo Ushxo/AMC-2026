@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { abonnerPositions, lirePositionsEquipes } from '../lib/equipe-compte';
+import { demarrerReleve } from '../lib/releve';
 import { etatSource } from '../lib/source';
 import type { PositionEquipe } from '../types';
 
-const INTERROGATION_MS = 10000;
+const RAPIDE_MS = 10000;
 
-/** Dernière position de chaque équipe (Realtime, avec relecture toutes les 10 s). Vide si la table n'existe pas encore. */
+// Une seule lecture à la fois, partagée si plusieurs écrans demandent les positions en même temps.
+let lectureEnCours: Promise<PositionEquipe[] | null> | null = null;
+function lireUneFois(): Promise<PositionEquipe[] | null> {
+  if (!lectureEnCours) {
+    lectureEnCours = lirePositionsEquipes().finally(() => {
+      lectureEnCours = null;
+    });
+  }
+  return lectureEnCours;
+}
+
+/** Dernière position de chaque équipe (Realtime ; relève lente quand le canal est connecté, rapide en repli). Vide si la table n'existe pas encore. */
 export function usePositionsEquipes(actif: boolean = true): { positions: PositionEquipe[]; disponible: boolean } {
   const [positions, setPositions] = useState<PositionEquipe[]>([]);
   const [disponible, setDisponible] = useState(false);
@@ -14,7 +26,7 @@ export function usePositionsEquipes(actif: boolean = true): { positions: Positio
 
   const lire = useCallback(async () => {
     if (etatSource() === 'repli') return;
-    const l = await lirePositionsEquipes();
+    const l = await lireUneFois();
     if (!vivant.current) return;
     if (l) {
       setPositions(l);
@@ -29,11 +41,11 @@ export function usePositionsEquipes(actif: boolean = true): { positions: Positio
     if (!actif) return;
     const depart = setTimeout(() => void lire(), 0);
     const arret = abonnerPositions(() => void lire());
-    const minuteur = setInterval(() => void lire(), INTERROGATION_MS);
+    const arretReleve = demarrerReleve({ table: 'positions_equipes', lire: () => void lire(), rapideMs: RAPIDE_MS });
     return () => {
       vivant.current = false;
       clearTimeout(depart);
-      clearInterval(minuteur);
+      arretReleve();
       arret();
     };
   }, [actif, lire]);

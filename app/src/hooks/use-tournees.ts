@@ -1,13 +1,33 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { abonnerDemandes, chargerPrecalcule, lireDerniereTerminee } from '../lib/optimisation';
+import { demarrerReleve } from '../lib/releve';
 import { etatSource } from '../lib/source';
 import { nettoyerResultat } from '../lib/tournees';
 import { abonnerTournees, lireDernierPlan, lireEtatTournees, memoriserDernierPlan } from '../lib/store-tournees';
 import type { ResultatOptimisation, SourceTournees } from '../types';
 import { useSource } from './use-source';
 
-const INTERROGATION_MS = 5000;
+// Un seul jeu de minuteurs pour tous les écrans : lente (30 s) quand le canal Realtime est connecté, rapide (5 s) en repli.
+const abonnesReleve = new Set<() => void>();
+let arretReleve: (() => void) | null = null;
+
+function abonnerReleve(f: () => void): () => void {
+  abonnesReleve.add(f);
+  if (abonnesReleve.size === 1) {
+    arretReleve = demarrerReleve({
+      table: 'demandes_optimisation',
+      lire: () => [...abonnesReleve].forEach((g) => g()),
+    });
+  }
+  return () => {
+    abonnesReleve.delete(f);
+    if (abonnesReleve.size === 0) {
+      arretReleve?.();
+      arretReleve = null;
+    }
+  };
+}
 
 // Une seule lecture à la fois, partagée par tous les écrans, et le dernier plan valide est gardé : un plan ne disparaît
 // jamais parce qu'une lecture échoue, tarde ou rend null (par exemple pendant un guidage).
@@ -66,11 +86,11 @@ export function useTournees(): {
     actif.current = true;
     const depart = setTimeout(() => void rafraichir(), 0);
     const arret = abonnerDemandes(() => void rafraichir());
-    const minuteur = setInterval(() => void rafraichir(), INTERROGATION_MS);
+    const arretReleveLocal = abonnerReleve(() => void rafraichir());
     return () => {
       actif.current = false;
       clearTimeout(depart);
-      clearInterval(minuteur);
+      arretReleveLocal();
       arret();
     };
   }, [rafraichir]);

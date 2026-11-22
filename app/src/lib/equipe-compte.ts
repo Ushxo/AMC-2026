@@ -1,5 +1,6 @@
 import type { PositionEquipe } from '../types';
 import { estRefusOuAbsent } from './auth';
+import { abonnerTable } from './canal-partage';
 import {
   MESSAGE_COMPTE_AUCUN,
   MESSAGE_COMPTE_ECHEC,
@@ -109,17 +110,5 @@ export async function envoyerPosition(
 }
 
 export function abonnerPositions(rappel: () => void): () => void {
-  const client = getSupabase();
-  if (!client) return () => {};
-  try {
-    const canal = client
-      .channel(`positions-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'positions_equipes' }, rappel)
-      .subscribe();
-    return () => {
-      void client.removeChannel(canal);
-    };
-  } catch {
-    return () => {};
-  }
+  return abonnerTable('positions_equipes', rappel);
 }

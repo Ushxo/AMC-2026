@@ -67,4 +67,25 @@ describe('useProgressionOptimisation', () => {
     });
     expect(result.current.fraction).toBeGreaterThan(avant);
   });
+
+  it('ne redessine plus rien une fois le plafond atteint (avant : un rendu tous les 250 ms)', async () => {
+    let rendus = 0;
+    const { result } = await renderHook(() => {
+      rendus++;
+      return useProgressionOptimisation(demande('en_cours'));
+    });
+    for (let i = 0; i < 50; i++) {
+      await act(async () => {
+        jest.advanceTimersByTime(250);
+      });
+    }
+    expect(result.current.fraction).toBeCloseTo(0.95, 2);
+    const plafond = rendus;
+    for (let i = 0; i < 40; i++) {
+      await act(async () => {
+        jest.advanceTimersByTime(250);
+      });
+    }
+    expect(rendus).toBe(plafond);
+  });
 });

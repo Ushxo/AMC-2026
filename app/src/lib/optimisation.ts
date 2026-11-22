@@ -7,6 +7,7 @@ import type {
   ResultatPrecalcule,
 } from '../types';
 import { estRefusOuAbsent } from './auth';
+import { abonnerTable } from './canal-partage';
 import { MESSAGE_OPTIMISATION_ECHEC } from './messages';
 import { avecDelai } from './source';
 import { getSupabase } from './supabase';
@@ -171,17 +172,5 @@ export async function lireArretPourSignalement(signalementId: string): Promise<P
 
 /** Réveille `rappel` à chaque changement des demandes (Realtime). Rend la fonction d'arrêt. */
 export function abonnerDemandes(rappel: () => void): () => void {
-  const client = getSupabase();
-  if (!client) return () => {};
-  try {
-    const canal = client
-      .channel(`demandes-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'demandes_optimisation' }, rappel)
-      .subscribe();
-    return () => {
-      void client.removeChannel(canal);
-    };
-  } catch {
-    return () => {};
-  }
+  return abonnerTable('demandes_optimisation', rappel);
 }
