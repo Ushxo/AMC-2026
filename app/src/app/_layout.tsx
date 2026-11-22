@@ -1,10 +1,9 @@
-import {
-  Montserrat_400Regular,
-  Montserrat_500Medium,
-  Montserrat_600SemiBold,
-  Montserrat_700Bold,
-  Montserrat_800ExtraBold,
-} from '@expo-google-fonts/montserrat';
+// Une graisse par import : seules les cinq graisses utilisées sont embarquées dans l'app.
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat/400Regular';
+import { Montserrat_500Medium } from '@expo-google-fonts/montserrat/500Medium';
+import { Montserrat_600SemiBold } from '@expo-google-fonts/montserrat/600SemiBold';
+import { Montserrat_700Bold } from '@expo-google-fonts/montserrat/700Bold';
+import { Montserrat_800ExtraBold } from '@expo-google-fonts/montserrat/800ExtraBold';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
