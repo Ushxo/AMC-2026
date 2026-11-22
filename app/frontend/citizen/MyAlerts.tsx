@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -8,24 +8,28 @@ import {
   View,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Palette } from '@/constants/theme';
+import { useMesSignalements } from '@/hooks/use-mes-signalements';
+import { formaterDate } from '@/lib/format';
+import { chargerAdresses } from '@/lib/officiel';
+import { adressePlusProche } from '@/lib/recherche';
+import { LIBELLES_CATEGORIE, LIBELLES_ETAT, type Categorie, type Etat, type Signalement } from '@/types';
 import { BOTTOM_NAV_HEIGHT } from '../components/BottomNav';
-import { useDemo } from '../context/DemoContext';
-import { formatDate } from '../format';
-import { SEWERS } from '../data/mockData';
-import { AlertKind, CitizenAlert } from '../types/models';
 
+// Couleurs : jetons du thème. « greenDone », « card » et « track » sont des teintes de la même palette.
 const C = {
-  green: '#1D341B',
-  greenDone: '#2F5A2A',
-  cream: '#F5F1E6',
-  card: '#FBF7EE',
-  orange: '#EE6A1F',
+  green: Palette.header,
+  greenDone: Palette.success,
+  cream: Palette.background,
+  card: Palette.surface,
+  orange: Palette.accent,
   orangeSoft: '#FBDCC4',
-  sage: '#DCE5CC',
-  track: '#B8C2AE',
-  text: '#2B3328',
+  sage: Palette.backgroundSelected,
+  track: Palette.border,
+  text: Palette.text,
 };
 
 const STEPS = ['Soumis', 'Pris en\ncharge', 'Terminé'];
@@ -33,24 +37,31 @@ const STEPS = ['Soumis', 'Pris en\ncharge', 'Terminé'];
 // Position du remplissage de la ligne de progression selon l'étape.
 const FILL = ['22%', '58%', '100%'] as const;
 
-
-// Titre et icône de chaque catégorie (mêmes libellés que sur l'écran Carte).
-const KINDS: Record<AlertKind, { title: string; tile: string; color: string; icon?: keyof typeof Ionicons.glyphMap }> = {
-  'Égout bouché': { title: 'Égout bouché', tile: C.orangeSoft, color: C.orange },
-  'Eau accumulée': { title: 'Accumulation d’eau', tile: C.sage, color: C.green, icon: 'water-outline' },
-  Feuilles: { title: 'Affaissement', tile: '#FCE6C9', color: C.orange, icon: 'trending-down-outline' },
-  Autre: { title: 'Grille endommagée', tile: '#FCE6C9', color: C.orange, icon: 'warning-outline' },
+// Icône et teinte de chaque catégorie de signalement.
+const KINDS: Record<Categorie, { tile: string; color: string; icon?: keyof typeof Ionicons.glyphMap }> = {
+  grille_bouchee: { tile: C.orangeSoft, color: C.orange },
+  eau_accumulee: { tile: C.sage, color: C.green, icon: 'water-outline' },
+  eau_douteuse: { tile: '#FCE6C9', color: C.orange, icon: 'flask-outline' },
+  absence_eau: { tile: '#FCE6C9', color: C.orange, icon: 'close-circle-outline' },
+  autre: { tile: '#FCE6C9', color: C.orange, icon: 'warning-outline' },
 };
 
-function getStep(status: CitizenAlert['status']) {
-  if (status === 'Résolue') return 2;
-  if (status === 'Envoyée' || status === 'En évaluation') return 0;
-  return 1;
+/** Étape de la ligne de progression : 0 = soumis, 1 = pris en charge, 2 = terminé (réglé ou rejeté). */
+export function etapeDeLEtat(etat: Etat): 0 | 1 | 2 {
+  if (etat === 'regle' || etat === 'rejete') return 2;
+  if (etat === 'pris_en_charge') return 1;
+  return 0;
 }
 
+function badgeDe(etat: Etat, step: number) {
+  if (etat === 'rejete') return { label: 'Rejeté', color: Palette.danger, bg: C.orangeSoft };
+  return BADGES[step];
+}
+
+// Texte des étiquettes : vert forêt (contraste élevé) ; l'orange seul sur fond orange pâle n'atteint pas 4,5 pour 1.
 const BADGES = [
-  { label: 'En cours', color: C.orange, bg: C.orangeSoft },
-  { label: 'Pris en charge', color: C.orange, bg: C.orangeSoft },
+  { label: 'En cours', color: C.green, bg: C.orangeSoft },
+  { label: 'Pris en charge', color: C.green, bg: C.orangeSoft },
   { label: 'Terminé', color: C.greenDone, bg: C.sage },
 ];
 
@@ -97,12 +108,18 @@ function Progress({ step }: { step: number }) {
   );
 }
 
+// « Près de 100 rue X » grâce à l'index d'adresses local (marche hors ligne), sinon les coordonnées.
+function lieuDe(s: Signalement, adresses: ReturnType<typeof chargerAdresses>): string {
+  const proche = adressePlusProche({ latitude: s.latitude, longitude: s.longitude }, adresses);
+  return proche ? `Près de ${proche.libelle}` : `${s.latitude.toFixed(4)}, ${s.longitude.toFixed(4)}, Montréal`;
+}
+
 export default function MyAlerts() {
   const insets = useSafeAreaInsets();
-  const { alerts } = useDemo();
+  const router = useRouter();
+  const { mes, chargement, erreur, rafraichir } = useMesSignalements();
+  const adresses = useMemo(() => chargerAdresses(), []);
   const [expanded, setExpanded] = useState<string | null>(null);
-
-  const own = alerts.filter(a => a.citizenId === 'citoyen-demo').slice().reverse();
 
   return (
     <ScrollView
@@ -116,11 +133,23 @@ export default function MyAlerts() {
       </View>
 
       <View style={styles.list}>
-        {own.map(a => {
-          const step = getStep(a.status);
-          const kind = KINDS[a.kind];
-          const badge = BADGES[step];
-          const sewer = SEWERS.find(s => s.id === a.sewerId);
+        {chargement ? (
+          <View style={styles.card} accessibilityRole="progressbar" accessibilityLabel="Chargement de vos alertes">
+            <Text style={styles.cardTitle}>Chargement de vos alertes…</Text>
+          </View>
+        ) : erreur ? (
+          <View style={styles.card} accessibilityRole="alert">
+            <Text style={styles.cardTitle}>{erreur}</Text>
+            <Pressable onPress={() => void rafraichir()} accessibilityRole="button" style={{ marginTop: 10 }}>
+              <Text style={[styles.detail, { fontWeight: '800', color: C.green, textDecorationLine: 'underline' }]}>Réessayer</Text>
+            </Pressable>
+          </View>
+        ) : null}
+        {mes.map(a => {
+          const step = etapeDeLEtat(a.etat);
+          const kind = KINDS[a.categorie];
+          const titre = LIBELLES_CATEGORIE[a.categorie];
+          const badge = badgeDe(a.etat, step);
           const open = expanded === a.id;
 
           return (
@@ -129,7 +158,7 @@ export default function MyAlerts() {
               onPress={() => setExpanded(open ? null : a.id)}
               style={styles.card}
               accessibilityRole="button"
-              accessibilityLabel={`${kind.title}, ${badge.label}`}
+              accessibilityLabel={`${titre}, ${badge.label}`}
             >
               <View style={styles.cardTop}>
                 <View style={[styles.iconBox, { backgroundColor: kind.tile }]}>
@@ -142,7 +171,7 @@ export default function MyAlerts() {
 
                 <View style={{ flex: 1 }}>
                   <View style={styles.titleRow}>
-                    <Text style={styles.cardTitle}>{kind.title}</Text>
+                    <Text style={styles.cardTitle}>{titre}</Text>
                     <View style={styles.side}>
                       <Text style={[styles.badge, { color: badge.color, backgroundColor: badge.bg }]}>
                         {badge.label}
@@ -156,11 +185,11 @@ export default function MyAlerts() {
                   </View>
                   <View style={styles.detailRow}>
                     <Ionicons name="location-outline" size={16} color={C.text} />
-                    <Text style={styles.detail}>{sewer?.label ?? a.sewerId}, Montréal</Text>
+                    <Text style={styles.detail}>{lieuDe(a, adresses)}</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <Ionicons name="calendar-outline" size={15} color={C.text} />
-                    <Text style={styles.detail}>Envoyé le {formatDate(a.date)}</Text>
+                    <Text style={styles.detail}>Envoyé le {formaterDate(a.cree_le)}</Text>
                   </View>
                 </View>
               </View>
@@ -169,20 +198,28 @@ export default function MyAlerts() {
 
               {open && (
                 <View style={styles.expanded}>
-                  <Text style={styles.detail}>Référence : {a.id}</Text>
-                  <Text style={styles.detail}>État actuel : {a.status}</Text>
-                  {a.photoUri && <Image source={{ uri: a.photoUri }} style={styles.photo} />}
+                  <Text style={styles.detail}>État actuel : {LIBELLES_ETAT[a.etat]}</Text>
+                  {a.en_attente ? <Text style={styles.detail}>En attente d’envoi : le réseau reviendra.</Text> : null}
+                  {a.commentaire ? <Text style={styles.detail}>Votre commentaire : {a.commentaire}</Text> : null}
+                  {a.photo_url ? <Image source={{ uri: a.photo_url }} style={styles.photo} accessibilityLabel="Photo jointe" /> : null}
+                  <Pressable
+                    onPress={() => router.push({ pathname: '/suivi/[id]', params: { id: a.id } })}
+                    accessibilityRole="button"
+                    style={{ marginTop: 10, minHeight: 44, justifyContent: 'center' }}
+                  >
+                    <Text style={[styles.detail, { fontWeight: '800', color: C.green, textDecorationLine: 'underline' }]}>Voir le suivi et l’heure de passage</Text>
+                  </Pressable>
                 </View>
               )}
             </Pressable>
           );
         })}
 
-        {!own.length && (
+        {!chargement && !erreur && !mes.length && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Aucune alerte pour le moment</Text>
             <Text style={[styles.detail, { marginTop: 6 }]}>
-              Sélectionnez un égout sur la carte pour envoyer un signalement.
+              Touchez « Signaler un problème » sur la carte pour envoyer un signalement.
             </Text>
           </View>
         )}

@@ -1,0 +1,18 @@
+diff --git a/node_modules/@googlemaps/react-native-navigation-sdk/react-native-navigation-sdk.podspec b/node_modules/@googlemaps/react-native-navigation-sdk/react-native-navigation-sdk.podspec
+index 25eece5..3e91864 100644
+--- a/node_modules/@googlemaps/react-native-navigation-sdk/react-native-navigation-sdk.podspec
++++ b/node_modules/@googlemaps/react-native-navigation-sdk/react-native-navigation-sdk.podspec
+@@ -43,6 +43,13 @@ Pod::Spec.new do |s|
+     MESSAGE
+   end
+ 
++  spm_dependency(
++    s,
++    url: "https://github.com/googlemaps/ios-maps-sdk.git",
++    requirement: { kind: "exactVersion", version: "11.3.0" },
++    products: ["GoogleMaps"]
++  )
++
+   spm_dependency(
+     s,
+     url: "https://github.com/googlemaps/ios-navigation-sdk.git",

@@ -7,22 +7,56 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+/**
+ * Jetons de couleur de l'interface : la palette du coéquipier (vert forêt, crème, sauge, orange).
+ * Les écrans n'écrivent jamais une couleur : ils lisent useTheme() (ou Palette hors d'un composant).
+ * Les couleurs des repères de carte (gravité) et des équipes restent dans components/ville/style.ts.
+ */
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#2A1D14',
+    background: '#F5F3ED',
+    backgroundElement: '#EEF2EA',
+    backgroundSelected: '#C6D2C0',
+    textSecondary: '#5F665C',
+    /** Fond des boutons pleins et des bandeaux : vert forêt, texte blanc (contraste 12 pour 1). */
+    primary: '#1D3A1B',
+    onPrimary: '#FFFFFF',
+    /** Orange : accent (pastilles, repères d'action), jamais un fond de texte courant. */
+    accent: '#EE5F12',
+    accentDoux: '#F28A33',
+    /** Fond des en-têtes de la coquille (même vert que primary, plus profond en sombre). */
+    header: '#1D3A1B',
+    onHeader: '#F8F4EA',
+    surface: '#FFFFFF',
+    border: '#D8E0D2',
+    /** Contour d'un champ de saisie : 3 pour 1 au moins sur le fond crème (contraste des composants). */
+    borderForte: '#7F8A7B',
+    success: '#4F7A57',
+    danger: '#B3261E',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#F5F3ED',
+    background: '#161C15',
+    backgroundElement: '#212B20',
+    backgroundSelected: '#31412F',
+    textSecondary: '#B8C2B4',
+    primary: '#4F7A57',
+    onPrimary: '#FFFFFF',
+    accent: '#F28A33',
+    accentDoux: '#F28A33',
+    header: '#0F140F',
+    onHeader: '#F8F4EA',
+    surface: '#212B20',
+    border: '#31412F',
+    borderForte: '#7F8A7B',
+    success: '#7FB48A',
+    danger: '#FF8A80',
   },
 } as const;
+
+/** Palette claire pour le code hors composant (styles figés des écrans du coéquipier). */
+export const Palette = Colors.light;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 

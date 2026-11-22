@@ -1,30 +1,22 @@
-import React, { useState } from "react";
+import React from "react";
 
-import { Session } from "./auth";
+import { Chargement } from "@/components/ville/etat-ecran";
+import { useAcces } from "@/hooks/use-acces";
+import AuthFlow from "./auth/AuthFlow";
 import CitizenApp from "./citizen/CitizenApp";
-import LoginScreen from "./citizen/LoginScreen";
-import { DemoProvider } from "./context/DemoContext";
-import EmployeeApp from "./employee/EmployeeApp";
+import StaffApp from "./StaffApp";
 import SupervisorApp from "./supervisor/SupervisorApp";
 
-// Point d'entrée : connexion, puis redirection selon le rôle.
-// Le DemoProvider est au-dessus de tout : les signalements d'un citoyen
-// restent visibles quand on se reconnecte en superviseur.
+// Racine de l'app (« / ») : connexion réelle (comptes, mot de passe oublié, démonstration hors ligne, ou sans compte),
+// puis la coquille du rôle : citoyen (Carte, Mes alertes), superviseur (tableau de bord, alertes, optimisation, équipes,
+// rapports) ou employé (Ma carte). Les écrans de chaque coquille lisent nos données réelles.
 export default function AppRoot() {
-  const [session, setSession] = useState<Session | null>(null);
-  const logout = () => setSession(null);
+  const { ecran, pret, deconnecter } = useAcces();
+  const logout = () => void deconnecter();
 
-  return (
-    <DemoProvider>
-      {!session ? (
-        <LoginScreen onLogin={setSession} />
-      ) : session.role === "citoyen" ? (
-        <CitizenApp onLogout={logout} />
-      ) : session.role === "superviseur" ? (
-        <SupervisorApp onLogout={logout} />
-      ) : (
-        <EmployeeApp session={session} onLogout={logout} />
-      )}
-    </DemoProvider>
-  );
+  if (!pret && !ecran) return <Chargement texte="Ouverture de Priorix…" />;
+  if (!ecran) return <AuthFlow onConnecte={() => {}} />;
+  if (ecran === "citoyen") return <CitizenApp onLogout={logout} />;
+  if (ecran === "superviseur") return <SupervisorApp onLogout={logout} />;
+  return <StaffApp onLogout={logout} />;
 }

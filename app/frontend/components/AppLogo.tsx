@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-// Logo Piorix : plan de rues avec un repère orange contenant une grille d'égout.
+// Logo Priorix : plan de rues avec un repère orange contenant une grille d'égout.
 const STREETS = [
   { top: 18, left: -20, width: 160, rotate: "28deg" },
   { top: 62, left: -30, width: 180, rotate: "-18deg" },

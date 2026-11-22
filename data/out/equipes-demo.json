@@ -1,0 +1,55 @@
+{
+ "hypothese_demo": true,
+ "avertissement": "Garages et équipes simulés pour la démonstration.",
+ "duree_intervention_min": 8,
+ "garages": [
+  {
+   "id": "garage-1",
+   "nom": "Garage simulé Nord",
+   "latitude": 45.511863,
+   "longitude": -73.577984,
+   "simule": true
+  },
+  {
+   "id": "garage-2",
+   "nom": "Garage simulé Sud",
+   "latitude": 45.495881,
+   "longitude": -73.560185,
+   "simule": true
+  }
+ ],
+ "equipes": [
+  {
+   "id": "equipe-1",
+   "nom": "Équipe 1",
+   "garage_id": "garage-1",
+   "debut_quart": "07:00",
+   "fin_quart": "14:00",
+   "vehicule": "Camion de nettoyage d'égouts"
+  },
+  {
+   "id": "equipe-2",
+   "nom": "Équipe 2",
+   "garage_id": "garage-1",
+   "debut_quart": "07:00",
+   "fin_quart": "14:00",
+   "vehicule": "Camion de nettoyage d'égouts"
+  },
+  {
+   "id": "equipe-3",
+   "nom": "Équipe 3",
+   "garage_id": "garage-2",
+   "debut_quart": "07:00",
+   "fin_quart": "14:00",
+   "vehicule": "Camion de nettoyage d'égouts"
+  },
+  {
+   "id": "equipe-4",
+   "nom": "Équipe 4",
+   "garage_id": "garage-2",
+   "debut_quart": "07:00",
+   "fin_quart": "14:00",
+   "vehicule": "Camion de nettoyage d'égouts"
+  }
+ ]
+}

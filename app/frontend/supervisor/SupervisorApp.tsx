@@ -1,116 +1,47 @@
 import React, { useState } from "react";
-import { Alert, Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, View } from "react-native";
 
-import { useDemo } from "../context/DemoContext";
-import PlanningScreen from "./PlanningScreen";
-import { Intervention } from "./planning";
-import ReportsValidation from "./ReportsValidation";
-import RouteScreen from "./RouteScreen";
-import TeamManagement from "./TeamManagement";
-import { S } from "./ui";
+import { useAcces } from "@/hooks/use-acces";
+import { EcranEquipes } from "@/app/ville/equipes";
+import { EcranTournees } from "@/app/ville/tournees";
+import { ListeAlertes } from "@/components/ville/liste-alertes";
+import { Palette } from "@/constants/theme";
+import { BarreOnglets, type Onglet } from "../components/BarreOnglets";
+import { EnteteCoquille } from "../components/EnteteCoquille";
+import ArretsFaits from "./ArretsFaits";
+import TableauDeBord from "./TableauDeBord";
 
-type Screen = { name: "home" } | { name: "route"; items: Intervention[] } | { name: "reports" } | { name: "teams" };
+type Id = "tableau" | "alertes" | "optimisation" | "equipes" | "rapports";
 
-// En-tête simple avec retour, pour les écrans secondaires (rapports, équipes).
-function SubScreen({ title, onBack, children }: { title: string; onBack: () => void; children: React.ReactNode }) {
-  const insets = useSafeAreaInsets();
+const ONGLETS: Onglet<Id>[] = [
+  { id: "tableau", label: "Tableau", icon: "grid-outline", iconActive: "grid" },
+  { id: "alertes", label: "Alertes", icon: "alert-circle-outline", iconActive: "alert-circle" },
+  { id: "optimisation", label: "Optimisation", icon: "git-compare-outline", iconActive: "git-compare" },
+  { id: "equipes", label: "Équipes", icon: "people-outline", iconActive: "people" },
+  { id: "rapports", label: "Rapports", icon: "checkmark-done-outline", iconActive: "checkmark-done" },
+];
+
+// Espace superviseur : leur coquille (en-tête, onglets), NOS écrans à l'intérieur (signalements, optimisation, équipes, arrêts faits).
+export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
+  const { nom } = useAcces();
+  const [onglet, setOnglet] = useState<Id>("tableau");
+
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
-      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-        <Pressable onPress={onBack} hitSlop={10} accessibilityLabel="Retour">
-          <Ionicons name="arrow-back" size={30} color={S.cream} />
-        </Pressable>
-        <Text style={styles.headerTitle}>{title}</Text>
+      <EnteteCoquille sousTitre={`Superviseur · ${nom ?? ""}`} onLogout={onLogout} />
+      <View style={styles.corps}>
+        {onglet === "tableau" ? <TableauDeBord /> : null}
+        {onglet === "alertes" ? <ListeAlertes avecResume={false} /> : null}
+        {onglet === "optimisation" ? <EcranTournees dansCoquille /> : null}
+        {onglet === "equipes" ? <EcranEquipes dansCoquille /> : null}
+        {onglet === "rapports" ? <ArretsFaits /> : null}
       </View>
-      <View style={[styles.body, { paddingBottom: insets.bottom }]}>{children}</View>
+      <BarreOnglets onglets={ONGLETS} actif={onglet} onChange={setOnglet} />
     </View>
   );
 }
 
-export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
-  const { tours } = useDemo();
-  const [screen, setScreen] = useState<Screen>({ name: "home" });
-  const [notice, setNotice] = useState<string | null>(null);
-  const home = () => setScreen({ name: "home" });
-
-  const reportsToValidate = tours.filter((t) => t.state === "À valider").length;
-
-  function openProfile() {
-    if (Platform.OS === "web") {
-      if (window.confirm("Se déconnecter ?")) onLogout();
-      return;
-    }
-    Alert.alert("Mon compte", undefined, [
-      { text: "Équipes", onPress: () => setScreen({ name: "teams" }) },
-      { text: "Rapports à valider", onPress: () => setScreen({ name: "reports" }) },
-      { text: "Se déconnecter", style: "destructive", onPress: onLogout },
-      { text: "Annuler", style: "cancel" },
-    ]);
-  }
-
-  switch (screen.name) {
-    case "route":
-      return (
-        <RouteScreen
-          items={screen.items}
-          onBack={home}
-          onAssigned={(team, count) => {
-            setNotice(`Trajet de ${count} intervention${count > 1 ? "s" : ""} assigné à ${team}.`);
-            home();
-          }}
-        />
-      );
-    case "reports":
-      return (
-        <SubScreen title="Rapports à valider" onBack={home}>
-          <ReportsValidation />
-        </SubScreen>
-      );
-    case "teams":
-      return (
-        <SubScreen title="Équipes" onBack={home}>
-          <TeamManagement />
-        </SubScreen>
-      );
-    default:
-      return (
-        <PlanningScreen
-          reportsToValidate={reportsToValidate}
-          onOpenReports={() => setScreen({ name: "reports" })}
-          onOpenProfile={openProfile}
-          onComputeRoute={(items) => setScreen({ name: "route", items })}
-          notice={notice}
-          onDismissNotice={() => setNotice(null)}
-        />
-      );
-  }
-}
-
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: S.green,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-    paddingHorizontal: 20,
-    paddingBottom: 22,
-  },
-  headerTitle: {
-    color: S.cream,
-    fontSize: 26,
-    fontWeight: "800",
-  },
-  body: {
-    flex: 1,
-    backgroundColor: S.cream,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    overflow: "hidden",
-  },
+  root: { flex: 1, backgroundColor: Palette.background },
+  corps: { flex: 1 },
 });

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,40 +13,48 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { isValidEmail, Session, sessionForEmail } from "../auth";
+import { Palette } from "@/constants/theme";
 import { AppLogo } from "../components/AppLogo";
 
+// Couleurs : les jetons du thème (constants/theme.ts), jamais des hex locaux.
 const C = {
-  green: "#1D3A1B",
-  cream: "#F8F4EA",
-  orange: "#EE5F12",
-  border: "#C9C9BD",
-  text: "#2B3328",
-  muted: "#6E7468",
-  white: "#FFFFFF",
-  error: "#C2410C",
+  green: Palette.header,
+  cream: Palette.onHeader,
+  orange: Palette.accent,
+  border: Palette.border,
+  text: Palette.text,
+  muted: Palette.textSecondary,
+  white: Palette.surface,
+  error: Palette.danger,
 };
+
+const COURRIEL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const isValidEmail = (email: string) => COURRIEL.test(email.trim());
 
 type Props = {
-  onLogin: (session: Session) => void;
+  /** Tente la connexion ; rend un message d'erreur lisible, ou null si elle a réussi. */
+  onLogin: (email: string, password: string) => Promise<string | null>;
+  onSignup: () => void;
+  onForgot: () => void;
+  /** Entrée « Démonstration hors ligne » (seulement quand la base n'est pas joignable). */
+  onDemo?: () => void;
+  /** « Continuer sans compte » : signaler et suivre sans se connecter. */
+  onGuest?: () => void;
+  /** Message déjà connu (session expirée, par exemple). */
+  notice?: string | null;
 };
 
-function notAvailable(title: string) {
-  const message = "Cette fonction n’est pas encore disponible dans la démo.";
-  if (Platform.OS === "web") window.alert(`${title}\n\n${message}`);
-  else Alert.alert(title, message);
-}
-
-export default function LoginScreen({ onLogin }: Props) {
+export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGuest, notice }: Props) {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function handleLogin() {
+  async function handleLogin() {
     if (!isValidEmail(email)) {
-      setError("Entrez un courriel valide.");
+      setError("Entrez un courriel valide, par exemple nom@ville.ca.");
       return;
     }
     if (!password) {
@@ -55,7 +62,10 @@ export default function LoginScreen({ onLogin }: Props) {
       return;
     }
     setError(null);
-    onLogin(sessionForEmail(email));
+    setBusy(true);
+    const message = await onLogin(email, password);
+    setBusy(false);
+    if (message) setError(message);
   }
 
   return (
@@ -72,7 +82,7 @@ export default function LoginScreen({ onLogin }: Props) {
       >
         <View style={[styles.hero, { paddingTop: insets.top + 36 }]}>
           <AppLogo />
-          <Text style={styles.brand}>Piorix</Text>
+          <Text style={styles.brand}>Priorix</Text>
           <Text style={styles.tagline}>
             Signalez les problèmes d’égouts{"\n"}et suivez vos demandes.
           </Text>
@@ -117,7 +127,7 @@ export default function LoginScreen({ onLogin }: Props) {
               autoComplete="password"
               textContentType="password"
               returnKeyType="go"
-              onSubmitEditing={handleLogin}
+              onSubmitEditing={() => void handleLogin()}
             />
             <Pressable
               onPress={() => setShowPassword((v) => !v)}
@@ -128,14 +138,19 @@ export default function LoginScreen({ onLogin }: Props) {
             </Pressable>
           </View>
 
-          {error && <Text style={styles.error}>{error}</Text>}
+          {notice && !error ? <Text style={styles.error}>{notice}</Text> : null}
+          {error && (
+            <Text style={styles.error} accessibilityRole="alert">
+              {error}
+            </Text>
+          )}
 
-          <Pressable style={styles.forgot} onPress={() => notAvailable("Mot de passe oublié")}>
+          <Pressable style={styles.forgot} onPress={onForgot} accessibilityRole="button">
             <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
           </Pressable>
 
-          <Pressable style={styles.primary} onPress={handleLogin}>
-            <Text style={styles.primaryText}>Se connecter</Text>
+          <Pressable style={[styles.primary, busy && { opacity: 0.6 }]} onPress={() => void handleLogin()} disabled={busy} accessibilityRole="button" accessibilityState={{ busy }}>
+            <Text style={styles.primaryText}>{busy ? "Connexion…" : "Se connecter"}</Text>
           </Pressable>
 
           <View style={styles.dividerRow}>
@@ -144,9 +159,19 @@ export default function LoginScreen({ onLogin }: Props) {
             <View style={styles.dividerLine} />
           </View>
 
-          <Pressable style={styles.secondary} onPress={() => notAvailable("Créer un compte")}>
+          <Pressable style={styles.secondary} onPress={onSignup} accessibilityRole="button">
             <Text style={styles.secondaryText}>Créer un compte</Text>
           </Pressable>
+          {onGuest ? (
+            <Pressable style={[styles.secondary, { marginTop: 12 }]} onPress={onGuest} accessibilityRole="button">
+              <Text style={styles.secondaryText}>Continuer sans compte</Text>
+            </Pressable>
+          ) : null}
+          {onDemo ? (
+            <Pressable style={[styles.secondary, { marginTop: 12 }]} onPress={onDemo} accessibilityRole="button">
+              <Text style={styles.secondaryText}>Démonstration hors ligne (simulée)</Text>
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -193,7 +218,7 @@ const styles = StyleSheet.create({
   field: {
     height: 58,
     borderWidth: 1.5,
-    borderColor: C.border,
+    borderColor: Palette.borderForte,
     borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",

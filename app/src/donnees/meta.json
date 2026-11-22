@@ -1,0 +1,42 @@
+{
+ "copieDu": "2026-11-21T20:24:56Z",
+ "quartier": "Centre-ville de Montréal",
+ "region": {
+  "latitude": 45.5025,
+  "longitude": -73.5675,
+  "latitudeDelta": 0.03,
+  "longitudeDelta": 0.042
+ },
+ "sources": [
+  {
+   "nom": "Puisards d'égouts",
+   "identifiant": "39316ed3-0060-4975-ae82-482919dcc7c3",
+   "lignes": 5380
+  },
+  {
+   "nom": "Avis et alertes (GeoJSON)",
+   "identifiant": "d249e452-46f5-422f-91ae-898c98eea6cc",
+   "lignes": 21
+  },
+  {
+   "nom": "Entraves et travaux en cours",
+   "identifiant": "cc41b532-f12d-40fb-9f55-eb58c9a2b12b",
+   "lignes": 240
+  },
+  {
+   "nom": "Vulnérabilité aux crues 2022",
+   "identifiant": "01afc867-11f2-4a3b-b77e-d5e9ee853c87",
+   "lignes": 3
+  }
+ ],
+ "avisPlaces": {
+  "geometrie_source": 21,
+  "adresse": 0,
+  "aucun": 0
+ },
+ "adresseDemo": {
+  "libelle": "141-151 rue du Shannon",
+  "latitude": 45.494151,
+  "longitude": -73.557529
+ }
+}

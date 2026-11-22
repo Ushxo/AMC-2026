@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Alert, Platform, StyleSheet, View } from "react-native";
 
-import { BottomNav, CitizenTab } from "../components/BottomNav";
-import CitizenMap from "./CitizenMap";
+import { BOTTOM_NAV_HEIGHT, BottomNav, CitizenTab } from "../components/BottomNav";
+import EcranCarteCitoyen from "@/components/citoyen/ecran-carte";
+import { Palette } from "@/constants/theme";
 import MyAlerts from "./MyAlerts";
 
 // Application citoyen plein écran : Carte / Mes alertes avec la barre du bas.
@@ -23,12 +24,12 @@ export default function CitizenApp({ onLogout }: { onLogout: () => void }) {
 
   return (
     <View style={styles.root}>
-      {tab === "carte" ? <CitizenMap onOpenProfile={openProfile} /> : <MyAlerts />}
+      {tab === "carte" ? <EcranCarteCitoyen coquille={{ espaceBas: BOTTOM_NAV_HEIGHT, onOpenProfile: openProfile }} /> : <MyAlerts />}
       <BottomNav active={tab} onChange={setTab} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000000" },
+  root: { flex: 1, backgroundColor: Palette.background },
 });
