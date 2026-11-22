@@ -39,8 +39,9 @@ jest.mock('@/hooks/use-equipes', () => ({ useEquipes: () => ({ equipes: [], char
 jest.mock('@/hooks/use-source', () => ({ useSource: () => ({ etat: 'en_ligne' }) }));
 jest.mock('@/hooks/use-session-employe', () => ({ useSessionEmploye: () => ({ peutGerer: true }) }));
 jest.mock('@/hooks/use-progression-optimisation', () => ({ useProgressionOptimisation: () => ({ etape: 'envoi', fraction: 0.1 }) }));
+let mockBascule = false;
 jest.mock('@/hooks/use-optimisation', () => ({
-  useOptimisation: () => ({ lancer: mockLancer, demande: { statut: 'terminee' }, enCours: false, basculeSurPrecalcule: false, message: null }),
+  useOptimisation: () => ({ lancer: mockLancer, demande: { statut: 'terminee' }, enCours: false, basculeSurPrecalcule: mockBascule, message: null }),
 }));
 const mockArret = (rang: number, cle: string) => ({
   rang,
@@ -51,7 +52,8 @@ const mockArret = (rang: number, cle: string) => ({
   depart_prevu: '2026-11-22T12:10:00Z',
 });
 const mockResultat = {
-  tournees: [{ equipe_id: 'e1', equipe_nom: 'Équipe 1', distance_m: 4000, duree_s: 18 * 60, debut_prevu: '', fin_prevue: '', geometrie: null, arrets: [mockArret(1, 'a'), mockArret(2, 'b')] }],
+  non_servis: [{ cle_endroit: 'b', gravite: 'moyenne', raison: 'temps du quart dépassé' }],
+  tournees: [{ equipe_id: 'e1', equipe_nom: 'Équipe 1', distance_m: 4000, duree_s: 18 * 60, debut_prevu: '', fin_prevue: '', geometrie: null, arrets: [mockArret(1, 'a')] }],
 } as unknown as ResultatOptimisation;
 jest.mock('@/hooks/use-tournees', () => ({ useTournees: () => ({ resultat: mockResultat, source: 'direct', chargement: false }) }));
 
@@ -61,12 +63,28 @@ describe('trajet optimal', () => {
     expect(mockLancer).toHaveBeenCalledTimes(1);
     expect(mockLancer.mock.calls[0][0]).toMatchObject({ cles_endroits: ['a'] });
     expect(screen.getByText('Trajet généré')).toBeTruthy();
-    expect(screen.getByText('Itinéraire optimisé pour 2 interventions')).toBeTruthy();
+    expect(screen.getByText('Itinéraire optimisé pour 1 intervention')).toBeTruthy();
     expect(screen.getByText('18 min')).toBeTruthy();
-    expect(screen.getByText('Interventions du trajet (2)')).toBeTruthy();
+    expect(screen.getByText('Interventions du trajet (1)')).toBeTruthy();
     expect(screen.getByText("Grille d'égout endommagée")).toBeTruthy();
     expect(screen.getByText('Élevée')).toBeTruthy();
     await fireEvent.press(screen.getByLabelText("Suivre le trajet de l'équipe Équipe 1"));
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/ville/trajet/[equipe]', params: { equipe: 'e1' } });
+  });
+
+  it('liste les endroits non servis avec la raison', async () => {
+    mockBascule = false;
+    await render(<TrajetOptimal cles={['a', 'b']} onRetour={jest.fn()} onDetails={jest.fn()} />);
+    expect(screen.getByText('Endroits non servis (1)')).toBeTruthy();
+    expect(screen.getByText('Non servi : temps du quart dépassé')).toBeTruthy();
+  });
+
+  it('au-delà de 20 s : annonce le résultat précalculé, dit qu\'il ne porte pas sur la sélection, et le vrai le remplacera', async () => {
+    mockBascule = true;
+    await render(<TrajetOptimal cles={['a']} onRetour={jest.fn()} onDetails={jest.fn()} />);
+    expect(screen.getByText('Le calcul ne répond pas : voici un résultat précalculé.')).toBeTruthy();
+    expect(screen.getByText(/Le vrai résultat le remplacera/)).toBeTruthy();
+    expect(screen.getByText(/ne porte pas sur votre sélection/)).toBeTruthy();
+    mockBascule = false;
   });
 });

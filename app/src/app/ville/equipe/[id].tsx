@@ -1,10 +1,12 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { EnteteVert } from '../../../../frontend/components/EnteteVert';
+import { usePositionsEquipes } from '@/hooks/use-positions-equipes';
 import { Bouton } from '@/components/ville/bouton';
 import { Champ } from '@/components/ville/champ';
 import { ChoixAdresse, type AdresseChoisie } from '@/components/ville/choix-adresse';
@@ -31,6 +33,11 @@ export default function FicheEquipe() {
   const { etat } = useSource();
   const { resultat } = useTournees();
   const { peutGerer } = useSessionEmploye();
+  const { positions } = usePositionsEquipes(peutGerer);
+  const maj = positions.find((p) => p.equipe_id === id)?.maj_le;
+  // « position vue il y a N min » : lu une fois au rendu (l'heure change peu pendant l'écran).
+  const [maintenant] = useState(() => Date.now());
+  const positionVue = maj ? `position vue il y a ${Math.max(0, Math.round((maintenant - Date.parse(maj)) / 60000))} min` : null;
   const equipe = useMemo(() => equipes.find((e) => e.id === id), [equipes, id]);
   const tournee = useMemo(() => resultat?.tournees.find((t) => t.equipe_id === id), [resultat, id]);
   const [nom, setNom] = useState('');
@@ -116,6 +123,8 @@ export default function FicheEquipe() {
 
   return (
     <ThemedView style={styles.fond}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <EnteteVert titre={equipe?.nom ?? 'Équipe'} sousTitre={equipe ? (equipe.active ? "En service aujourd'hui" : 'Hors service') : undefined} onBack={() => router.back()} libelleRetour="Retour aux équipes" />
       <SafeAreaView style={styles.fond} edges={[]}>
         <ScrollView
           automaticallyAdjustKeyboardInsets
@@ -130,29 +139,68 @@ export default function FicheEquipe() {
             <Vide texte="Cette équipe est introuvable." />
           ) : (
             <>
-              <ThemedText type="subtitle" accessibilityRole="header">
-                {equipe.nom}
-              </ThemedText>
               {lectureSeule ? <ThemedText type="small">{MESSAGE_EQUIPES_LECTURE_SEULE}</ThemedText> : null}
-              <ThemedText type="smallBold" accessibilityRole="header">
-                Tournée prévue
-              </ThemedText>
-              {tournee ? (
-                <>
-                  <ThemedText>
-                    {tournee.arrets.length} arrêts, {formaterKm(tournee.distance_m)}, {formaterDuree(tournee.duree_s)} de
-                    travail
+              <View style={styles.carte}>
+                <View style={styles.lieuLigne}>
+                  <View style={[styles.rond, { backgroundColor: '#1D3A1B' }]} />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={styles.legende}>Départ</ThemedText>
+                    <ThemedText style={styles.valeur}>Garage de l&apos;équipe</ThemedText>
+                    <ThemedText style={styles.detail}>{equipe.garage_adresse ?? equipe.garage_nom ?? 'Adresse non indiquée'}</ThemedText>
+                  </View>
+                </View>
+                <View style={styles.lieuLigne}>
+                  <View style={[styles.rond, { backgroundColor: '#B84A0B' }]} />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={styles.legende}>Arrivée</ThemedText>
+                    <ThemedText style={styles.valeur}>{equipe.arrivee ? 'Autre adresse' : 'Retour au garage'}</ThemedText>
+                    <ThemedText style={styles.detail}>{equipe.arrivee ? (equipe.arrivee_adresse ?? 'Adresse choisie') : 'Ou une autre adresse, ou fin libre (à modifier plus bas)'}</ThemedText>
+                  </View>
+                </View>
+                <ThemedText style={styles.detail}>
+                  Quart de {equipe.debut_quart} à {equipe.fin_quart}
+                  {equipe.vehicule ? ` · ${equipe.vehicule}` : ''}
+                </ThemedText>
+              </View>
+
+              <View style={styles.carte}>
+                <ThemedText style={styles.titreCarte} accessibilityRole="header">
+                  Compte de l&apos;équipe
+                </ThemedText>
+                <ThemedText style={styles.valeur}>{equipe.compte_id ? 'Compte associé' : 'Aucun compte associé'}</ThemedText>
+                <ThemedText style={styles.detail}>Ce compte voit « Ma carte » et valide les arrêts.</ThemedText>
+                {!lectureSeule && peutGerer && equipe.compte_id ? (
+                  <Bouton titre="Retirer ce compte" variante="discret" onPress={() => void retirerCompte()} />
+                ) : null}
+              </View>
+
+              <View style={styles.carteVerte}>
+                <View style={styles.lieuLigne}>
+                  <ThemedText style={[styles.titreCarte, { flex: 1, color: '#1D3A1B' }]} accessibilityRole="header">
+                    Trajet du jour
                   </ThemedText>
-                  {tournee.arrets.map((a) => (
-                    <ThemedText key={a.rang} type="small">
-                      {a.rang}. {formaterHeure(a.arrivee_prevue)} · {a.signalement_ids.length} signalement
-                      {a.signalement_ids.length > 1 ? 's' : ''}
+                  {tournee ? <ThemedText style={styles.pastille}>{formaterDuree(tournee.duree_s)}</ThemedText> : null}
+                </View>
+                {tournee ? (
+                  <>
+                    <ThemedText style={styles.detail}>
+                      {tournee.arrets.length} arrêts, dont {tournee.arrets.filter((a) => a.fait).length} faits · {formaterKm(tournee.distance_m)}
+                      {positionVue ? ` · ${positionVue}` : ''}
                     </ThemedText>
-                  ))}
-                </>
-              ) : (
-                <ThemedText themeColor="textSecondary">Pas de tournée pour cette équipe.</ThemedText>
-              )}
+                    <View style={styles.piste} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: tournee.arrets.length, now: tournee.arrets.filter((a) => a.fait).length }}>
+                      <View style={[styles.remplissage, { width: `${tournee.arrets.length > 0 ? Math.round((tournee.arrets.filter((a) => a.fait).length / tournee.arrets.length) * 100) : 0}%` }]} />
+                    </View>
+                    {tournee.arrets.map((a) => (
+                      <ThemedText key={a.rang} type="small">
+                        {a.rang}. {formaterHeure(a.arrivee_prevue)} · {a.signalement_ids.length} signalement
+                        {a.signalement_ids.length > 1 ? 's' : ''}
+                      </ThemedText>
+                    ))}
+                  </>
+                ) : (
+                  <ThemedText style={styles.detail}>Pas de tournée pour cette équipe.</ThemedText>
+                )}
+              </View>
               {!lectureSeule && peutGerer ? (
                 <>
                   <ThemedText type="smallBold" accessibilityRole="header">
@@ -242,8 +290,19 @@ export default function FicheEquipe() {
               ) : null}
             </>
           )}
-          <Bouton titre="Retour" variante="discret" onPress={() => router.back()} />
         </ScrollView>
+        {equipe && tournee ? (
+          <View style={[styles.pied, { paddingBottom: bottom + 12 }]}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: '/ville/trajet/[equipe]', params: { equipe: equipe.id } })}
+              style={styles.suivre}>
+              <ThemedText style={styles.suivreTexte} maxFontSizeMultiplier={1.2}>
+                Suivre ce trajet
+              </ThemedText>
+            </Pressable>
+          </View>
+        ) : null}
       </SafeAreaView>
     </ThemedView>
   );
@@ -252,4 +311,18 @@ export default function FicheEquipe() {
 const styles = StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 20, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  carte: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, gap: 10 },
+  carteVerte: { backgroundColor: '#DDEBD3', borderRadius: 22, padding: 18, gap: 10 },
+  lieuLigne: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rond: { width: 14, height: 14, borderRadius: 7 },
+  legende: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: '#5E5548' },
+  valeur: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  detail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: '#5E5548' },
+  titreCarte: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
+  pastille: { backgroundColor: '#FFFFFF', color: '#1D3A1B', fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
+  piste: { height: 8, borderRadius: 4, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  remplissage: { height: 8, borderRadius: 4, backgroundColor: '#1D3A1B' },
+  pied: { paddingHorizontal: 20, paddingTop: 8 },
+  suivre: { height: 60, borderRadius: 30, backgroundColor: '#B84A0B', alignItems: 'center', justifyContent: 'center' },
+  suivreTexte: { color: '#FFFFFF', fontSize: 19, lineHeight: 26, fontWeight: '700' },
 });

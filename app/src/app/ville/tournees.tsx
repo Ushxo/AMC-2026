@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -172,6 +172,7 @@ export function EcranTournees({
         <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: peutGerer ? 24 : bottom + 24 }]}>
           <BandeauSource etat={etat} simule={demoHorsLigne} />
           {peutGerer && ouverts.length > 0 ? (
+            <View style={styles.carteBlanche}>
             <SelectionEndroits
               endroits={ouverts}
               region={region}
@@ -189,20 +190,22 @@ export function EcranTournees({
               signalements={signalements}
               onOuvrirSignalement={(id) => router.push({ pathname: '/ville/signalement/[id]', params: { id } })}
             />
+            </View>
           ) : null}
-          {peutGerer ? <OptionsCalcul options={options} onChanger={setOptions} equipes={equipes} positions={positions} texteFin={texteFin} /> : null}
-          <View style={styles.rangee}>
-            {peutGerer ? (
-              <>
-                {incidents.length === 0 ? (
-                  <Bouton titre="Ajouter un incident simulé" variante="discret" onPress={() => void ajouterIncident()} />
-                ) : (
-                  <Bouton titre="Retirer l'incident" variante="discret" onPress={() => void retirerIncident()} />
-                )}
-              </>
-            ) : null}
-            <Bouton titre="Équipes" variante="discret" onPress={() => router.push('/ville/equipes')} />
-          </View>
+          {peutGerer ? (
+            <OptionsCalcul options={options} onChanger={setOptions} equipes={equipes} positions={positions} texteFin={texteFin} onGerer={() => router.push('/ville/equipes')} />
+          ) : null}
+          {peutGerer ? (
+            incidents.length === 0 ? (
+              <Pressable accessibilityRole="button" onPress={() => void ajouterIncident()} style={styles.lienIncident}>
+                <ThemedText style={styles.lienIncidentTexte}>Simuler une rue barrée (démonstration)</ThemedText>
+              </Pressable>
+            ) : (
+              <Pressable accessibilityRole="button" onPress={() => void retirerIncident()} style={styles.lienIncident}>
+                <ThemedText style={styles.lienIncidentTexte}>Retirer l&apos;incident (rue barrée simulée)</ThemedText>
+              </Pressable>
+            )
+          ) : null}
 
           {!peutGerer ? (
             <ThemedText type="small" themeColor="textSecondary">
@@ -352,8 +355,8 @@ export function EcranTournees({
                 </ThemedText>
               ) : null}
               {gain ? (
-                <View style={[styles.carteEquipe, { backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText type="smallBold" accessibilityRole="header">
+                <View style={styles.carteBlanche}>
+                  <ThemedText style={{ fontSize: 17, lineHeight: 24, fontWeight: '700' }} accessibilityRole="header">
                     Gain à travail égal
                   </ThemedText>
                   {gain.egal.map((l) => (
@@ -400,19 +403,17 @@ export function EcranTournees({
               <BarreProgression etape={progression.etape} fraction={progression.fraction} />
             </>
           ) : null}
-            <Bouton
-              pleineLargeur
-              titre={
-                enCours
-                  ? 'Calcul…'
-                  : ouverts.length > 0
-                    ? `Optimiser (${formaterNombre(selection.nombre, 'endroit', 'endroits')})`
-                    : 'Optimiser'
-              }
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${resultat ? 'Relancer le calcul' : 'Calculer le trajet optimal'} pour ${formaterNombre(selection.nombre, 'endroit', 'endroits')}`}
+              accessibilityState={{ disabled: selectionVide || enCours, busy: enCours }}
+              disabled={selectionVide || enCours}
               onPress={() => void optimiser()}
-              occupe={enCours}
-              actif={!selectionVide}
-            />
+              style={[styles.relancer, (selectionVide || enCours) && { opacity: 0.5 }]}>
+              <ThemedText style={styles.relancerTexte} maxFontSizeMultiplier={1.2}>
+                {enCours ? 'Calcul…' : resultat ? 'Relancer le calcul' : 'Calculer le trajet optimal'}
+              </ThemedText>
+            </Pressable>
           </View>
         ) : null}
       </SafeAreaView>
@@ -428,4 +429,9 @@ const styles = StyleSheet.create({
   carteEquipe: { padding: 14, borderRadius: 14, gap: 6 },
   entete: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pastille: { width: 16, height: 16, borderRadius: 8 },
+  carteBlanche: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, gap: 10 },
+  lienIncident: { minHeight: 48, justifyContent: 'center' },
+  lienIncidentTexte: { fontSize: 15, fontWeight: '700', color: '#1D3A1B', textDecorationLine: 'underline' },
+  relancer: { height: 60, borderRadius: 30, backgroundColor: '#B84A0B', alignItems: 'center', justifyContent: 'center' },
+  relancerTexte: { color: '#FFFFFF', fontSize: 19, lineHeight: 26, fontWeight: '700' },
 });

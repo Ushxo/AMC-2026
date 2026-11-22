@@ -12,11 +12,12 @@ import { compterSelection, gravitesDisponibles, libelleCompteur } from '@/lib/se
 import { LIBELLES_GRAVITE, type Endroit, type Gravite, type Signalement } from '@/types';
 
 import { Bouton } from './bouton';
+import { Chip } from './chip';
 import { SelecteurCarte } from './selecteur-carte';
 import { CarteSelection } from './carte-selection';
 import { CIBLE_MIN, COULEUR_REPERE } from './style';
 
-const GRAVITES: Gravite[] = ['faible', 'moyenne', 'elevee'];
+const GRAVITES: Gravite[] = ['elevee', 'moyenne', 'faible'];
 const PAS_LISTE = 20;
 
 type Props = {
@@ -68,17 +69,16 @@ export function SelectionEndroits({
 
   return (
     <View style={styles.bloc}>
-      <ThemedText type="smallBold" accessibilityRole="header">
-        Endroits à planifier
+      <ThemedText type="smallBold" style={{ fontSize: 17, lineHeight: 24 }} accessibilityRole="header">
+        Quoi inclure
       </ThemedText>
       <View style={styles.rangee}>
         {GRAVITES.map((g) => {
           const tous = dispo[g] > 0 && endroits.filter((e) => e.gravite_affichee === g).every((e) => choisies.has(e.cle));
           return (
-            <Bouton
+            <Chip
               key={g}
               titre={`${LIBELLES_GRAVITE[g]} (${dispo[g]})`}
-              variante="discret"
               selectionne={tous}
               actif={dispo[g] > 0}
               libelleAccessible={`Gravité ${LIBELLES_GRAVITE[g]}, ${formaterNombre(dispo[g], 'endroit', 'endroits')}, ${tous ? 'tous sélectionnés, toucher pour les retirer' : 'toucher pour tous les sélectionner'}`}
@@ -88,8 +88,9 @@ export function SelectionEndroits({
         })}
       </View>
       <View style={styles.rangee}>
-        <Bouton titre="Tout sélectionner" variante="discret" onPress={toutes} />
-        <Bouton titre="Tout retirer" variante="discret" onPress={vider} />
+        <Chip titre="Choisir une zone sur la carte" libelleAccessible="Choisir une zone sur la carte : ouvrir la carte en grand" onPress={() => setPlein(true)} />
+        <Chip titre="Tout sélectionner" onPress={toutes} />
+        <Chip titre="Tout retirer" onPress={vider} />
       </View>
       <ThemedText type="smallBold" accessibilityLiveRegion="polite">
         {libelleCompteur(compte)}

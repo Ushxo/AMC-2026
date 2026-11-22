@@ -119,7 +119,7 @@ export default function TableauDeBord() {
                 </Text>
               ))}
               <Text style={styles.gain}>{gain.dansLeQuart}</Text>
-              <Text style={styles.planNote}>Selon notre règle de comparaison, sur des données simulées.</Text>
+              <Text style={styles.planNote}>Selon notre règle de comparaison, sur des données simulées. Ces chiffres valent pour le plan complet (tous les endroits), pas pour une sélection.</Text>
             </View>
           ) : null}
 

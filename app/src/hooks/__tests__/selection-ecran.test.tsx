@@ -88,7 +88,7 @@ describe('sélection des endroits sur l’écran des tournées', () => {
     await render(<Tournees />);
     await vider();
     expect(screen.getByText('4 endroits sélectionnés (2 élevés, 1 moyen, 1 faible)')).toBeTruthy();
-    await fireEvent.press(screen.getByText(/^Optimiser/));
+    await fireEvent.press(screen.getByText(/Calculer le trajet optimal|Relancer le calcul/));
     await vider();
     expect(mockLancer).toHaveBeenCalledTimes(1);
     expect(mockLancer.mock.calls[0][0]).not.toHaveProperty('cles_endroits');
@@ -100,7 +100,7 @@ describe('sélection des endroits sur l’écran des tournées', () => {
     await fireEvent.press(screen.getByLabelText(/Gravité Élevée, 2 endroits/));
     await vider();
     expect(screen.getByText('2 endroits sélectionnés (0 élevé, 1 moyen, 1 faible)')).toBeTruthy();
-    await fireEvent.press(screen.getByText(/^Optimiser/));
+    await fireEvent.press(screen.getByText(/Calculer le trajet optimal|Relancer le calcul/));
     await vider();
     const params = mockLancer.mock.calls[0][0] as { cles_endroits: string[] };
     expect(params.cles_endroits).toHaveLength(2);
@@ -116,12 +116,12 @@ describe('sélection des endroits sur l’écran des tournées', () => {
     await vider();
     expect(screen.getByText('0 endroit sélectionné (0 élevé, 0 moyen, 0 faible)')).toBeTruthy();
     expect(screen.getAllByText('Sélectionnez au moins un endroit.').length).toBeGreaterThan(0);
-    await fireEvent.press(screen.getByText(/^Optimiser/));
+    await fireEvent.press(screen.getByText(/Calculer le trajet optimal|Relancer le calcul/));
     await vider();
     expect(mockLancer).not.toHaveBeenCalled();
     await fireEvent.press(screen.getByText('Tout sélectionner'));
     await vider();
-    await fireEvent.press(screen.getByText(/^Optimiser/));
+    await fireEvent.press(screen.getByText(/Calculer le trajet optimal|Relancer le calcul/));
     await vider();
     expect(mockLancer).toHaveBeenCalledTimes(1);
   });

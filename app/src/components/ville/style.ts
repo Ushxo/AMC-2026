@@ -102,6 +102,14 @@ export function styleZoneSelection(gravite: Gravite, etat: 'toutes' | 'certaines
   return { fond: avecOpacite(base, par.fond), contour: avecOpacite(base, par.contour), epaisseur: par.epaisseur };
 }
 
+/** Avis d'ébullition : bleu pétrole ; coupures d'eau : indigo (deux couleurs et deux libellés, jamais la couleur seule). */
+export const STYLE_AVIS = {
+  ebullition: { couleur: '#287F99', fond: avecOpacite('#287F99', 0.22), contour: avecOpacite('#287F99', 0.85), epaisseur: 2 },
+  coupure: { couleur: '#5B3FA8', fond: avecOpacite('#5B3FA8', 0.2), contour: avecOpacite('#5B3FA8', 0.85), epaisseur: 3 },
+} as const;
+export const STYLE_CHANTIER = { fond: avecOpacite('#B84A0B', 0.35), contour: avecOpacite('#B84A0B', 0.9), epaisseur: 2, rayonM: 25 } as const;
+export const STYLE_ZONE_INONDABLE = { fond: avecOpacite('#1E88E5', 0.12), contour: avecOpacite('#1E88E5', 0.6), epaisseur: 1 } as const;
+
 /** Zones d'avis d'eau : bleu pétrole, remplissage à 22 %, contour à 75 % sur 2 points. */
 export const AVIS_EAU = {
   couleur: '#287F99',

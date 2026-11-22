@@ -19,7 +19,14 @@ import { useSessionEmploye } from "@/hooks/use-session-employe";
 import { useSource } from "@/hooks/use-source";
 import { useTournees } from "@/hooks/use-tournees";
 import { formaterDuree, interventionDe, lieuDeEndroit } from "@/lib/interventions";
-import { MESSAGE_AUCUNE_TOURNEE, MESSAGE_OPTIMISATION_ECHEC, MESSAGE_OPTIMISATION_EN_COURS, MESSAGE_RESULTAT_PRECALCULE } from "@/lib/messages";
+import {
+  MESSAGE_AUCUNE_TOURNEE,
+  MESSAGE_OPTIMISATION_ECHEC,
+  MESSAGE_OPTIMISATION_EN_COURS,
+  MESSAGE_OPTIMISATION_PRECALCULEE,
+  MESSAGE_PRECALCULE_TOUS_ENDROITS,
+  MESSAGE_RESULTAT_PRECALCULE,
+} from "@/lib/messages";
 import { chargerRegion, chargerAdresses } from "@/lib/officiel";
 import { OPTIONS_PAR_DEFAUT, parametresDesOptions } from "@/lib/options-calcul";
 import { endroitsOuverts, selectionAEnvoyer } from "@/lib/selection";
@@ -64,6 +71,8 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
   const echec = demande?.statut === "echec" ? (demande.message ?? MESSAGE_OPTIMISATION_ECHEC) : null;
   const calcul = (enCours && !basculeSurPrecalcule) || (peutGerer && !lance && !echec);
   const nombre = actif?.arrets.length ?? 0;
+  const selectionPartielle = selectionAEnvoyer(cles, ouverts) !== undefined;
+  const nonServis = resultat?.non_servis ?? [];
 
   return (
     <View style={styles.fond}>
@@ -108,7 +117,18 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
                 <Text style={styles.dureeTexte}>{formaterDuree(actif.duree_s)}</Text>
               </View>
             </View>
-            {source === "precalcule" || (!peutGerer && etat === "repli") ? <Text style={styles.note}>{MESSAGE_RESULTAT_PRECALCULE}</Text> : null}
+            {basculeSurPrecalcule ? (
+              <View style={styles.avisPrecalcule} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                <Text style={styles.avisTitre}>{MESSAGE_OPTIMISATION_PRECALCULEE}</Text>
+                <Text style={styles.note}>Le vrai résultat le remplacera dès qu&apos;il arrive.</Text>
+              </View>
+            ) : null}
+            {source === "precalcule" || basculeSurPrecalcule || (!peutGerer && etat === "repli") ? (
+              <Text style={styles.note}>
+                {MESSAGE_RESULTAT_PRECALCULE}
+                {selectionPartielle ? `. ${MESSAGE_PRECALCULE_TOUS_ENDROITS} Il ne porte pas sur votre sélection : les chiffres de comparaison ne valent que pour le plan complet.` : ""}
+              </Text>
+            ) : null}
 
             {tourneesAvecArrets.length > 1 ? (
               <View style={styles.equipes}>
@@ -172,6 +192,34 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
                 );
               })}
             </View>
+            {nonServis.length > 0 ? (
+              <View style={styles.liste}>
+                <Text style={[styles.sousTitre, { marginLeft: 6 }]} accessibilityRole="header">
+                  Endroits non servis ({nonServis.length})
+                </Text>
+                {nonServis.map((n) => {
+                  const e = endroits.find((x) => x.cle === n.cle_endroit);
+                  const i = e ? interventionDe(e) : null;
+                  const titre = i ? LIBELLES_CATEGORIE[i.categorie] : "Intervention";
+                  const lieu = e ? lieuDeEndroit(e.position, adresses) : "";
+                  return (
+                    <View key={n.cle_endroit} style={styles.ligneNonServi} accessible accessibilityLabel={`${titre}, ${lieu}, importance ${LIBELLES_GRAVITE[n.gravite]}, non servi : ${n.raison}`}>
+                      <IllustrationProbleme categorie={i?.categorie ?? "autre"} taille={40} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.ligneTitre}>{titre}</Text>
+                        <Text style={styles.ligneLieu} numberOfLines={2}>
+                          {lieu}
+                        </Text>
+                        <Text style={styles.raison}>Non servi : {n.raison}</Text>
+                      </View>
+                      <Text style={[styles.etiquette, { backgroundColor: IMPORTANCE[n.gravite].fond, color: IMPORTANCE[n.gravite].plein }]} maxFontSizeMultiplier={1.2}>
+                        {LIBELLES_GRAVITE[n.gravite]}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : null}
             {message ? (
               <Text style={styles.note} accessibilityRole="alert">
                 {message}
@@ -220,6 +268,10 @@ const styles = StyleSheet.create({
   duree: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Palette.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 },
   dureeTexte: { fontWeight: "800", fontSize: 16, color: Palette.text },
   note: { fontSize: 13, color: Palette.textSecondary },
+  avisPrecalcule: { backgroundColor: "#FAF0C4", borderRadius: 16, padding: 12, gap: 2 },
+  avisTitre: { fontSize: 14, fontWeight: "700", color: Palette.text },
+  ligneNonServi: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
+  raison: { fontSize: 12, fontWeight: "600", color: "#5E5548" },
   equipes: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1, borderColor: Palette.borderForte, backgroundColor: Palette.surface },
   chipTexte: { fontSize: 15, color: Palette.text, fontWeight: "700" },
