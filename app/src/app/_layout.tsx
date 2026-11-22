@@ -12,7 +12,11 @@ import { useColorScheme } from 'react-native';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { definirPolicesChargees } from '@/components/texte';
 
-SplashScreen.preventAutoHideAsync();
+// L'écran de démarrage reste affiché le temps de charger les polices. Un refus ne doit rien casser.
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
+// Écran de secours pour toute l'app : une erreur d'affichage ne ferme jamais l'app.
+export { ErrorBoundary } from '@/components/ville/erreur-ecran';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
