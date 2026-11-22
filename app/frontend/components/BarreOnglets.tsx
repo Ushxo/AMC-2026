@@ -11,7 +11,10 @@ import type { Jetons } from '@/marque/jetons';
 
 export type Onglet<Id extends string> = {
   id: Id;
+  /** Libellé court sous l'icône (jamais coupé dans un mot). */
   label: string;
+  /** Nom complet, lu par le lecteur d'écran. */
+  nom?: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconActive: keyof typeof Ionicons.glyphMap;
 };
@@ -30,12 +33,12 @@ export function BarreOnglets<Id extends string>({ onglets, actif, onChange }: { 
             key={o.id}
             onPress={() => onChange(o.id)}
             accessibilityRole="tab"
-            accessibilityLabel={o.label}
+            accessibilityLabel={o.nom ?? o.label}
             accessibilityState={{ selected }}
             style={[styles.tab, selected && styles.tabActive]}
           >
             <Ionicons name={selected ? o.iconActive : o.icon} size={24} color={P.primary} />
-            <Text style={[styles.label, selected && styles.labelActive]} numberOfLines={1} maxFontSizeMultiplier={1.3} adjustsFontSizeToFit minimumFontScale={0.8}>
+            <Text style={[styles.label, selected && styles.labelActive]} numberOfLines={1} maxFontSizeMultiplier={1.15} adjustsFontSizeToFit minimumFontScale={0.92}>
               {o.label}
             </Text>
           </Pressable>
@@ -50,12 +53,12 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     flexDirection: "row",
     backgroundColor: P.background,
     paddingTop: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     gap: 4,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: P.border,
   },
-  tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 8, borderRadius: 16, minHeight: 56, gap: 2, minWidth: 44 },
+  tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 8, borderRadius: 16, minHeight: 56, gap: 2, minWidth: 44, paddingHorizontal: 0 },
   tabActive: { backgroundColor: P.backgroundSelected },
   label: { color: P.primary, fontSize: 13, fontWeight: "600", textAlign: "center" },
   labelActive: { fontWeight: "800" },

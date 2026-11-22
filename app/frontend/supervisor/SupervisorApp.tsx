@@ -18,15 +18,15 @@ import type { Jetons } from '@/marque/jetons';
 type Id = "interventions" | "alertes" | "optimisation" | "equipes" | "rapports";
 
 const ONGLETS: Onglet<Id>[] = [
-  { id: "interventions", label: "Interventions", icon: "list-outline", iconActive: "list" },
+  { id: "interventions", label: "Planifier", nom: "Interventions à planifier", icon: "list-outline", iconActive: "list" },
   { id: "alertes", label: "Alertes", icon: "alert-circle-outline", iconActive: "alert-circle" },
-  { id: "optimisation", label: "Optimisation", icon: "git-compare-outline", iconActive: "git-compare" },
+  { id: "optimisation", label: "Calcul", nom: "Optimisation", icon: "git-compare-outline", iconActive: "git-compare" },
   { id: "equipes", label: "Équipes", icon: "people-outline", iconActive: "people" },
-  { id: "rapports", label: "Arrêts faits", icon: "checkmark-done-outline", iconActive: "checkmark-done" },
+  { id: "rapports", label: "Faits", nom: "Arrêts faits", icon: "checkmark-done-outline", iconActive: "checkmark-done" },
 ];
 
 const ENTETES: Record<Id, { titre: string; sous: string }> = {
-  interventions: { titre: "Interventions", sous: "À planifier, par importance" },
+  interventions: { titre: "Interventions", sous: "Triées par importance" },
   alertes: { titre: "Alertes", sous: "Signalements reçus des citoyens" },
   optimisation: { titre: "Optimisation", sous: "Options du calcul : quoi inclure, équipes, répartition" },
   equipes: { titre: "Équipes", sous: "Départ, arrivée et compte de chaque équipe" },

@@ -20,7 +20,7 @@ where code is null
 
 -- Une deuxième organisation, avec sa propre marque (rouge et blanc, logo en fleur).
 insert into organisations (nom, nom_app, code, logo, slogan, theme_defaut, couleurs)
-select 'Ville de Montréal', 'Égouts Montréal', 'montreal', 'fleur', 'Signalez, on s''en occupe.', 'montreal',
+select 'Ville de Montréal', 'Ville de Montréal', 'montreal', 'fleur', 'Signalez, on s''en occupe.', 'montreal',
   '{
     "text": "#1F1A1A", "textSecondary": "#5E5557",
     "background": "#FBF8F8", "backgroundElement": "#F6E9EA", "backgroundSelected": "#F2CED1",

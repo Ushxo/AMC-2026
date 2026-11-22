@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { FlatList, Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Modal, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -44,7 +44,7 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: ke
         style={[styles.pilule, actif && styles.piluleActive]}
       >
         <Ionicons name={icone} size={20} color={P.text} />
-        <Text style={styles.piluleTexte} maxFontSizeMultiplier={1.3}>
+        <Text style={styles.piluleTexte} numberOfLines={1} maxFontSizeMultiplier={1.3}>
           {actif ? courant?.libelle : titre}
         </Text>
         <Ionicons name="chevron-down" size={18} color={P.text} />
@@ -82,6 +82,7 @@ function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir:
   const styles = useStyles(creerStyles);
   const P = useTheme();
   const c = IMPORTANCE[i.gravite];
+  const grandTexte = useWindowDimensions().fontScale > 1.3; // texte très agrandi : on libère la place du dessin
   const titre = LIBELLES_CATEGORIE[i.categorie];
   return (
     <Pressable
@@ -92,13 +93,15 @@ function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir:
     >
       <View style={[styles.priorite, { backgroundColor: c.fond }]}>
         <Ionicons name={c.icone} size={26} color={c.plein} />
-        <Text style={[styles.prioriteTexte, { backgroundColor: c.plein }]} maxFontSizeMultiplier={1.2}>
+        <Text style={[styles.prioriteTexte, { backgroundColor: c.plein }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} maxFontSizeMultiplier={1.2}>
           {LIBELLES_GRAVITE[i.gravite]}
         </Text>
       </View>
-      <View style={styles.dessin}>
-        <IllustrationProbleme categorie={i.categorie} taille={56} />
-      </View>
+      {grandTexte ? null : (
+        <View style={styles.dessin}>
+          <IllustrationProbleme categorie={i.categorie} taille={48} />
+        </View>
+      )}
       <View style={{ flex: 1 }}>
         <Text style={styles.ligneTitre} maxFontSizeMultiplier={1.3}>
           {titre}
@@ -109,7 +112,7 @@ function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir:
             {lieu}
           </Text>
         </View>
-        <Text style={styles.detailTexte}>Signalée le {formaterDate(i.signaleeLe)}</Text>
+        <Text style={styles.detailTexte}>Signalée le {formaterDate(i.signaleeLe).split(',')[0]}</Text>
       </View>
       <Ionicons name="chevron-forward" size={22} color={P.text} />
     </Pressable>
@@ -137,30 +140,22 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
         data={chargement || erreur ? [] : liste}
         keyExtractor={(i) => i.endroit.cle}
         renderItem={({ item }) => <Ligne i={item} lieu={lieu(item)} onOuvrir={() => router.push(hrefEndroit(item.endroit))} />}
-        contentContainerStyle={[styles.page, { paddingBottom: 64 }]}
+        contentContainerStyle={[styles.page, { paddingBottom: 16 }]}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         initialNumToRender={10}
         windowSize={7}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={{ gap: 12, marginBottom: 12 }}>
-        <View style={styles.titreRangee}>
+            <View style={styles.titreRangee}>
               <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
-                Interventions à planifier
+                À planifier
               </Text>
               <Text style={styles.compteur} accessibilityLabel={`${liste.length} à traiter`}>
                 {liste.length} à traiter
               </Text>
             </View>
-            <Text style={styles.sous}>Priorisées par degré d’importance pour l’optimisation du trajet.</Text>
-
-            <View style={styles.filtresTitre}>
-              <Ionicons name="funnel-outline" size={22} color={P.text} />
-              <Text style={styles.filtresMot} accessibilityRole="header">
-                Filtres
-              </Text>
-            </View>
-            <View style={styles.filtres}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtres} accessibilityLabel="Filtres">
               <ListeDeroulante icone="location-outline" titre="Secteur" choix={secteurs} valeur={filtres.zoneId} onChoisir={(v) => setFiltres({ ...filtres, zoneId: v })} />
               <ListeDeroulante
                 icone="warning-outline"
@@ -176,7 +171,7 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
                 valeur={filtres.gravite}
                 onChoisir={(v) => setFiltres({ ...filtres, gravite: v as Gravite | null })}
               />
-            </View>
+            </ScrollView>
           </View>
         }
         ListEmptyComponent={
@@ -195,7 +190,7 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
         }
       />
 
-      <View style={styles.bas} pointerEvents="box-none">
+      <View style={styles.bas}>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: liste.length === 0 }}
@@ -204,17 +199,13 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
           onPress={() => onCalculer(clesDesInterventions(liste))}
           style={[styles.calculer, liste.length === 0 && { opacity: 0.5 }]}
         >
-          <Ionicons name="navigate-outline" size={34} color={P.surface} />
-          <View style={styles.separateur} />
+          <Ionicons name="navigate-outline" size={28} color={P.surface} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.calculerTitre} maxFontSizeMultiplier={1.2}>
+            <Text style={styles.calculerTitre} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} maxFontSizeMultiplier={1.2}>
               Calculer le trajet optimal
             </Text>
-            <Text style={styles.calculerSous} maxFontSizeMultiplier={1.2}>
-              Générer le chemin optimisé pour ces interventions
-            </Text>
           </View>
-          <Ionicons name="arrow-forward" size={28} color={P.surface} />
+          <Ionicons name="arrow-forward" size={24} color={P.surface} />
         </Pressable>
       </View>
     </View>
@@ -225,13 +216,13 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1, backgroundColor: P.background },
   page: { padding: 20, gap: 12, maxWidth: 800, width: "100%", alignSelf: "center" },
   titreRangee: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
-  titre: { fontSize: 26, fontWeight: "800", color: P.text, flexShrink: 1 },
+  titre: { fontSize: 22, fontWeight: "800", color: P.text, flexShrink: 1 },
   compteur: { backgroundColor: FOND_COMPTEUR, color: P.primary, fontWeight: "800", fontSize: 16, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
   sous: { color: P.textSecondary, fontSize: 15 },
   filtresTitre: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
   filtresMot: { fontSize: 20, fontWeight: "800", color: P.text },
-  filtres: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  pilule: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexShrink: 1 },
+  filtres: { flexDirection: "row", gap: 8, paddingRight: 8 },
+  pilule: { flexDirection: "row", alignItems: "center", gap: 8, height: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface },
   piluleActive: { backgroundColor: P.backgroundSelected },
   piluleTexte: { color: P.text, fontSize: 15, flexShrink: 1 },
   voile: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
@@ -240,17 +231,17 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   option: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderColor: P.border },
   optionTexte: { fontSize: 17, color: P.text },
   ligne: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.surface, borderRadius: 22, padding: 12, shadowColor: COULEUR_OMBRE, shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  priorite: { width: 76, borderRadius: 16, alignItems: "center", paddingTop: 8, paddingBottom: 8, gap: 4 },
+  priorite: { minWidth: 68, borderRadius: 16, alignItems: "center", paddingTop: 8, paddingBottom: 8, gap: 4 },
   prioriteTexte: { color: BLANC_FIXE, fontWeight: "800", fontSize: 13, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4, overflow: "hidden" },
-  dessin: { width: 60, height: 52, alignItems: "center", justifyContent: "center" },
+  dessin: { width: 52, height: 48, alignItems: "center", justifyContent: "center" },
   ligneTitre: { fontSize: 17, fontWeight: "800", color: P.text },
   detail: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   detailTexte: { fontSize: 13, color: P.text, flexShrink: 1 },
   lien: { minHeight: 48, alignItems: "center", justifyContent: "center" },
   lienTexte: { color: P.primary, fontWeight: "800", textDecorationLine: "underline", fontSize: 15 },
-  bas: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16 },
-  calculer: { flexDirection: "row", alignItems: "center", gap: 16, backgroundColor: P.action, borderRadius: 30, paddingHorizontal: 24, paddingVertical: 16, minHeight: 80 },
+  bas: { backgroundColor: P.background, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: P.border },
+  calculer: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.action, borderRadius: 30, paddingHorizontal: 24, paddingVertical: 8, minHeight: 56 },
   separateur: { width: 1, alignSelf: "stretch", backgroundColor: "rgba(255,255,255,0.5)" },
-  calculerTitre: { color: P.surface, fontSize: 20, fontWeight: "800" },
+  calculerTitre: { color: P.surface, fontSize: 18, fontWeight: "800" },
   calculerSous: { color: P.surface, fontSize: 14, marginTop: 2 },
 });
