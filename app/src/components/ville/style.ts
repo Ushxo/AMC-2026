@@ -73,7 +73,7 @@ export const COULEUR_VEHICULE = COULEUR_ACCENT;
 
 /** Bande d'eau sur la rue : bleu eau translucide (lisible sur les fonds de carte clair et sombre). */
 export const COULEUR_BANDE_EAU = 'rgba(30, 136, 229, 0.5)';
-export const EPAISSEUR_BANDE_EAU = 16;
+export const EPAISSEUR_BANDE_EAU = 9;
 
 /** « #RRGGBB » vers « rgba(r, g, b, a) ». */
 export function avecOpacite(hex: string, alpha: number): string {
@@ -104,8 +104,8 @@ export function styleZoneSelection(gravite: Gravite, etat: 'toutes' | 'certaines
 
 /** Avis d'ébullition : bleu pétrole ; coupures d'eau : indigo (deux couleurs et deux libellés, jamais la couleur seule). */
 export const STYLE_AVIS = {
-  ebullition: { couleur: '#287F99', fond: avecOpacite('#287F99', 0.22), contour: avecOpacite('#287F99', 0.85), epaisseur: 2 },
-  coupure: { couleur: '#5B3FA8', fond: avecOpacite('#5B3FA8', 0.2), contour: avecOpacite('#5B3FA8', 0.85), epaisseur: 3 },
+  ebullition: { couleur: '#287F99', liseré: '#0E3F4D', largeur: 8, fond: avecOpacite('#287F99', 0.22), contour: avecOpacite('#287F99', 0.85), epaisseur: 2 },
+  coupure: { couleur: '#5B3FA8', liseré: '#2A1A5E', largeur: 8, fond: avecOpacite('#5B3FA8', 0.2), contour: avecOpacite('#5B3FA8', 0.85), epaisseur: 3 },
 } as const;
 export const STYLE_CHANTIER = { fond: avecOpacite('#B84A0B', 0.35), contour: avecOpacite('#B84A0B', 0.9), epaisseur: 2, rayonM: 25 } as const;
 export const STYLE_ZONE_INONDABLE = { fond: avecOpacite('#1E88E5', 0.12), contour: avecOpacite('#1E88E5', 0.6), epaisseur: 1 } as const;

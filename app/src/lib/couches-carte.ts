@@ -1,4 +1,5 @@
 import type { AvisEau, Coordonnees, CoucheAvisEau, CoucheChantiers, CoucheZonesInondables, TypeAvisEau } from '../types';
+import { distanceTraceAvisM, infoAvis, TOLERANCE_AVIS_LIGNE_M } from './avis-troncons';
 import { distanceM, pointDansGeometrie } from './geo';
 import { formaterDate } from './format';
 
@@ -45,7 +46,10 @@ export type VerificationAvis = { sous: boolean; avis: AvisEau[]; message: string
 
 /** Le point (adresse cherchée ou position) est-il dans un avis d'ébullition ou une coupure en cours ? Toujours sur TOUS les avis, couche masquée ou non. */
 export function verifierAvis(point: Coordonnees, avis: CoucheAvisEau, source: 'adresse' | 'position'): VerificationAvis {
-  const trouves = avis.features.filter((f) => pointDansGeometrie(point, f.geometry));
+  const trouves = avis.features.filter((f) => {
+    const d = distanceTraceAvisM(point, f);
+    return d !== null ? d <= TOLERANCE_AVIS_LIGNE_M : pointDansGeometrie(point, f.geometry);
+  });
   const sujet = source === 'adresse' ? 'Cette adresse' : 'Votre position';
   if (trouves.length === 0) return { sous: false, avis: [], message: `${sujet} n'est sous aucun avis d'ébullition ni coupure d'eau en cours.` };
   const types = [...new Set(trouves.map((f) => f.properties.type))];
@@ -77,8 +81,10 @@ export function ficheAvis(a: AvisEau): ElementCarte {
     { etiquette: 'État', valeur: p.fin ? `En cours jusqu'au ${jour(p.fin)}` : 'En cours' },
     { etiquette: 'Début', valeur: jour(p.debut) },
   ];
+  const rues = infoAvis(a)?.rues ?? [];
+  if (rues.length > 0) lignes.push({ etiquette: rues.length > 1 ? 'Rues touchées' : 'Rue touchée', valeur: rues.join(', ') });
   if (p.adresse) lignes.push({ etiquette: 'Adresse', valeur: p.adresse });
-  lignes.push({ etiquette: 'Source', valeur: 'Données ouvertes de la Ville de Montréal, CC BY 4.0' });
+  lignes.push({ etiquette: 'Source', valeur: 'Données ouvertes de la Ville de Montréal, CC BY 4.0 (avis et tracé des rues)' });
   return { id: `avis-${p.id}`, type: LIBELLES_TYPE_AVIS[p.type], titre: p.titre, lignes };
 }
 
@@ -207,8 +213,14 @@ export function elementTouche(
     if (a.geometry?.type === 'Point') {
       const [longitude, latitude] = a.geometry.coordinates;
       if (distanceM(p, { latitude, longitude }) <= RAYON_AVIS_TOUCHE_M + toleranceM) candidats.push({ aire: Math.PI * RAYON_AVIS_TOUCHE_M ** 2, fiche: () => ficheAvis(a) });
-    } else if (a.geometry && distanceAuTracerM(p, a.geometry) <= toleranceM) {
-      candidats.push({ aire: aireM2(a.geometry), fiche: () => ficheAvis(a) });
+    } else {
+      const dLigne = distanceTraceAvisM(p, a);
+      if (dLigne !== null) {
+        // Avis en ligne : se touche à quelques points du tracé de la rue.
+        if (dLigne <= Math.max(toleranceM, 12)) candidats.push({ aire: 0.5, fiche: () => ficheAvis(a) });
+      } else if (a.geometry && distanceAuTracerM(p, a.geometry) <= toleranceM) {
+        candidats.push({ aire: aireM2(a.geometry), fiche: () => ficheAvis(a) });
+      }
     }
   }
   if (contenu.chantiers) {

@@ -417,7 +417,7 @@ export default function CarteCitoyen({ coquille }: Props) {
               </View>
             ))}
             <ThemedText type="small" themeColor="textSecondary">
-              Avis d&apos;ébullition : bleu pétrole. Coupures d&apos;eau : indigo, contour plus épais. Toucher un avis ouvre sa fiche.
+              Avis officiels : un trait épais avec liseré sombre le long des rues touchées (ébullition en bleu pétrole, coupures en indigo), ou le secteur officiel. Eau accumulée signalée par les citoyens : une bande bleue plus fine, sans liseré. Toucher un avis ouvre sa fiche. Tracés des rues et avis : Données ouvertes de la Ville de Montréal, CC BY 4.0.
             </ThemedText>
             {avis.length > 0 ? (
               <View>
