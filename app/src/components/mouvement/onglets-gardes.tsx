@@ -74,6 +74,9 @@ export function OngletsGardes({ actif, onglets, fond, style }: { actif: string; 
   );
 }
 
+/** Distance (en points) dont un onglet caché est poussé hors de l'écran : plus large que n'importe quel écran. */
+export const DECALAGE_HORS_ECRAN = 10000;
+
 const memesDeps = (a: readonly unknown[] = [], b: readonly unknown[] = []) => a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
 
 /** Contenu d'un onglet : figé tant que ses dépendances ne changent pas (la fonction n'est rappelée qu'alors). */
@@ -90,7 +93,10 @@ function Panneau({ onglet, visible, fond }: { onglet: OngletGarde; visible: bool
   useEffect(() => {
     store.definir(visible);
   }, [visible, store]);
-  const cache = onglet.gardeTaille ? null : styles.retire;
+  // Un onglet caché reste dans l'arbre natif, à sa taille, et est seulement poussé hors écran par une transformation : aucune mise
+  // en page, aucun `display: none`, aucun changement de taille ni d'opacité (un grand sous-arbre ne se remesure ni ne se remonte).
+  // La carte (gardeTaille) ne bouge pas : elle reste dessous, recouverte par l'onglet opaque.
+  const cache = onglet.gardeTaille ? null : styles.horsEcran;
   return (
     <View
       style={[StyleSheet.absoluteFill, !onglet.gardeTaille && fond ? { backgroundColor: fond } : null, !visible && cache]}
@@ -119,5 +125,5 @@ export function useOngletUnique<Id extends string>(actif: Id, onChange: (id: Id)
 
 const styles = StyleSheet.create({
   cadre: { flex: 1 },
-  retire: { display: 'none' },
+  horsEcran: { transform: [{ translateX: DECALAGE_HORS_ECRAN }] },
 });

@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { BarreOnglets } from '../components/BarreOnglets';
 import CitizenApp from '../citizen/CitizenApp';
-import { OngletsGardes, useOngletActif } from '../../src/components/mouvement/onglets-gardes';
+import { DECALAGE_HORS_ECRAN, OngletsGardes, useOngletActif } from '../../src/components/mouvement/onglets-gardes';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -88,7 +88,9 @@ describe('onglets gardés montés', () => {
     await rerender(<Onglets actif="carte" />);
     const [c2, l2] = (toJSON() as { children: { props: Record<string, unknown> }[] }).children;
     expect(l2.props.pointerEvents).toBe('none');
-    expect(StyleSheet.flatten(l2.props.style as never)).toMatchObject({ display: 'none' }); // retirée de la mise en page
+    const cacheStyle = StyleSheet.flatten(l2.props.style as never);
+    expect(cacheStyle.display).toBeUndefined(); // jamais de display none (aucune mise en page à refaire)
+    expect(cacheStyle.transform).toEqual([{ translateX: DECALAGE_HORS_ECRAN }]); // poussée hors écran, à sa taille
     expect(c2.props.pointerEvents).toBe('auto');
   });
 

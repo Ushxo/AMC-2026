@@ -60,7 +60,7 @@ export function BottomNav({ active: actifParent, onChange }: Props) {
             style={styles.tab}
           >
             <IconeBascule actif={selected} nomVide={tab.icon} nomPlein={tab.iconActive} taille={30} couleur={P.primary} />
-            <Text style={[styles.label, selected && styles.labelActive]} maxFontSizeMultiplier={1.3}>{tab.label}</Text>
+            <Text style={styles.label} maxFontSizeMultiplier={1.3}>{tab.label}</Text>
           </Pressable>
         );
       })}
@@ -101,10 +101,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   },
   label: {
     fontSize: 17,
-    fontWeight: "600",
+    fontWeight: "700", // constant : l'état actif ne change pas les métriques du texte
     color: P.primary,
-  },
-  labelActive: {
-    fontWeight: "700",
   },
 });

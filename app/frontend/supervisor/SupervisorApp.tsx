@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, View } from 'react-native';
 
 import { useAcces } from "@/hooks/use-acces";
@@ -40,6 +40,11 @@ export default function SupervisorApp({ onLogout, onAdministration }: { onLogout
   // Calcul demandé depuis la liste : la sélection filtrée part avec le calcul, une seule fois par demande.
   const [demande, setDemande] = useState<{ id: number; cles: string[] } | null>(null);
   const [details, setDetails] = useState(false);
+  // Le bouton de profil et sa feuille ne sont pas recréés à chaque bascule d'onglet.
+  const boutonProfil = useMemo(
+    () => <BoutonProfil nom={nom} role={onAdministration ? "Administrateur" : "Superviseur"} marqueChoisie={demoHorsLigne ? "demo" : null} onAdministration={onAdministration} onDeconnexion={onLogout} />,
+    [nom, demoHorsLigne, onAdministration, onLogout],
+  );
 
   return (
     <View style={styles.root}>
@@ -49,7 +54,7 @@ export default function SupervisorApp({ onLogout, onAdministration }: { onLogout
         <EnteteVert
           titre={ENTETES[onglet].titre}
           sousTitre={ENTETES[onglet].sous}
-          droite={<BoutonProfil nom={nom} role={onAdministration ? "Administrateur" : "Superviseur"} marqueChoisie={demoHorsLigne ? "demo" : null} onAdministration={onAdministration} onDeconnexion={onLogout} />}
+          droite={boutonProfil}
         />
       )}
       <View style={styles.corps}>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { EcranEquipes } from "@/app/ville/equipes";
@@ -38,6 +38,7 @@ export default function AdminApp({ onLogout }: { onLogout: () => void }) {
   const { nom } = useAcces();
   const [onglet, setOnglet] = useState<Id>("comptes");
   const [creation, setCreation] = useState(false);
+  const boutonProfil = useMemo(() => <BoutonProfil nom={nom} role="Administrateur" onDeconnexion={onLogout} />, [nom, onLogout]);
 
   if (onglet === "superviseur") return <SupervisorApp onLogout={onLogout} onAdministration={() => setOnglet("comptes")} />;
   if (creation) return <CreerComptePersonnel onBack={() => setCreation(false)} />;
@@ -48,7 +49,7 @@ export default function AdminApp({ onLogout }: { onLogout: () => void }) {
       <EnteteVert
         titre={e.titre}
         sousTitre={e.sous}
-        droite={<BoutonProfil nom={nom} role="Administrateur" onDeconnexion={onLogout} />}
+        droite={boutonProfil}
       />
       <View style={styles.corps}>
         {/* Les onglets déjà visités restent montés : changer d'onglet ne les recrée plus. */}

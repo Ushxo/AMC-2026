@@ -35,7 +35,7 @@ export function EnteteVert({ titre, sousTitre, onBack, libelleRetour = "Retour",
           {titre}
         </Text>
         {sousTitre ? (
-          <Text style={styles.sous} maxFontSizeMultiplier={1.3}>
+          <Text style={styles.sous} numberOfLines={2} maxFontSizeMultiplier={1.3}>
             {sousTitre}
           </Text>
         ) : null}
@@ -50,5 +50,6 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   retour: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
   organisation: { color: P.onHeaderSoft, fontSize: 13, fontWeight: "600" },
   titre: { color: P.onHeader, fontSize: 26, fontWeight: "700" },
-  sous: { color: P.onHeaderSoft, fontSize: 15, fontWeight: "500" },
+  // Deux lignes toujours réservées : changer de page (sous-titre court ou long) ne change jamais la hauteur de l'en-tête.
+  sous: { color: P.onHeaderSoft, fontSize: 15, lineHeight: 20, minHeight: 40, fontWeight: "500" },
 });

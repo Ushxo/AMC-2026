@@ -51,7 +51,7 @@ export function BarreOnglets<Id extends string>({ onglets, actif: actifParent, o
             style={styles.tab}
           >
             <IconeBascule actif={selected} nomVide={o.icon} nomPlein={o.iconActive} taille={24} couleur={P.primary} />
-            <Text style={[styles.label, selected && styles.labelActive]} numberOfLines={1} maxFontSizeMultiplier={1.15} adjustsFontSizeToFit minimumFontScale={0.92}>
+            <Text style={styles.label} numberOfLines={1} maxFontSizeMultiplier={1.15} adjustsFontSizeToFit minimumFontScale={0.92}>
               {o.label}
             </Text>
           </Pressable>
@@ -73,6 +73,6 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 8, borderRadius: 16, minHeight: 56, gap: 2, minWidth: 44, paddingHorizontal: 0 },
   pastille: { backgroundColor: P.backgroundSelected, borderRadius: 16 },
-  label: { color: P.primary, fontSize: 13, fontWeight: "600", textAlign: "center" },
-  labelActive: { fontWeight: "800" },
+  // Poids constant : l'état actif ne change pas les métriques du texte (pas de remesure à chaque toucher) ; la pastille et l'icône le disent.
+  label: { color: P.primary, fontSize: 13, fontWeight: "700", textAlign: "center" },
 });
