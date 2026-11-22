@@ -1,3 +1,5 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -72,6 +74,23 @@ export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean 
           contentContainerStyle={[styles.contenu, { paddingBottom: bottom + 24 }]}
           keyboardShouldPersistTaps="handled">
           <BandeauSource etat={etat} simule={demoHorsLigne} />
+
+          <View style={styles.entete}>
+            <View style={{ flex: 1 }}>
+              <ThemedText type="title" accessibilityRole="header" style={styles.titre}>
+                Équipes
+              </ThemedText>
+              <ThemedText themeColor="textSecondary">Les équipes actives et leur quart de travail.</ThemedText>
+            </View>
+            {!chargement && !erreur ? (
+              <View style={[styles.compteur, { backgroundColor: theme.accent + '22' }]}>
+                <ThemedText type="smallBold" style={[styles.compteurTexte, { color: theme.text }]}>
+                  {actives.length} active{actives.length > 1 ? 's' : ''}
+                </ThemedText>
+              </View>
+            ) : null}
+          </View>
+
           {lectureSeule ? <ThemedText type="small">{MESSAGE_EQUIPES_LECTURE_SEULE}</ThemedText> : null}
           {chargement ? (
             <Chargement />
@@ -86,27 +105,62 @@ export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean 
                 accessibilityRole="button"
                 accessibilityLabel={`${e.nom}, quart de ${e.debut_quart} à ${e.fin_quart}. Ouvrir.`}
                 onPress={() => router.push({ pathname: '/ville/equipe/[id]', params: { id: e.id } })}
-                style={[styles.ligne, { backgroundColor: theme.backgroundElement }]}>
-                <ThemedText type="smallBold">{e.nom}</ThemedText>
-                <ThemedText type="small">
-                  Quart de {e.debut_quart} à {e.fin_quart}
-                  {e.vehicule ? ` · ${e.vehicule}` : ''}
-                </ThemedText>
+                style={({ pressed }) => [
+                  styles.carte,
+                  { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.85 : 1 },
+                ]}>
+                <View style={styles.carteHaut}>
+                  <View style={[styles.avatar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <ThemedText style={[styles.initiales, { color: theme.primary }]}>{initiales(e.nom)}</ThemedText>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={styles.nom} numberOfLines={2}>
+                      {e.nom}
+                    </ThemedText>
+                    {e.exemple_demo ? <EtiquetteNeutre texte={ETIQUETTE_DEMONSTRATION} /> : null}
+                  </View>
+                  <Ionicons name="chevron-forward" size={22} color={theme.textSecondary} />
+                </View>
+
+                <View style={styles.puces}>
+                  <View style={styles.puce}>
+                    <Ionicons name="time-outline" size={16} color={theme.primary} />
+                    <ThemedText style={styles.puceTexte}>
+                      {e.debut_quart} – {e.fin_quart}
+                    </ThemedText>
+                  </View>
+                  {e.vehicule ? (
+                    <View style={styles.puce}>
+                      <MaterialCommunityIcons name="truck-outline" size={16} color={theme.primary} />
+                      <ThemedText style={styles.puceTexte} numberOfLines={1}>
+                        {e.vehicule}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                </View>
+
                 {e.garage_nom ? (
-                  <ThemedText type="small" themeColor="textSecondary">
-                    Garage : {e.garage_nom}
-                    {e.exemple_demo ? ' (simulé)' : ''}
-                  </ThemedText>
+                  <View style={[styles.garage, { borderTopColor: theme.border }]}>
+                    <Ionicons name="location" size={16} color={theme.accent} />
+                    <ThemedText themeColor="textSecondary" style={styles.garageTexte}>
+                      Garage : {e.garage_nom}
+                      {e.exemple_demo ? ' (simulé)' : ''}
+                    </ThemedText>
+                  </View>
                 ) : null}
-                {e.exemple_demo ? <EtiquetteNeutre texte={ETIQUETTE_DEMONSTRATION} /> : null}
               </Pressable>
             ))
           )}
           {!lectureSeule && peutGerer ? (
-            <View style={styles.formulaire}>
-              <ThemedText type="smallBold" accessibilityRole="header">
-                Nouvelle équipe
-              </ThemedText>
+            <View style={[styles.formulaire, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={styles.formulaireEntete}>
+                <View style={[styles.formulaireIcone, { backgroundColor: theme.accent + '22' }]}>
+                  <Ionicons name="people" size={24} color={theme.accent} />
+                </View>
+                <ThemedText type="subtitle" accessibilityRole="header" style={styles.formulaireTitre}>
+                  Nouvelle équipe
+                </ThemedText>
+              </View>
               <Champ etiquette="Nom de l'équipe" value={nom} onChangeText={setNom} maxLength={60} erreur={erreurs.nom} />
               <Champ etiquette="Véhicule (facultatif)" value={vehicule} onChangeText={setVehicule} />
               <Champ etiquette="Début du quart (HH:MM)" value={debut} onChangeText={setDebut} keyboardType="numbers-and-punctuation" erreur={erreurs.debut} />
@@ -135,9 +189,42 @@ export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean 
   );
 }
 
+/** « Équipe A » → « A » ; « Voirie Nord » → « VN ». */
+function initiales(nom: string): string {
+  const mots = nom.replace(/^équipe\s+/i, '').trim().split(/\s+/).filter(Boolean);
+  return (mots.length > 1 ? mots[0][0] + mots[1][0] : (mots[0] ?? '?').slice(0, 2)).toUpperCase();
+}
+
 const styles = StyleSheet.create({
   fond: { flex: 1 },
-  contenu: { padding: 20, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  ligne: { minHeight: CIBLE_MIN, padding: 14, borderRadius: 14, gap: 4 },
-  formulaire: { gap: 10, marginTop: 8 },
+  contenu: { padding: 20, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  entete: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
+  titre: { fontSize: 34, lineHeight: 40 },
+  compteur: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18 },
+  compteurTexte: { fontSize: 15 },
+  carte: {
+    minHeight: CIBLE_MIN,
+    padding: 14,
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 10,
+    shadowColor: '#1A261A',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  carteHaut: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 46, height: 46, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  initiales: { fontSize: 17, lineHeight: 22, fontWeight: '800' },
+  nom: { fontSize: 17, lineHeight: 22, fontWeight: '800' },
+  puces: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4 },
+  puce: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2, maxWidth: '100%' },
+  puceTexte: { fontSize: 13, lineHeight: 18, fontWeight: '600', flexShrink: 1 },
+  garage: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, borderTopWidth: 1 },
+  garageTexte: { flex: 1, fontSize: 13, lineHeight: 18 },
+  formulaire: { gap: 12, marginTop: 8, padding: 18, borderRadius: 24, borderWidth: 1 },
+  formulaireEntete: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
+  formulaireIcone: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  formulaireTitre: { fontSize: 24, lineHeight: 30 },
 });
