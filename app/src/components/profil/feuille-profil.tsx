@@ -29,7 +29,7 @@ type Props = {
   onDeconnexion?: () => void;
 };
 
-/** Feuille du profil : thème de couleurs, lisibilité et compte. Appliquée tout de suite. Appliquée tout de suite. */
+/** Feuille du profil : thème de couleurs, lisibilité et compte. Appliquée tout de suite. */
 export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = null, onAdministration, onConnexionPersonnel, onDeconnexion }: Props) {
   const { bottom } = useSafeAreaInsets();
   const theme = useTheme();
@@ -48,10 +48,10 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onFermer}>
       <Pressable retour={false} style={styles.voile} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer le profil" />
-      <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
-        <ScrollView contentContainerStyle={styles.contenu}>
+      <View style={[styles.feuille, { backgroundColor: theme.background }]}>
+        <ScrollView style={styles.defile} contentContainerStyle={styles.contenu}>
           <View style={styles.entete}>
-            <LogoMarque taille={48} />
+            <LogoMarque taille={40} />
             <View style={{ flex: 1 }}>
               <ThemedText type="smallBold" accessibilityRole="header">
                 {nom ?? 'Visiteur'}
@@ -59,11 +59,6 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
               <ThemedText type="small" themeColor="textSecondary">
                 {role ?? 'Sans compte'} · {organisation.nom_app}
               </ThemedText>
-              {role && role !== 'Citoyen' ? (
-                <ThemedText type="small" themeColor="textSecondary">
-                  Tournées optimisées par Priorix
-                </ThemedText>
-              ) : null}
             </View>
           </View>
 
@@ -91,11 +86,19 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
             </>
           ) : null}
 
+        </ScrollView>
+        {/* Pied fixe : les actions restent visibles même quand le contenu défile (texte agrandi). */}
+        <View testID="pied-profil" style={[styles.pied, { borderTopColor: theme.border, paddingBottom: bottom + 8 }]}>
           {onAdministration ? <Bouton titre="Espace d'administration" pleineLargeur onPress={() => { onFermer(); onAdministration(); }} /> : null}
           {onConnexionPersonnel ? <Bouton titre="Connexion du personnel" pleineLargeur variante="discret" onPress={() => { onFermer(); onConnexionPersonnel(); }} /> : null}
           {onDeconnexion ? <Bouton titre="Se déconnecter" pleineLargeur variante="discret" onPress={() => { onFermer(); onDeconnexion(); }} /> : null}
+          {role && role !== 'Citoyen' ? (
+            <ThemedText type="small" themeColor="textSecondary" style={styles.signature}>
+              Tournées optimisées par Priorix
+            </ThemedText>
+          ) : null}
           <Bouton titre="Fermer" variante="discret" pleineLargeur onPress={onFermer} />
-        </ScrollView>
+        </View>
       </View>
     </Modal>
   );
@@ -103,8 +106,11 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
 
 const styles = StyleSheet.create({
   voile: { flex: 1, backgroundColor: VOILE_FEUILLE },
-  feuille: { maxHeight: '85%', ...FEUILLE_BASE },
-  contenu: { padding: 20, gap: 12 },
+  feuille: { maxHeight: '90%', ...FEUILLE_BASE },
+  defile: { flexShrink: 1 },
+  contenu: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, gap: 8 },
+  pied: { paddingHorizontal: 16, paddingTop: 8, gap: 4, borderTopWidth: StyleSheet.hairlineWidth },
+  signature: { textAlign: 'center' },
   entete: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   liste: { gap: 8 },

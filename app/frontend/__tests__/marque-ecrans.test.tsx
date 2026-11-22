@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 
 import { FeuilleProfil } from '../../src/components/profil/feuille-profil';
 import { lireMarque, reinitialiserMarque } from '../../src/marque/magasin';
@@ -163,5 +163,30 @@ describe('administration : thème par défaut de l’organisation', () => {
     await fireEvent.press(screen.getByText("Enregistrer l'organisation"));
     await waitFor(() => expect(mockEnregistrer).toHaveBeenCalled());
     expect(mockEnregistrer.mock.calls[0][0].couleurs).toMatchObject({ primary: '#5B2A86', accent: '#D0348A', background: '#F8F3FB' });
+  });
+});
+
+describe('feuille du profil : actions dans le pied fixe', () => {
+  it('Se déconnecter, la signature Priorix et Fermer sont dans le pied, hors de la zone qui défile', async () => {
+    await render(<FeuilleProfil visible onFermer={jest.fn()} nom="Léa" role="Superviseur" onDeconnexion={jest.fn()} />);
+    const pied = within(screen.getByTestId('pied-profil'));
+    expect(pied.getByText('Se déconnecter')).toBeTruthy();
+    expect(pied.getByText('Tournées optimisées par Priorix')).toBeTruthy();
+    expect(pied.getByText('Fermer')).toBeTruthy();
+    expect(pied.queryByText('Thème')).toBeNull(); // le choix du thème, lui, défile
+  });
+
+  it('le citoyen sans compte a « Connexion du personnel » et Fermer dans le pied, sans signature', async () => {
+    await render(<FeuilleProfil visible onFermer={jest.fn()} onConnexionPersonnel={jest.fn()} />);
+    const pied = within(screen.getByTestId('pied-profil'));
+    expect(pied.getByText('Connexion du personnel')).toBeTruthy();
+    expect(pied.getByText('Fermer')).toBeTruthy();
+    expect(pied.queryByText('Tournées optimisées par Priorix')).toBeNull();
+  });
+
+  it('la grille de thèmes est compacte : « Organisation » sur la carte, nom complet pour le lecteur d’écran', async () => {
+    await render(<FeuilleProfil visible onFermer={jest.fn()} />);
+    expect(screen.getByText('Organisation')).toBeTruthy();
+    expect(screen.getByLabelText("Thème de l'organisation")).toBeTruthy();
   });
 });

@@ -71,7 +71,7 @@ type Props = {
   coquille?: { espaceBas: number; onOpenProfile: () => void; /** Dit à la coquille quand la feuille de signalement est ouverte (la barre du bas se retire). */ onFeuille?: (ouverte: boolean) => void };
 };
 
-/** Carte des égouts : la carte plein écran, un en-tête vert avec la recherche d'adresse, un bouton de recentrage et « Signaler ». */
+/** Carte des signalements : la carte plein écran, un en-tête vert avec la recherche d'adresse, un bouton de recentrage et « Signaler ». */
 export default function CarteCitoyen({ coquille }: Props) {
   const styles = useStyles(creerStyles);
   const { top, bottom } = useSafeAreaInsets();

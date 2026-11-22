@@ -44,7 +44,7 @@ export type Organisation = {
 };
 
 export type TextesOrganisation = { titreCarte: string; rechercheAdresse: string };
-export const TEXTES_PAR_DEFAUT: TextesOrganisation = { titreCarte: 'Carte des égouts', rechercheAdresse: 'Rechercher une adresse à Montréal' };
+export const TEXTES_PAR_DEFAUT: TextesOrganisation = { titreCarte: 'Carte des signalements', rechercheAdresse: 'Rechercher une adresse à Montréal' };
 
 /** Les mots de l'organisation, complétés par les valeurs par défaut. */
 export function textesDe(o: Pick<Organisation, 'textes'>): TextesOrganisation {
@@ -99,7 +99,7 @@ const COULEURS_MONTREAL: Couleurs = {
 /** Les deux marques embarquées : mêmes valeurs que la migration 0009 (repli sans réseau ou sans migration). */
 export const ORGANISATIONS_EMBARQUEES: Organisation[] = [
   { code: 'priorix', nom: 'Priorix', nom_app: 'Priorix', slogan: 'Chaque équipe sait par où commencer.', logo: 'priorix', couleurs: COULEURS_PRIORIX, service: 'Égouts et avis d’eau', textes: TEXTES_PAR_DEFAUT },
-  { code: 'montreal', nom: 'Ville de Montréal', nom_app: 'Ville de Montréal', slogan: "Signalez, on s'en occupe.", logo: 'fleur', couleurs: COULEURS_MONTREAL, service: 'Égouts et avis d’eau', textes: TEXTES_PAR_DEFAUT },
+  { code: 'montreal', nom: 'Ville de Montréal', nom_app: 'Ville de Montréal', slogan: "Signalez, on s'en occupe.", logo: 'fleur', couleurs: COULEURS_MONTREAL, service: 'Égouts et avis d’eau', textes: { ...TEXTES_PAR_DEFAUT, titreCarte: 'Carte des égouts' } },
 ];
 export const CODE_PAR_DEFAUT = 'priorix';
 

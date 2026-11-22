@@ -14,11 +14,14 @@ describe('organisations : service et textes', () => {
     const o = organisationDepuisLigne(ligne)!;
     expect(o.service).toBe('Déneigement');
     expect(textesDe(o)).toEqual({ titreCarte: 'Carte des routes', rechercheAdresse: 'Rechercher une adresse à Montréal' });
-    expect(textesDe(organisationDepuisLigne({ ...ligne, textes: null, service: '' })!)).toEqual({ titreCarte: 'Carte des égouts', rechercheAdresse: 'Rechercher une adresse à Montréal' });
+    expect(textesDe(organisationDepuisLigne({ ...ligne, textes: null, service: '' })!)).toEqual({ titreCarte: 'Carte des signalements', rechercheAdresse: 'Rechercher une adresse à Montréal' });
   });
 
-  it('Montréal s’appelle « Ville de Montréal »', () => {
-    expect(ORGANISATIONS_EMBARQUEES.find((o) => o.code === 'montreal')?.nom_app).toBe('Ville de Montréal');
+  it('Montréal s’appelle « Ville de Montréal » et garde « Carte des égouts » (son service) ; Priorix dit « Carte des signalements »', () => {
+    const montreal = ORGANISATIONS_EMBARQUEES.find((o) => o.code === 'montreal')!;
+    expect(montreal.nom_app).toBe('Ville de Montréal');
+    expect(textesDe(montreal).titreCarte).toBe('Carte des égouts');
+    expect(textesDe(ORGANISATIONS_EMBARQUEES.find((o) => o.code === 'priorix')!).titreCarte).toBe('Carte des signalements');
   });
 
   it('sans la migration 0010, la lecture se rabat sur les colonnes d’avant', async () => {

@@ -46,12 +46,14 @@ export function ChoixTheme() {
               onPress={() => definirTheme(id)}
               style={[styles.carte, { backgroundColor: actif ? theme.backgroundSelected : theme.backgroundElement, borderColor: actif ? theme.primary : theme.border }]}>
               <ApercuTheme jetons={jetonsDuTheme(organisation, id)} />
-              <View style={styles.nomLigne}>
-                <ThemedText type={actif ? 'smallBold' : 'small'} style={{ flex: 1 }}>
-                  {LIBELLES_THEME_APP[id]}
-                </ThemedText>
-                {actif ? <Coche /> : null}
-              </View>
+              {actif ? (
+                <View style={[styles.coche, { backgroundColor: theme.primary }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Coche taille={14} couleur={theme.onPrimary} />
+                </View>
+              ) : null}
+              <ThemedText type={actif ? 'smallBold' : 'small'} numberOfLines={1} style={styles.nom} maxFontSizeMultiplier={1.2}>
+                {id === 'organisation' ? 'Organisation' : LIBELLES_THEME_APP[id]}
+              </ThemedText>
             </Pressable>
           );
         })}
@@ -70,32 +72,38 @@ function LigneInterrupteur({ titre, aide, valeur, onChange }: { titre: string; a
   const theme = useTheme();
   return (
     <View style={[styles.ligne, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <View style={{ flex: 1 }}>
-        <ThemedText type="smallBold">{titre}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {aide}
-        </ThemedText>
-      </View>
+      <ThemedText type="smallBold" style={styles.titreLigne} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+        {titre}
+      </ThemedText>
+      <View style={styles.zoneInterrupteur}>
       <Switch
+        style={styles.interrupteur}
         value={valeur}
         onValueChange={onChange}
         accessibilityLabel={`${titre} : ${valeur ? 'activé' : 'désactivé'}`}
+        accessibilityHint={aide}
         trackColor={{ true: theme.primary, false: theme.borderForte }}
         ios_backgroundColor={theme.borderForte}
         thumbColor={theme.surface}
       />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  carte: { flexBasis: '47%', flexGrow: 1, borderRadius: 16, borderWidth: 2, padding: 8, gap: 8 },
-  nomLigne: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  apercu: { height: 72, borderRadius: 8, borderWidth: 1, overflow: 'hidden', gap: 4 },
-  apercuEntete: { height: 16, justifyContent: 'center', paddingHorizontal: 8 },
-  apercuCarte: { marginHorizontal: 8, borderRadius: 4, borderWidth: 1, padding: 4, gap: 4 },
-  apercuBouton: { marginHorizontal: 8, height: 8, borderRadius: 4, width: '40%' },
+  carte: { flexBasis: '31%', flexGrow: 1, minHeight: 44, borderRadius: 12, borderWidth: 2, padding: 4, gap: 4 },
+  coche: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  nom: { textAlign: 'center' },
+  apercu: { height: 56, borderRadius: 8, borderWidth: 1, overflow: 'hidden', gap: 4 },
+  apercuEntete: { height: 12, justifyContent: 'center', paddingHorizontal: 8 },
+  apercuCarte: { marginHorizontal: 4, borderRadius: 4, borderWidth: 1, padding: 4, gap: 4 },
+  apercuBouton: { marginHorizontal: 4, height: 8, borderRadius: 4, width: '40%' },
   trait: { height: 4, borderRadius: 2 },
-  ligne: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1 },
+  ligne: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, height: 48, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1 },
+  titreLigne: { flex: 1 },
+  // Zone fixe aux dimensions natives de l'interrupteur (51 x 31) : il est centré dans la ligne, allumé comme éteint.
+  zoneInterrupteur: { width: 51, height: 31, alignItems: 'center', justifyContent: 'center' },
+  interrupteur: { alignSelf: 'center' },
 });
