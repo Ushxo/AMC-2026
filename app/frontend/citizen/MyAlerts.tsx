@@ -11,13 +11,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { COULEUR_GRAVITE } from '@/components/ville/style';
 import { Palette } from '@/constants/theme';
 import { useMesSignalements } from '@/hooks/use-mes-signalements';
 import { formaterDate } from '@/lib/format';
 import { chargerAdresses } from '@/lib/officiel';
 import { adressePlusProche } from '@/lib/recherche';
-import { LIBELLES_CATEGORIE, LIBELLES_ETAT, type Categorie, type Etat, type Signalement } from '@/types';
+import { LIBELLES_CATEGORIE, LIBELLES_ETAT, LIBELLES_GRAVITE, type Categorie, type Etat, type Signalement } from '@/types';
 import { BOTTOM_NAV_HEIGHT } from '../components/BottomNav';
+import { SmallIllustration } from '../supervisor/ui';
+import type { AlertKind } from '../types/models';
 
 // Couleurs : jetons du thème. « greenDone », « card » et « track » sont des teintes de la même palette.
 const C = {
@@ -44,6 +47,13 @@ const KINDS: Record<Categorie, { tile: string; color: string; icon?: keyof typeo
   eau_douteuse: { tile: '#FCE6C9', color: C.orange, icon: 'flask-outline' },
   absence_eau: { tile: '#FCE6C9', color: C.orange, icon: 'close-circle-outline' },
   autre: { tile: '#FCE6C9', color: C.orange, icon: 'warning-outline' },
+};
+
+// Illustration dessinée quand elle existe pour la catégorie (même visuel que les cartes superviseur).
+const ILLUSTRATIONS: Partial<Record<Categorie, AlertKind>> = {
+  grille_bouchee: 'Égout bouché',
+  eau_accumulee: 'Eau accumulée',
+  autre: 'Autre',
 };
 
 /** Étape de la ligne de progression : 0 = soumis, 1 = pris en charge, 2 = terminé (réglé ou rejeté). */
@@ -151,23 +161,32 @@ export default function MyAlerts() {
           const titre = LIBELLES_CATEGORIE[a.categorie];
           const badge = badgeDe(a.etat, step);
           const open = expanded === a.id;
+          const couleur = COULEUR_GRAVITE[a.gravite];
+          const illustration = ILLUSTRATIONS[a.categorie];
 
           return (
             <Pressable
               key={a.id}
               onPress={() => setExpanded(open ? null : a.id)}
-              style={styles.card}
+              style={[styles.card, { borderColor: couleur + (a.gravite === 'elevee' ? '59' : '26') }]}
               accessibilityRole="button"
-              accessibilityLabel={`${titre}, ${badge.label}`}
+              accessibilityLabel={`${titre}, gravité ${LIBELLES_GRAVITE[a.gravite]}, ${badge.label}`}
             >
               <View style={styles.cardTop}>
-                <View style={[styles.iconBox, { backgroundColor: kind.tile }]}>
-                  {kind.icon ? (
-                    <Ionicons name={kind.icon} size={34} color={kind.color} />
-                  ) : (
-                    <GrateIcon color={kind.color} />
-                  )}
-                </View>
+                {/* Code discret de gravité : fine barre de couleur sur le bord gauche. */}
+                <View style={[styles.gravityBar, { backgroundColor: couleur }]} />
+
+                {illustration ? (
+                  <SmallIllustration kind={illustration} scale={0.62} />
+                ) : (
+                  <View style={[styles.iconBox, { backgroundColor: kind.tile }]}>
+                    {kind.icon ? (
+                      <Ionicons name={kind.icon} size={30} color={kind.color} />
+                    ) : (
+                      <GrateIcon color={kind.color} />
+                    )}
+                  </View>
+                )}
 
                 <View style={{ flex: 1 }}>
                   <View style={styles.titleRow}>
@@ -178,19 +197,16 @@ export default function MyAlerts() {
                       </Text>
                       <Ionicons
                         name={open ? 'chevron-down' : 'chevron-forward'}
-                        size={20}
+                        size={18}
                         color={C.text}
                       />
                     </View>
                   </View>
                   <View style={styles.detailRow}>
-                    <Ionicons name="location-outline" size={16} color={C.text} />
-                    <Text style={styles.detail}>{lieuDe(a, adresses)}</Text>
+                    <Ionicons name="location-outline" size={15} color={C.text} />
+                    <Text style={styles.detail} numberOfLines={1}>{lieuDe(a, adresses)}</Text>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Ionicons name="calendar-outline" size={15} color={C.text} />
-                    <Text style={styles.detail}>Envoyé le {formaterDate(a.cree_le)}</Text>
-                  </View>
+                  <Text style={styles.detailMuted}>Envoyé le {formaterDate(a.cree_le)}</Text>
                 </View>
               </View>
 
@@ -271,27 +287,37 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: C.card,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 16,
-    borderRadius: 28,
+    padding: 10,
+    paddingBottom: 14,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#ECE8DC',
     shadowColor: '#1A261A',
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
 
   cardTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 72,
+  },
+
+  gravityBar: {
+    width: 5,
+    alignSelf: 'stretch',
+    borderRadius: 3,
+    marginVertical: 4,
   },
 
   iconBox: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
+    width: 64,
+    height: 57,
+    marginHorizontal: 5,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -320,10 +346,16 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '800',
-    color: C.green,
+    color: '#151A13',
     marginTop: 4,
+  },
+
+  detailMuted: {
+    fontSize: 12,
+    color: '#6E7468',
+    marginTop: 3,
   },
 
   detailRow: {

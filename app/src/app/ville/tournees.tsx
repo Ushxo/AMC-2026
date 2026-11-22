@@ -228,7 +228,7 @@ export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean
           ) : (
             <>
               {resultat.tournees[0] ? (
-                <ThemedText type="smallBold" accessibilityRole="header">
+                <ThemedText type="subtitle" accessibilityRole="header" style={styles.titreSection}>
                   Tournées du {libelleJour(resultat.tournees[0].debut_prevu)}
                 </ThemedText>
               ) : null}
@@ -264,7 +264,7 @@ export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean
                 </ThemedText>
               ) : null}
 
-              <ThemedText type="smallBold" accessibilityRole="header">
+              <ThemedText type="subtitle" accessibilityRole="header" style={styles.titreSection}>
                 Équipes
               </ThemedText>
               <ThemedText type="small">{resumeToutesEquipes(resultat.tournees, resultat.totaux)}</ThemedText>
@@ -277,7 +277,7 @@ export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean
                 />
               </View>
               {resultat.tournees.map((t, i) => (
-                <View key={t.equipe_id} style={[styles.carteEquipe, { backgroundColor: theme.backgroundElement }]}>
+                <View key={t.equipe_id} style={[styles.carteEquipe, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                   <View
                     accessible
                     accessibilityLabel={`${t.equipe_nom} : ${t.arrets.length} arrêts, ${formaterKm(t.distance_m)}, de ${formaterHeure(t.debut_prevu)} à ${formaterHeure(t.fin_prevue)}. ${resumeTotalTournee(t)}`}>
@@ -287,7 +287,9 @@ export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean
                         accessibilityElementsHidden
                         importantForAccessibility="no-hide-descendants"
                       />
-                      <ThemedText type="smallBold">{t.equipe_nom}</ThemedText>
+                      <ThemedText type="smallBold" style={styles.nomEquipe}>
+                        {t.equipe_nom}
+                      </ThemedText>
                     </View>
                     <ThemedText type="small">
                       {t.arrets.length} arrêts, {formaterKm(t.distance_m)}, de {formaterHeure(t.debut_prevu)} à{' '}
@@ -345,7 +347,7 @@ export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean
                 </ThemedText>
               ) : null}
               {gain ? (
-                <View style={[styles.carteEquipe, { backgroundColor: theme.backgroundElement }]}>
+                <View style={[styles.carteEquipe, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                   <ThemedText type="smallBold" accessibilityRole="header">
                     Gain à travail égal
                   </ThemedText>
@@ -415,10 +417,22 @@ export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean
 
 const styles = StyleSheet.create({
   fond: { flex: 1 },
-  contenu: { padding: 16, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  contenu: { padding: 16, gap: 14, maxWidth: 800, width: '100%', alignSelf: 'center' },
   barre: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: StyleSheet.hairlineWidth },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  carteEquipe: { padding: 14, borderRadius: 14, gap: 6 },
+  carteEquipe: {
+    padding: 16,
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 8,
+    shadowColor: '#1A261A',
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  titreSection: { fontSize: 19, lineHeight: 24, marginTop: 6 },
+  nomEquipe: { fontSize: 16, lineHeight: 22 },
   entete: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  pastille: { width: 16, height: 16, borderRadius: 8 },
+  pastille: { width: 12, height: 12, borderRadius: 6 },
 });
