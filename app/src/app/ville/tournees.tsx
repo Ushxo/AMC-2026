@@ -427,10 +427,10 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   contenu: { padding: 16, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
   barre: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: StyleSheet.hairlineWidth },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  carteEquipe: { padding: 14, borderRadius: 14, gap: 6 },
+  carteEquipe: { padding: 16, borderRadius: 16, gap: 8 },
   entete: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pastille: { width: 16, height: 16, borderRadius: 8 },
-  carteBlanche: { backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 10 },
+  carteBlanche: { backgroundColor: P.surface, borderRadius: 22, padding: 20, gap: 12 },
   lienIncident: { minHeight: 48, justifyContent: 'center' },
   lienIncidentTexte: { fontSize: 15, fontWeight: '700', color: P.primary, textDecorationLine: 'underline' },
 });

@@ -3,7 +3,6 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -141,7 +140,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
         ) : (
           <>
             <View style={styles.genere}>
-              <MaterialCommunityIcons name="map-marker-path" size={36} color={P.primary} />
+              <Ionicons name="navigate-outline" size={36} color={P.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.genereTitre} maxFontSizeMultiplier={1.3}>
                   Trajet généré
@@ -232,7 +231,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
             </View>
             {nonServis.length > 0 ? (
               <View style={styles.liste}>
-                <Text style={[styles.sousTitre, { marginLeft: 6 }]} accessibilityRole="header">
+                <Text style={[styles.sousTitre, { marginLeft: 8 }]} accessibilityRole="header">
                   Endroits non servis ({nonServis.length})
                 </Text>
                 {nonServis.map((n) => {
@@ -266,7 +265,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
       </ScrollView>
 
       {actif && peutGerer && !calcul ? (
-        <View style={[styles.bas, { paddingBottom: 10 }]}>
+        <View style={[styles.bas, { paddingBottom: 12 }]}>
           <BoutonAction
             titre="Suivre ce trajet"
             libelleAccessible={`Suivre le trajet de l'équipe ${actif.equipe_nom}`}
@@ -280,30 +279,30 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1, backgroundColor: P.background },
-  entete: { backgroundColor: P.header, paddingHorizontal: 18, paddingBottom: 22, flexDirection: "row", alignItems: "center", gap: 14, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  entete: { backgroundColor: P.header, paddingHorizontal: 20, paddingBottom: 24, flexDirection: "row", alignItems: "center", gap: 16, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
   retour: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
   titre: { color: P.onHeader, fontSize: 28, fontWeight: "800" },
-  page: { padding: 16, gap: 12, paddingBottom: 130, maxWidth: 800, width: "100%", alignSelf: "center" },
-  bloc: { backgroundColor: P.surface, borderRadius: 22, padding: 16, gap: 10 },
+  page: { padding: 16, gap: 12, paddingBottom: 64, maxWidth: 800, width: "100%", alignSelf: "center" },
+  bloc: { backgroundColor: P.surface, borderRadius: 22, padding: 16, gap: 12 },
   blocTitre: { fontSize: 17, fontWeight: "800", color: P.text },
   alerte: { fontSize: 16, color: P.danger, fontWeight: "700" },
-  genere: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.bandeau, borderRadius: 22, padding: 14 },
+  genere: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.bandeau, borderRadius: 22, padding: 16 },
   genereTitre: { fontSize: 22, fontWeight: "800", color: P.primary },
   genereSous: { fontSize: 14, color: P.text },
-  duree: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: P.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 },
+  duree: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: P.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
   dureeTexte: { fontWeight: "800", fontSize: 16, color: P.text },
   note: { fontSize: 13, color: P.textSecondary },
   avisPrecalcule: { backgroundColor: FOND_AVERTISSEMENT, borderRadius: 16, padding: 12, gap: 2 },
   avisTitre: { fontSize: 14, fontWeight: "700", color: P.text },
-  ligneNonServi: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
+  ligneNonServi: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12 },
   raison: { fontSize: 13, fontWeight: "600", color: P.textSecondary },
   equipes: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface },
+  chip: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface },
   chipTexte: { fontSize: 15, color: P.text, fontWeight: "700" },
   pastille: { width: 14, height: 14, borderRadius: 7 },
-  carteCadre: { borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: P.border },
+  carteCadre: { borderRadius: 22, overflow: "hidden", borderWidth: 1, borderColor: P.border },
   sousTitre: { fontSize: 22, fontWeight: "800", color: P.text, marginTop: 4 },
-  liste: { backgroundColor: P.surface, borderRadius: 24, paddingVertical: 6, paddingHorizontal: 10 },
+  liste: { backgroundColor: P.surface, borderRadius: 22, paddingVertical: 8, paddingHorizontal: 12 },
   ligne: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 78 },
   colNum: { width: 40, alignSelf: "stretch", alignItems: "center", justifyContent: "center" },
   trait: { position: "absolute", width: 3, top: "50%", bottom: -39 },
@@ -315,5 +314,5 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   etiquette: { fontWeight: "800", fontSize: 14, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
   lien: { minHeight: 48, alignItems: "center", justifyContent: "center" },
   lienTexte: { color: P.primary, fontWeight: "800", textDecorationLine: "underline", fontSize: 14, textAlign: "center" },
-  bas: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 14 },
+  bas: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16 },
 });

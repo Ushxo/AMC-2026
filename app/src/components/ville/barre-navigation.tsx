@@ -85,7 +85,7 @@ export function BarreNavigation({
 }
 
 const styles = StyleSheet.create({
-  barre: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10, paddingHorizontal: 12, gap: 8 },
+  barre: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, paddingHorizontal: 12, gap: 8 },
   texte: { gap: 2 },
   suggestion: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   texteSuggestion: { flex: 1 },

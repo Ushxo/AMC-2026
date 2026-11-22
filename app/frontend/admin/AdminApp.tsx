@@ -24,9 +24,9 @@ const ONGLETS: Onglet<Id>[] = [
 ];
 
 const ENTETES: Record<Exclude<Id, "superviseur">, { titre: string; sous: string }> = {
-  comptes: { titre: "Administration", sous: "Comptes du personnel" },
-  marque: { titre: "Administration", sous: "Organisations et marque" },
-  equipes: { titre: "Administration", sous: "Équipes de la Ville" },
+  comptes: { titre: "Administration", sous: "Créer les comptes et choisir leur organisation" },
+  marque: { titre: "Administration", sous: "Nom, logo et couleurs de chaque organisation" },
+  equipes: { titre: "Administration", sous: "Créer et modifier les équipes" },
 };
 
 // Espace d'administration, ouvert à la connexion d'un administrateur : comptes, marque des organisations, équipes,

@@ -3,7 +3,6 @@ import { FlatList, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 
 import { hrefEndroit } from "@/components/ville/href-endroit";
@@ -138,7 +137,7 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
         data={chargement || erreur ? [] : liste}
         keyExtractor={(i) => i.endroit.cle}
         renderItem={({ item }) => <Ligne i={item} lieu={lieu(item)} onOuvrir={() => router.push(hrefEndroit(item.endroit))} />}
-        contentContainerStyle={[styles.page, { paddingBottom: 130 }]}
+        contentContainerStyle={[styles.page, { paddingBottom: 64 }]}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         initialNumToRender={10}
         windowSize={7}
@@ -205,7 +204,7 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
           onPress={() => onCalculer(clesDesInterventions(liste))}
           style={[styles.calculer, liste.length === 0 && { opacity: 0.5 }]}
         >
-          <MaterialCommunityIcons name="map-marker-path" size={34} color={P.surface} />
+          <Ionicons name="navigate-outline" size={34} color={P.surface} />
           <View style={styles.separateur} />
           <View style={{ flex: 1 }}>
             <Text style={styles.calculerTitre} maxFontSizeMultiplier={1.2}>
@@ -224,15 +223,15 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1, backgroundColor: P.background },
-  page: { padding: 18, gap: 12, maxWidth: 800, width: "100%", alignSelf: "center" },
+  page: { padding: 20, gap: 12, maxWidth: 800, width: "100%", alignSelf: "center" },
   titreRangee: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
   titre: { fontSize: 26, fontWeight: "800", color: P.text, flexShrink: 1 },
-  compteur: { backgroundColor: FOND_COMPTEUR, color: P.primary, fontWeight: "800", fontSize: 16, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, overflow: "hidden" },
+  compteur: { backgroundColor: FOND_COMPTEUR, color: P.primary, fontWeight: "800", fontSize: 16, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
   sous: { color: P.textSecondary, fontSize: 15 },
   filtresTitre: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
   filtresMot: { fontSize: 20, fontWeight: "800", color: P.text },
   filtres: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  pilule: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexShrink: 1 },
+  pilule: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexShrink: 1 },
   piluleActive: { backgroundColor: P.backgroundSelected },
   piluleTexte: { color: P.text, fontSize: 15, flexShrink: 1 },
   voile: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
@@ -240,17 +239,17 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   feuilleTitre: { fontSize: 20, fontWeight: "800", color: P.text },
   option: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderColor: P.border },
   optionTexte: { fontSize: 17, color: P.text },
-  ligne: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: P.surface, borderRadius: 24, padding: 10, shadowColor: COULEUR_OMBRE, shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  priorite: { width: 76, borderRadius: 18, alignItems: "center", paddingTop: 8, paddingBottom: 6, gap: 4 },
-  prioriteTexte: { color: BLANC_FIXE, fontWeight: "800", fontSize: 13, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, overflow: "hidden" },
+  ligne: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.surface, borderRadius: 22, padding: 12, shadowColor: COULEUR_OMBRE, shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  priorite: { width: 76, borderRadius: 16, alignItems: "center", paddingTop: 8, paddingBottom: 8, gap: 4 },
+  prioriteTexte: { color: BLANC_FIXE, fontWeight: "800", fontSize: 13, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4, overflow: "hidden" },
   dessin: { width: 60, height: 52, alignItems: "center", justifyContent: "center" },
   ligneTitre: { fontSize: 17, fontWeight: "800", color: P.text },
-  detail: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  detail: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   detailTexte: { fontSize: 13, color: P.text, flexShrink: 1 },
   lien: { minHeight: 48, alignItems: "center", justifyContent: "center" },
   lienTexte: { color: P.primary, fontWeight: "800", textDecorationLine: "underline", fontSize: 15 },
-  bas: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 14 },
-  calculer: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: P.action, borderRadius: 32, paddingHorizontal: 22, paddingVertical: 16, minHeight: 80 },
+  bas: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16 },
+  calculer: { flexDirection: "row", alignItems: "center", gap: 16, backgroundColor: P.action, borderRadius: 30, paddingHorizontal: 24, paddingVertical: 16, minHeight: 80 },
   separateur: { width: 1, alignSelf: "stretch", backgroundColor: "rgba(255,255,255,0.5)" },
   calculerTitre: { color: P.surface, fontSize: 20, fontWeight: "800" },
   calculerSous: { color: P.surface, fontSize: 14, marginTop: 2 },

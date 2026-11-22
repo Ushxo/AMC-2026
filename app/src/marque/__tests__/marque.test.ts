@@ -83,6 +83,23 @@ describe('apparences', () => {
       }
     }
   });
+  it('textes secondaires et bordures lisibles sur chaque fond, dans toutes les marques et apparences', () => {
+    const manques: string[] = [];
+    for (const o of ORGANISATIONS_EMBARQUEES) {
+      for (const a of ['standard', 'contraste', 'sombre', 'daltonisme'] as const) {
+        const c = appliquerApparence(o.couleurs as Couleurs, a);
+        for (const fond of ['background', 'surface', 'backgroundElement'] as const) {
+          if (contraste(c.textSecondary, c[fond]) < 4.5) manques.push(`${o.code}/${a}: textSecondary sur ${fond} ${contraste(c.textSecondary, c[fond]).toFixed(1)}`);
+          if (contraste(c.text, c[fond]) < 4.5) manques.push(`${o.code}/${a}: text sur ${fond}`);
+        }
+        // (palette d'origine : le texte secondaire ne se pose jamais sur le fond sélectionné ; on exige la règle pour les variantes calculées)
+        if (a !== 'standard' && a !== 'daltonisme' && contraste(c.textSecondary, c.backgroundSelected) < 4.5) manques.push(`${o.code}/${a}: textSecondary sur backgroundSelected ${contraste(c.textSecondary, c.backgroundSelected).toFixed(1)}`);
+        if (contraste(c.primary, c.backgroundSelected) < 4.5) manques.push(`${o.code}/${a}: primary sur backgroundSelected ${contraste(c.primary, c.backgroundSelected).toFixed(1)}`);
+        if (contraste(c.borderForte, c.background) < 3) manques.push(`${o.code}/${a}: borderForte sur background ${contraste(c.borderForte, c.background).toFixed(1)}`);
+      }
+    }
+    expect(manques).toEqual([]);
+  });
   it('s’applique à toute marque (Montréal en sombre)', () => {
     expect(problemesContraste(appliquerApparence(montreal.couleurs as Couleurs, 'sombre'))).toEqual([]);
     expect(problemesContraste(appliquerApparence(montreal.couleurs as Couleurs, 'contraste'))).toEqual([]);

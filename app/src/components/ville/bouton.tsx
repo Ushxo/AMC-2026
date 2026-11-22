@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 
 import { CIBLE_MIN } from './style';
+import { Coche } from './coche';
 
 type Props = {
   titre: string;
@@ -48,8 +49,9 @@ export function Bouton({
       ]}>
       <View style={styles.contenu}>
         {occupe ? <ActivityIndicator size="small" color={plein ? theme.onPrimary : undefined} /> : null}
+        {selectionne ? <Coche couleur={plein ? theme.onPrimary : theme.primary} /> : null}
         <ThemedText type="smallBold" style={plein ? { color: theme.onPrimary } : undefined}>
-          {selectionne ? `✓ ${titre}` : titre}
+          {titre}
         </ThemedText>
       </View>
     </Pressable>

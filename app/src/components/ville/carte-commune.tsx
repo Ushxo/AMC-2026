@@ -49,7 +49,7 @@ export function CarteCommune({ children, style, ...reste }: Props) {
 }
 
 const styles = StyleSheet.create({
-  cadre: { overflow: 'hidden', borderRadius: 14 },
+  cadre: { overflow: 'hidden', borderRadius: 16 },
   carte: { flex: 1 },
   attribution: { position: 'absolute', right: 8, bottom: 4 },
 });

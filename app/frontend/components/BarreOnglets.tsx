@@ -35,7 +35,7 @@ export function BarreOnglets<Id extends string>({ onglets, actif, onChange }: { 
             style={[styles.tab, selected && styles.tabActive]}
           >
             <Ionicons name={selected ? o.iconActive : o.icon} size={24} color={P.primary} />
-            <Text style={[styles.label, selected && styles.labelActive]} maxFontSizeMultiplier={1.3} adjustsFontSizeToFit minimumFontScale={0.8}>
+            <Text style={[styles.label, selected && styles.labelActive]} numberOfLines={1} maxFontSizeMultiplier={1.3} adjustsFontSizeToFit minimumFontScale={0.8}>
               {o.label}
             </Text>
           </Pressable>
@@ -50,12 +50,12 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     flexDirection: "row",
     backgroundColor: P.background,
     paddingTop: 8,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     gap: 4,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: P.border,
   },
-  tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 6, borderRadius: 18, minHeight: 56, gap: 2, minWidth: 44 },
+  tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 8, borderRadius: 16, minHeight: 56, gap: 2, minWidth: 44 },
   tabActive: { backgroundColor: P.backgroundSelected },
   label: { color: P.primary, fontSize: 13, fontWeight: "600", textAlign: "center" },
   labelActive: { fontWeight: "800" },

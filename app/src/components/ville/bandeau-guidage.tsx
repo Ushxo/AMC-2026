@@ -6,7 +6,6 @@ import type { Guidage } from '@/lib/guidage';
 
 import { Bouton } from './bouton';
 import { FlecheManoeuvre } from './fleche-manoeuvre';
-import { COULEUR_ACCENT } from './style';
 
 type Props = {
   guidage: Guidage;
@@ -25,7 +24,7 @@ export function BandeauGuidage({ guidage, resume, onArretFait, occupe }: Props) 
   const theme = useTheme();
   const arrive = guidage.statut === 'arrive';
   return (
-    <View style={[styles.bandeau, { backgroundColor: theme.backgroundElement, borderLeftColor: COULEUR_ACCENT }]}>
+    <View style={[styles.bandeau, { backgroundColor: theme.backgroundElement}]}>
       <View
         accessible
         accessibilityLiveRegion="polite"
@@ -52,7 +51,7 @@ export function BandeauGuidage({ guidage, resume, onArretFait, occupe }: Props) 
 }
 
 const styles = StyleSheet.create({
-  bandeau: { borderRadius: 12, borderLeftWidth: 6, padding: 12, gap: 8 },
+  bandeau: { borderRadius: 12, padding: 12, gap: 8 },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   textes: { flex: 1, gap: 2 },
   phrase: { fontSize: 18, lineHeight: 24 },

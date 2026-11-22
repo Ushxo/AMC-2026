@@ -46,7 +46,7 @@ export default function SupervisorApp({ onLogout, onAdministration }: { onLogout
   return (
     <View style={styles.root}>
       {onglet === "optimisation" && demande && !details ? null : onglet === "interventions" && tableau ? (
-        <EnteteVert titre="Tableau de bord" sousTitre="Vue d'ensemble de la journée" onBack={() => setTableau(false)} libelleRetour="Retour aux interventions" />
+        <EnteteVert titre="Tableau de bord" sousTitre="À traiter, plan des équipes, gain du calcul" onBack={() => setTableau(false)} libelleRetour="Retour aux interventions" />
       ) : (
         <EnteteVert
           titre={ENTETES[onglet].titre}
@@ -103,6 +103,6 @@ export default function SupervisorApp({ onLogout, onAdministration }: { onLogout
 const creerStyles = (P: Jetons) => StyleSheet.create({
   root: { flex: 1, backgroundColor: P.background },
   corps: { flex: 1 },
-  creer: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, marginHorizontal: 16, marginTop: 10, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface },
+  creer: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface },
   creerTexte: { color: P.primary, fontWeight: "800", fontSize: 15 },
 });

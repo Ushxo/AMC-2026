@@ -234,7 +234,7 @@ export default function MarqueOrganisation() {
         const ok = rapport >= min;
         return (
           <Text key={k} style={[styles.contraste, { color: ok ? P.text : P.danger }]} accessibilityLabel={`${LIBELLES_COUPLES[k]} : contraste ${rapport.toFixed(1)}, ${ok ? "lisible" : "illisible"}`}>
-            {ok ? "✓" : "✗"} {LIBELLES_COUPLES[k]} : {rapport.toFixed(1)} (minimum {min})
+            {ok ? "Lisible" : "Illisible"} : {LIBELLES_COUPLES[k]}, contraste {rapport.toFixed(1)} (minimum {min})
           </Text>
         );
       })}
@@ -253,18 +253,18 @@ const creerStyles = (P: Jetons) =>
     titre: { fontSize: 18, fontWeight: "700", color: P.text, marginTop: 8 },
     note: { fontSize: 13, color: P.textSecondary, lineHeight: 19 },
     rangee: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-    chip: { minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexDirection: "row", alignItems: "center", gap: 8 },
+    chip: { minHeight: 48, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexDirection: "row", alignItems: "center", gap: 8 },
     chipActif: { backgroundColor: P.backgroundSelected, borderWidth: 2, borderColor: P.primary },
     chipTexte: { fontSize: 14, fontWeight: "700", color: P.text },
     points: { flexDirection: "row", gap: 2 },
     point: { width: 14, height: 14, borderRadius: 7 },
-    logoChoix: { minHeight: 64, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexDirection: "row", alignItems: "center", gap: 10 },
-    logoImage: { width: 44, height: 44, borderRadius: 10 },
+    logoChoix: { minHeight: 64, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexDirection: "row", alignItems: "center", gap: 12 },
+    logoImage: { width: 44, height: 44, borderRadius: 12 },
     groupe: { gap: 8 },
-    ligneCouleur: { flexDirection: "row", alignItems: "center", gap: 10 },
+    ligneCouleur: { flexDirection: "row", alignItems: "center", gap: 12 },
     echantillon: { width: 36, height: 36, borderRadius: 18, borderWidth: 1 },
     libelle: { flex: 1, fontSize: 15, fontWeight: "600", color: P.text },
-    champHex: { minWidth: 104, minHeight: 48, borderRadius: 14, borderWidth: 2, borderColor: P.borderForte, backgroundColor: P.surface, color: P.text, paddingHorizontal: 12, fontSize: 15 },
+    champHex: { minWidth: 104, minHeight: 48, borderRadius: 16, borderWidth: 2, borderColor: P.borderForte, backgroundColor: P.surface, color: P.text, paddingHorizontal: 12, fontSize: 15 },
     nuance: { width: 40, height: 40, borderRadius: 20 },
     contraste: { fontSize: 14, fontWeight: "600" },
   });

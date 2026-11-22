@@ -185,13 +185,13 @@ export function OptionsCalcul({ options, onChanger, equipes, positions, texteFin
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
   bloc: { gap: 12 },
-  carte: { backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 12 },
-  carteBascule: { backgroundColor: P.surface, borderRadius: 22, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  carte: { backgroundColor: P.surface, borderRadius: 22, padding: 20, gap: 12 },
+  carteBascule: { backgroundColor: P.surface, borderRadius: 22, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
   entete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   titre: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
   lien: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 4 },
   lienTexte: { fontSize: 15, fontWeight: '700', color: P.primary, textDecorationLine: 'underline' },
-  ligne: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
+  ligne: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
   point: { width: 14, height: 14, borderRadius: 7 },
   nom: { fontSize: 15, lineHeight: 22, fontWeight: '700' },
   detail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: P.textSecondary },

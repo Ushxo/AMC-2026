@@ -32,5 +32,5 @@ export function Champ({ etiquette, erreur, style, ...rest }: TextInputProps & { 
 
 const styles = StyleSheet.create({
   bloc: { gap: 4 },
-  champ: { minHeight: CIBLE_MIN, borderRadius: 12, paddingHorizontal: 14, fontSize: 16 },
+  champ: { minHeight: CIBLE_MIN, borderRadius: 12, paddingHorizontal: 16, fontSize: 16 },
 });

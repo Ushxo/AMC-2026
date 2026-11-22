@@ -121,10 +121,10 @@ export default function CreerComptePersonnel({ onBack }: { onBack: () => void })
 }
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
-  titre: { fontSize: 17, fontWeight: "800", color: P.text, marginTop: 8, marginBottom: 6 },
+  titre: { fontSize: 17, fontWeight: "800", color: P.text, marginTop: 8, marginBottom: 8 },
   rangee: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
-  chip: { minHeight: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, justifyContent: "center" },
+  chip: { minHeight: 48, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, justifyContent: "center" },
   chipActif: { backgroundColor: P.backgroundSelected, borderWidth: 2, borderColor: P.primary },
   chipTexte: { fontSize: 15, fontWeight: "700", color: P.text },
-  erreur: { color: P.danger, fontSize: 14, marginBottom: 6 },
+  erreur: { color: P.danger, fontSize: 14, marginBottom: 8 },
 });

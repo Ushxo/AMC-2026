@@ -104,6 +104,6 @@ export default function Connexion() {
 
 const styles = StyleSheet.create({
   fond: { flex: 1 },
-  contenu: { padding: 24, gap: 14, maxWidth: 520, width: '100%', alignSelf: 'center' },
+  contenu: { padding: 24, gap: 16, maxWidth: 520, width: '100%', alignSelf: 'center' },
   demo: { gap: 8, marginTop: 8 },
 });

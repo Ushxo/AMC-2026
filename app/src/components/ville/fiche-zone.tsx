@@ -68,7 +68,7 @@ export function FicheZone({ zone, signalements, onFermer, onOuvrir }: Props) {
 const styles = StyleSheet.create({
   fond: { flex: 1 },
   feuille: { maxHeight: '70%', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  contenu: { padding: 20, gap: 10 },
+  contenu: { padding: 20, gap: 12 },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pastille: { width: 14, height: 14, borderRadius: 7 },
   ligne: { minHeight: CIBLE_MIN, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, gap: 2, justifyContent: 'center' },

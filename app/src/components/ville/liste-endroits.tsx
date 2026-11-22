@@ -58,8 +58,8 @@ export function ListeEndroits({ endroits, onOuvrir }: Props) {
 
 const styles = StyleSheet.create({
   bloc: { gap: 8 },
-  liste: { gap: 6 },
-  ligne: { minHeight: CIBLE_MIN, borderRadius: 12, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  liste: { gap: 8 },
+  ligne: { minHeight: CIBLE_MIN, borderRadius: 12, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   pastille: { width: 12, height: 12, borderRadius: 6 },
   texte: { flex: 1 },
 });

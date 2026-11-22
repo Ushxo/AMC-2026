@@ -152,11 +152,11 @@ export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean 
 const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 20, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  carteEquipe: { backgroundColor: P.surface, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 80 },
+  carteEquipe: { backgroundColor: P.surface, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 80 },
   numero: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   numeroTexte: { color: BLANC_FIXE, fontSize: 17, lineHeight: 24, fontWeight: '700' },
   equipeNom: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
   equipeDetail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: P.textSecondary },
   equipeCompte: { fontSize: 13, lineHeight: 19, fontWeight: '700', color: P.primary },
-  formulaire: { gap: 10, marginTop: 8 },
+  formulaire: { gap: 12, marginTop: 8 },
 });

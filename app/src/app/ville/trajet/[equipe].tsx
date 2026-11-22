@@ -353,7 +353,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
             <>
               {titreBandeau ? <BandeauNavigation titre={titreBandeau} detail={detailBandeau} /> : null}
               <View style={styles.progression}>
-                <View style={{ flex: 1, gap: 6 }}>
+                <View style={{ flex: 1, gap: 8 }}>
                   <ThemedText style={styles.progressionTitre} accessibilityLabel={`${faits} arrêts faits sur ${total}`}>
                     {faits} {faits > 1 ? 'arrêts faits' : 'arrêt fait'} sur {total}
                   </ThemedText>
@@ -730,9 +730,9 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   piste: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: P.surface },
   remplissage: { height: 8, borderRadius: 4 },
-  progression: { backgroundColor: P.bandeau, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  progression: { backgroundColor: P.bandeau, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   progressionTitre: { fontSize: 15, lineHeight: 22, fontWeight: '700', color: P.primary },
-  dureePastille: { backgroundColor: P.surface, color: P.primary, fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
+  dureePastille: { backgroundColor: P.surface, color: P.primary, fontSize: 14, fontWeight: '700', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
   carteArretBlanche: { backgroundColor: P.surface, borderRadius: 22, padding: 16, gap: 12 },
   arretLigne: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   arretNum: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
@@ -740,16 +740,16 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   arretLegende: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: P.textSecondary },
   arretTitre: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
   arretLieu: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: P.textSecondary },
-  arretEtiquette: { fontSize: 13, fontWeight: '700', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: 'hidden' },
-  deuxBoutons: { flexDirection: 'row', gap: 10 },
-  bouton: { flex: 1, minHeight: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  arretEtiquette: { fontSize: 13, fontWeight: '700', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
+  deuxBoutons: { flexDirection: 'row', gap: 12 },
+  bouton: { flex: 1, minHeight: 52, borderRadius: 30, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   boutonContour: { borderWidth: 2, borderColor: P.primary, backgroundColor: P.surface },
   boutonPlein: { backgroundColor: P.success },
   boutonTexte: { fontSize: 15, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
   pied: { paddingHorizontal: 20, paddingTop: 8 },
   carte: { height: 380 },
-  carteArret: { padding: 14, borderRadius: 14, gap: 10 },
-  avisSecours: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.94)', color: P.text },
+  carteArret: { padding: 16, borderRadius: 16, gap: 12 },
+  avisSecours: { padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.94)', color: P.text },
   superposition: { position: 'absolute', top: 8, left: 8, right: 8 },
   commandesCarte: { position: 'absolute', right: 8, bottom: 8, gap: 8, alignItems: 'flex-end' },
 });

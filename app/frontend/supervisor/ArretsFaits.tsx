@@ -44,7 +44,7 @@ export default function ArretsFaits() {
           const prochain = ordre.find((a) => !a.fait);
           const lignes = [...faits.slice(0, 12), ...(prochain ? [prochain] : [])];
           return (
-            <View key={t.equipe_id} style={{ gap: 10 }} accessible={false}>
+            <View key={t.equipe_id} style={{ gap: 12 }} accessible={false}>
               <View style={styles.equipe} accessible accessibilityLabel={`${t.equipe_nom} : ${faits.length} arrêts faits sur ${t.arrets.length}`}>
                 <View style={[styles.point, { backgroundColor: couleurEquipe(i) }]} />
                 <Text style={styles.equipeNom}>{t.equipe_nom}</Text>
@@ -92,14 +92,14 @@ export default function ArretsFaits() {
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
   page: { padding: 20, gap: 16, maxWidth: 800, width: "100%", alignSelf: "center" },
-  note: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.bandeau, borderRadius: 20, padding: 14 },
+  note: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.bandeau, borderRadius: 22, padding: 16 },
   noteTexte: { flex: 1, fontSize: 14, fontWeight: "500", color: P.primary, lineHeight: 20 },
-  equipe: { flexDirection: "row", alignItems: "center", gap: 10 },
+  equipe: { flexDirection: "row", alignItems: "center", gap: 12 },
   point: { width: 14, height: 14, borderRadius: 7 },
   equipeNom: { flex: 1, fontSize: 17, fontWeight: "700", color: P.text },
-  pastille: { backgroundColor: P.bandeau, color: P.primary, fontSize: 14, fontWeight: "700", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden" },
+  pastille: { backgroundColor: P.bandeau, color: P.primary, fontSize: 14, fontWeight: "700", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
   carte: { backgroundColor: P.surface, borderRadius: 22, padding: 16 },
-  separateur: { height: 1, backgroundColor: P.border, marginVertical: 10 },
+  separateur: { height: 1, backgroundColor: P.border, marginVertical: 12 },
   ligne: { flexDirection: "row", alignItems: "center", gap: 12 },
   numero: { width: 32, height: 32, borderRadius: 16, textAlign: "center", lineHeight: 32, color: BLANC_FIXE, fontWeight: "700", fontSize: 15, overflow: "hidden" },
   ligneTitre: { fontSize: 15, fontWeight: "700", color: P.text },

@@ -141,6 +141,6 @@ export default function FicheSignalement() {
 const styles = StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 20, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  photo: { width: '100%', height: 240, borderRadius: 14 },
+  photo: { width: '100%', height: 240, borderRadius: 16 },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
 });

@@ -35,5 +35,5 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Pro
 
 const styles = StyleSheet.create({
   fond: { flex: 1 },
-  contenu: { flex: 1, padding: 24, gap: 14, justifyContent: 'center', maxWidth: 520, width: '100%', alignSelf: 'center' },
+  contenu: { flex: 1, padding: 24, gap: 16, justifyContent: 'center', maxWidth: 520, width: '100%', alignSelf: 'center' },
 });

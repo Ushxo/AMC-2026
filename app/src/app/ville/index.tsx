@@ -54,6 +54,6 @@ export default function AccueilVille() {
 
 const styles = StyleSheet.create({
   fond: { flex: 1 },
-  entete: { gap: 14 },
+  entete: { gap: 16 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

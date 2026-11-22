@@ -27,8 +27,8 @@ export function LegendeGravite() {
 
 const creerStyles = (P: Jetons) =>
   StyleSheet.create({
-    legende: { flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, backgroundColor: P.background, borderWidth: 1, borderColor: P.border },
-    item: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    legende: { flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: P.background, borderWidth: 1, borderColor: P.border },
+    item: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     pastille: { width: 12, height: 12, borderRadius: 6 },
     texte: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: P.text },
   });

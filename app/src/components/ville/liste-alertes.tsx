@@ -83,7 +83,7 @@ export function ListeAlertes({ entete, pied, avecResume = true, espaceBas = 0 }:
 
 const styles = StyleSheet.create({
   contenu: { padding: 20, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  entete: { gap: 14, marginBottom: 14 },
+  entete: { gap: 16, marginBottom: 16 },
   separateur: { height: 14 },
-  pied: { marginTop: 14 },
+  pied: { marginTop: 16 },
 });

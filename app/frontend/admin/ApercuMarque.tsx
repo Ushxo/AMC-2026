@@ -45,17 +45,17 @@ export function ApercuMarque({ jetons, nomApp, slogan, logo }: { jetons: Jetons;
 
 const styles = StyleSheet.create({
   cadre: { borderRadius: 22, borderWidth: 1, overflow: "hidden" },
-  entete: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14 },
+  entete: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
   nom: { fontSize: 18, fontWeight: "700" },
   slogan: { fontSize: 13, fontWeight: "500" },
-  corps: { padding: 14, gap: 12 },
+  corps: { padding: 16, gap: 12 },
   carte: { borderRadius: 16, borderWidth: 1, padding: 12, gap: 4 },
   titreCarte: { fontSize: 15, fontWeight: "700" },
   sousCarte: { fontSize: 13, fontWeight: "500" },
-  ligne: { flexDirection: "row", gap: 8, marginTop: 6 },
-  etiquette: { fontSize: 13, fontWeight: "700", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, overflow: "hidden" },
+  ligne: { flexDirection: "row", gap: 8, marginTop: 8 },
+  etiquette: { fontSize: 13, fontWeight: "700", paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, overflow: "hidden" },
   bouton: { height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   boutonTexte: { fontSize: 15, fontWeight: "700" },
   barre: { flexDirection: "row", justifyContent: "space-around", padding: 8, borderTopWidth: 1 },
-  onglet: { fontSize: 13, fontWeight: "700", paddingHorizontal: 18, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
+  onglet: { fontSize: 13, fontWeight: "700", paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
 });

@@ -49,7 +49,7 @@ export default function StaffApp({ onLogout }: { onLogout: () => void }) {
 const creerStyles = (P: Jetons) => StyleSheet.create({
   root: { flex: 1, backgroundColor: P.background },
   corps: { flex: 1 },
-  vide: { margin: 20, padding: 20, borderRadius: 20, backgroundColor: P.surface, borderWidth: 1, borderColor: P.border, gap: 8 },
+  vide: { margin: 20, padding: 20, borderRadius: 22, backgroundColor: P.surface, borderWidth: 1, borderColor: P.border, gap: 8 },
   titre: { fontSize: 18, fontWeight: "800", color: P.primary },
   texte: { fontSize: 15, color: P.textSecondary },
 });

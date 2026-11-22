@@ -17,6 +17,7 @@ import { Chip } from './chip';
 import { SelecteurCarte } from './selecteur-carte';
 import { CarteSelection } from './carte-selection';
 import { CIBLE_MIN, COULEUR_REPERE } from './style';
+import { Coche } from './coche';
 
 const GRAVITES: Gravite[] = ['elevee', 'moyenne', 'faible'];
 const PAS_LISTE = 20;
@@ -183,7 +184,7 @@ export function SelectionEndroits({
                 accessibilityState={{ checked: choisi }}
                 accessibilityLabel={`${nombre}, gravité ${LIBELLES_GRAVITE[e.gravite_affichee]}, ${e.position.latitude.toFixed(4)}, ${e.position.longitude.toFixed(4)}`}
                 style={[styles.ligne, { backgroundColor: choisi ? theme.backgroundSelected : theme.backgroundElement }]}>
-                <ThemedText type="smallBold">{choisi ? '✓' : '○'}</ThemedText>
+                <View style={[styles.caseCoche, { borderColor: theme.borderForte }]}>{choisi ? <Coche /> : null}</View>
                 <View style={[styles.pastille, { backgroundColor: COULEUR_REPERE[e.gravite_affichee] }]} />
                 <ThemedText type="small" style={styles.texteLigne}>
                   {LIBELLES_GRAVITE[e.gravite_affichee]} · {nombre} · {e.position.latitude.toFixed(4)}, {e.position.longitude.toFixed(4)}
@@ -205,13 +206,14 @@ export function SelectionEndroits({
 }
 
 const styles = StyleSheet.create({
-  bloc: { gap: 10 },
+  bloc: { gap: 12 },
   plein: { flex: 1 },
   hautPlein: { padding: 12, gap: 8 },
   cartePleine: { flex: 1, borderRadius: 0 },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  liste: { gap: 6 },
-  ligne: { minHeight: CIBLE_MIN, borderRadius: 12, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  liste: { gap: 8 },
+  ligne: { minHeight: CIBLE_MIN, borderRadius: 12, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   pastille: { width: 12, height: 12, borderRadius: 6 },
+  caseCoche: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   texteLigne: { flex: 1 },
 });

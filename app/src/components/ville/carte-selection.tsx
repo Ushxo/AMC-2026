@@ -140,6 +140,6 @@ export function CarteSelection({
 const creerStyles = (P: Jetons) => StyleSheet.create({
   cadre: { height: 340 },
   carte: { flex: 1 },
-  bulle: { position: 'absolute', left: 8, right: 8, bottom: 8, padding: 10, borderRadius: 12, gap: 6, backgroundColor: 'rgba(255,255,255,0.94)' },
+  bulle: { position: 'absolute', left: 8, right: 8, bottom: 8, padding: 12, borderRadius: 12, gap: 8, backgroundColor: 'rgba(255,255,255,0.94)' },
   texte: { color: P.text },
 });

@@ -56,8 +56,8 @@ describe('administration : marque de l’organisation', () => {
     expect(await screen.findByLabelText('Aperçu de la marque Priorix')).toBeTruthy();
     expect(screen.getByText(/sont recalculées à partir de ces quatre couleurs/)).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('Préréglage Bleu fleuve'));
-    expect(screen.getAllByText(/✓/).length).toBeGreaterThanOrEqual(5); // tous les couples sont lisibles
-    expect(screen.queryByText(/✗/)).toBeNull();
+    expect(screen.getAllByText(/^Lisible :/).length).toBeGreaterThanOrEqual(5); // tous les couples sont lisibles
+    expect(screen.queryByText(/^Illisible :/)).toBeNull();
     await fireEvent.changeText(screen.getByLabelText("Nom de l'app"), 'Priorix Bleu');
     await fireEvent.press(screen.getByText('Enregistrer la marque'));
     await waitFor(() => expect(screen.getByText(/Marque enregistrée/)).toBeTruthy());
@@ -71,7 +71,7 @@ describe('administration : marque de l’organisation', () => {
     await screen.findByLabelText('Aperçu de la marque Priorix');
     await fireEvent.changeText(screen.getByLabelText('Boutons d\'action, code couleur'), '#FFE066'); // clair : le texte passe en noir
     await fireEvent.changeText(screen.getByLabelText('Couleur principale, code couleur'), '#12');
-    expect(screen.queryByText(/✗/)).toBeNull();
+    expect(screen.queryByText(/^Illisible :/)).toBeNull();
     await fireEvent.changeText(screen.getByLabelText("Nom de l'app"), 'P');
     await fireEvent.press(screen.getByText('Enregistrer la marque'));
     expect(await screen.findByText(/2 caractères au moins/)).toBeTruthy();

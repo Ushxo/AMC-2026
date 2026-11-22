@@ -79,8 +79,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
-    paddingVertical: 10,
-    borderRadius: 26,
+    paddingVertical: 12,
+    borderRadius: 30,
   },
   tabActive: {
     backgroundColor: P.backgroundSelected,

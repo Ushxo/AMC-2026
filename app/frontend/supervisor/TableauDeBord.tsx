@@ -71,7 +71,7 @@ export default function TableauDeBord() {
                 const faits = t.arrets.filter((a) => a.fait).length;
                 const pct = t.arrets.length > 0 ? Math.round((faits / t.arrets.length) * 100) : 0;
                 return (
-                  <View key={t.equipe_id} style={{ gap: 6 }} accessible accessibilityLabel={`${t.equipe_nom} : ${formaterNombre(t.arrets.length, "arrêt", "arrêts")}, ${formaterDuree(t.duree_s)}, ${faits} faits`}>
+                  <View key={t.equipe_id} style={{ gap: 8 }} accessible accessibilityLabel={`${t.equipe_nom} : ${formaterNombre(t.arrets.length, "arrêt", "arrêts")}, ${formaterDuree(t.duree_s)}, ${faits} faits`}>
                     <View style={styles.equipeLigne}>
                       <View style={[styles.point, { backgroundColor: couleurEquipe(i) }]} />
                       <Text style={styles.equipeNom}>{t.equipe_nom}</Text>
@@ -137,16 +137,16 @@ export default function TableauDeBord() {
 const creerStyles = (P: Jetons) => StyleSheet.create({
   page: { padding: 20, gap: 16, maxWidth: 800, width: "100%", alignSelf: "center" },
   deux: { flexDirection: "row", gap: 12 },
-  tuile: { flex: 1, backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 6 },
+  tuile: { flex: 1, backgroundColor: P.surface, borderRadius: 22, padding: 20, gap: 8 },
   tuileLegende: { fontSize: 14, fontWeight: "600", color: P.textSecondary },
   tuileChiffre: { fontSize: 36, lineHeight: 46, fontWeight: "700" },
   tuileNote: { fontSize: 13, fontWeight: "500", color: P.textSecondary },
-  plan: { backgroundColor: P.bandeau, borderRadius: 22, padding: 18, gap: 12 },
+  plan: { backgroundColor: P.bandeau, borderRadius: 22, padding: 20, gap: 12 },
   planEntete: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   planTitre: { fontSize: 17, fontWeight: "700", color: P.primary },
   planNote: { fontSize: 14, fontWeight: "500", color: P.textSecondary, lineHeight: 20 },
-  pastille: { backgroundColor: P.surface, color: P.primary, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
-  equipeLigne: { flexDirection: "row", alignItems: "center", gap: 10 },
+  pastille: { backgroundColor: P.surface, color: P.primary, fontSize: 14, fontWeight: "700", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
+  equipeLigne: { flexDirection: "row", alignItems: "center", gap: 12 },
   point: { width: 14, height: 14, borderRadius: 7 },
   equipeNom: { fontSize: 15, fontWeight: "600", flex: 1, color: P.primary },
   equipeDetail: { fontSize: 14, fontWeight: "500", color: P.textSecondary },
@@ -154,8 +154,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   remplissage: { height: 8, borderRadius: 4, backgroundColor: P.header },
   lien: { minHeight: 48, justifyContent: "center" },
   lienTexte: { fontSize: 15, fontWeight: "700", color: P.primary, textDecorationLine: "underline" },
-  bloc: { backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 12 },
-  etiquette: { fontSize: 13, fontWeight: "700", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden", width: 88, textAlign: "center" },
+  bloc: { backgroundColor: P.surface, borderRadius: 22, padding: 20, gap: 12 },
+  etiquette: { fontSize: 13, fontWeight: "700", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, overflow: "hidden", width: 88, textAlign: "center" },
   compte: { fontSize: 14, fontWeight: "700", minWidth: 28, textAlign: "right", color: P.text },
   gain: { fontSize: 15, fontWeight: "500", color: P.textSecondary, lineHeight: 21 },
 });

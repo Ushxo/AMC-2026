@@ -92,7 +92,7 @@ export function appliquerApparence(base: Couleurs, apparence: Apparence): Couleu
   c.backgroundElement = melanger(base.primary, '#000000', 0.74);
   c.backgroundSelected = melanger(base.primary, '#000000', 0.55);
   c.textSecondary = ajusterContraste(melanger('#F5F3ED', fond, 0.3), fond, 4.5);
-  c.primary = ajusterContraste(eclaircir(base.primary, 0.3), surface, 4.5);
+  c.primary = ajusterContraste(ajusterContraste(eclaircir(base.primary, 0.3), surface, 4.5), c.backgroundSelected, 4.5);
   c.onPrimary = texteSur(c.primary);
   c.action = ajusterContraste(eclaircir(base.action, 0.15), fond, 4.5);
   c.onAction = texteSur(c.action);

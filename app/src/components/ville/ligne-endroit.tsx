@@ -54,7 +54,7 @@ export function LigneEndroit({
 }
 
 const styles = StyleSheet.create({
-  ligne: { minHeight: CIBLE_MIN, padding: 14, borderRadius: 14, gap: 6 },
+  ligne: { minHeight: CIBLE_MIN, padding: 16, borderRadius: 16, gap: 8 },
   entete: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   pied: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12 },
 });

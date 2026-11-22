@@ -90,6 +90,13 @@ export const Fonts = Platform.select({
   },
 });
 
+/**
+ * Échelle d'espacement et de rayons de toute l'interface (marges, écarts, remplissages, coins arrondis).
+ * Les écrans n'inventent pas de valeur isolée : un test signale tout nombre hors échelle dans les styles.
+ */
+export const ESPACES = [0, 2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64] as const;
+export const RAYONS = [4, 8, 12, 16, 22, 30] as const;
+
 export const Spacing = {
   half: 2,
   one: 4,

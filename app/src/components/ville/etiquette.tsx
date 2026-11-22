@@ -33,7 +33,7 @@ export function EtiquetteNeutre({ texte }: { texte: string }) {
 }
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
-  etiquette: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },
+  etiquette: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },
   blanc: { color: BLANC_FIXE },
   neutre: { paddingVertical: 2, alignSelf: 'flex-start' },
 });

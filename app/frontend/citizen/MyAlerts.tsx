@@ -119,7 +119,7 @@ export default function MyAlerts() {
             <Pressable
               key={a.id}
               onPress={() => router.push({ pathname: '/suivi/[id]', params: { id: a.id } })}
-              style={[styles.card, { marginHorizontal: 14, marginBottom: 16 }]}
+              style={[styles.card, { marginHorizontal: 16, marginBottom: 16 }]}
               accessibilityRole="button"
               accessibilityLabel={`${titre}, ${badge.label}. Ouvrir le suivi et l’heure de passage.`}
             >
@@ -151,7 +151,7 @@ export default function MyAlerts() {
 
               <Progress step={step} />
 
-              {a.en_attente ? <Text style={[styles.detail, { marginTop: 10 }]}>En attente d’envoi : le réseau reviendra.</Text> : null}
+              {a.en_attente ? <Text style={[styles.detail, { marginTop: 12 }]}>En attente d’envoi : le réseau reviendra.</Text> : null}
             </Pressable>
           );
       }}
@@ -164,14 +164,14 @@ export default function MyAlerts() {
           ) : erreur ? (
             <View style={styles.card} accessibilityRole="alert">
               <Text style={styles.cardTitle}>{erreur}</Text>
-              <Pressable onPress={() => void rafraichir()} accessibilityRole="button" style={{ marginTop: 10, minHeight: 48, justifyContent: 'center' }}>
+              <Pressable onPress={() => void rafraichir()} accessibilityRole="button" style={{ marginTop: 12, minHeight: 48, justifyContent: 'center' }}>
                 <Text style={[styles.detail, { fontWeight: '800', color: P.primary, textDecorationLine: 'underline' }]}>Réessayer</Text>
               </Pressable>
             </View>
           ) : vide ? (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Aucune alerte pour le moment</Text>
-              <Text style={[styles.detail, { marginTop: 6 }]}>Touchez « Signaler un problème » sur la carte pour envoyer un signalement.</Text>
+              <Text style={[styles.detail, { marginTop: 8 }]}>Touchez « Signaler un problème » sur la carte pour envoyer un signalement.</Text>
             </View>
           ) : null}
         </View>
@@ -188,8 +188,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
 
   header: {
     backgroundColor: P.header,
-    paddingHorizontal: 26,
-    paddingBottom: 72,
+    paddingHorizontal: 24,
+    paddingBottom: 64,
     overflow: 'hidden',
   },
 
@@ -216,16 +216,16 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   },
 
   list: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     gap: 16,
   },
 
   card: {
     backgroundColor: P.surface,
-    paddingHorizontal: 18,
-    paddingTop: 18,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 16,
-    borderRadius: 28,
+    borderRadius: 30,
     shadowColor: COULEUR_OMBRE,
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -236,13 +236,13 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   cardTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 14,
+    gap: 16,
   },
 
   iconBox: {
     width: 58,
     height: 58,
-    borderRadius: 18,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -254,7 +254,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    gap: 4,
   },
 
   grateBar: {
@@ -265,7 +265,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
+    gap: 8,
     marginBottom: 4,
   },
 
@@ -280,8 +280,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    marginTop: 3,
+    gap: 8,
+    marginTop: 4,
   },
 
   detail: {
@@ -293,21 +293,21 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   side: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
 
   badge: {
     fontSize: 13,
     fontWeight: '700',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 16,
     overflow: 'hidden',
   },
 
   progress: {
     flexDirection: 'row',
-    marginTop: 22,
+    marginTop: 24,
   },
 
   // Ligne qui relie le centre du premier point au centre du dernier.
@@ -343,7 +343,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   stepText: {
     fontSize: 13,
     color: P.text,
-    marginTop: 6,
+    marginTop: 8,
     textAlign: 'center',
   },
 

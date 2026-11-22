@@ -11,6 +11,7 @@ import {
 } from '@/lib/theme-pref';
 
 import { CIBLE_MIN } from './style';
+import { Coche } from './coche';
 
 /** « Carte : Automatique / Claire / Sombre » : ne change que le style de la carte, pas le fond de l'app. */
 export function SelecteurCarte() {
@@ -30,7 +31,8 @@ export function SelecteurCarte() {
               accessibilityLabel={LIBELLES_THEME[p]}
               accessibilityState={{ checked: actif, selected: actif }}
               style={[styles.segment, actif ? { backgroundColor: theme.backgroundSelected } : null]}>
-              <ThemedText type={actif ? 'smallBold' : 'small'}>{actif ? `✓ ${LIBELLES_THEME[p]}` : LIBELLES_THEME[p]}</ThemedText>
+              {actif ? <Coche /> : null}
+              <ThemedText type={actif ? 'smallBold' : 'small'}>{LIBELLES_THEME[p]}</ThemedText>
             </Pressable>
           );
         })}
@@ -40,7 +42,7 @@ export function SelecteurCarte() {
 }
 
 const styles = StyleSheet.create({
-  groupe: { gap: 6 },
-  rangee: { flexDirection: 'row', borderRadius: 12, padding: 3, gap: 3 },
-  segment: { flex: 1, minHeight: CIBLE_MIN - 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  groupe: { gap: 8 },
+  rangee: { flexDirection: 'row', borderRadius: 12, padding: 4, gap: 4 },
+  segment: { flex: 1, minHeight: CIBLE_MIN - 6, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
 });

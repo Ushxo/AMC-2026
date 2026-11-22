@@ -93,11 +93,11 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   plein: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   teinte: { backgroundColor: 'rgba(248, 244, 234, 0.35)' },
   voile: { backgroundColor: 'rgba(248, 244, 234, 0.72)' },
-  feuille: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 12, gap: 14 },
+  feuille: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 12, gap: 16 },
   poignee: { alignSelf: 'center', width: 48, height: 5, borderRadius: 3 },
   titre: { textAlign: 'center', fontSize: 24, lineHeight: 30 },
   grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  carte: { flexBasis: '47%', flexGrow: 1, borderRadius: 22, padding: 10, alignItems: 'center', minHeight: 150, justifyContent: 'space-between' },
+  carte: { flexBasis: '47%', flexGrow: 1, borderRadius: 22, padding: 12, alignItems: 'center', minHeight: 150, justifyContent: 'space-between' },
   dessin: { height: 84, alignItems: 'center', justifyContent: 'center' },
   texte: { textAlign: 'center' },
 });

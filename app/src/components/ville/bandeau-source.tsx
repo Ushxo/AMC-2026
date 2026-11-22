@@ -17,5 +17,5 @@ export function BandeauSource({ etat, simule }: { etat: EtatSource; simule?: boo
 }
 
 const styles = StyleSheet.create({
-  bandeau: { padding: 12, borderRadius: 10 },
+  bandeau: { padding: 12, borderRadius: 12 },
 });

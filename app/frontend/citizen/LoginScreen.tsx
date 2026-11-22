@@ -167,12 +167,12 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
   root: { flex: 1, backgroundColor: P.background },
-  hero: { backgroundColor: P.header, paddingHorizontal: 18, paddingBottom: 26, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  hero: { backgroundColor: P.header, paddingHorizontal: 20, paddingBottom: 24, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
   heroTitre: { color: P.onHeader, fontSize: 26, fontWeight: "700" },
   heroSous: { color: P.bandeau, fontSize: 15, fontWeight: "500" },
   corps: { padding: 24, gap: 20, flexGrow: 1 },
-  note: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: P.bandeau, borderRadius: 20, padding: 16 },
+  note: { flexDirection: "row", alignItems: "center", gap: 16, backgroundColor: P.bandeau, borderRadius: 22, padding: 16 },
   noteTexte: { flex: 1, fontSize: 14, fontWeight: "500", color: P.text, lineHeight: 20 },
   groupe: { gap: 8 },
   etiquette: { fontSize: 15, fontWeight: "600", color: P.text },
@@ -184,9 +184,9 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   forgot: { alignSelf: "flex-end", minHeight: 48, justifyContent: "center" },
   forgotText: { fontSize: 15, fontWeight: "600", color: P.primary, textDecorationLine: "underline" },
   error: { color: P.danger, fontSize: 14, fontWeight: "600" },
-  secondary: { minHeight: 52, borderRadius: 26, borderWidth: 2, borderColor: P.primary, alignItems: "center", justifyContent: "center" },
+  secondary: { minHeight: 52, borderRadius: 30, borderWidth: 2, borderColor: P.primary, alignItems: "center", justifyContent: "center" },
   secondaryText: { color: P.primary, fontSize: 16, fontWeight: "700" },
-  demo: { borderTopWidth: 1, borderTopColor: P.border, paddingTop: 16, alignItems: "center", gap: 6, marginTop: 8 },
+  demo: { borderTopWidth: 1, borderTopColor: P.border, paddingTop: 16, alignItems: "center", gap: 8, marginTop: 8 },
   demoNote: { fontSize: 13, fontWeight: "500", color: P.textSecondary, textAlign: "center" },
   demoLien: { minHeight: 48, justifyContent: "center" },
 });

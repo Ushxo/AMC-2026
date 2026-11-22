@@ -40,7 +40,7 @@ export function EnteteVert({ titre, sousTitre, onBack, libelleRetour = "Retour",
 }
 
 const creerStyles = (P: Jetons) => StyleSheet.create({
-  entete: { backgroundColor: P.header, paddingHorizontal: 18, paddingBottom: 22, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  entete: { backgroundColor: P.header, paddingHorizontal: 20, paddingBottom: 24, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
   titre: { color: P.onHeader, fontSize: 26, fontWeight: "700" },
   sous: { color: P.bandeau, fontSize: 15, fontWeight: "500" },

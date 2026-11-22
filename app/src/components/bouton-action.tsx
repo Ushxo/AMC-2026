@@ -47,6 +47,6 @@ export function BoutonAction({
 const creerStyles = (P: Jetons) =>
   StyleSheet.create({
     bouton: { minHeight: 60, borderRadius: 30, backgroundColor: P.action, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
-    contenu: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    contenu: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     texte: { color: P.onAction, fontSize: 19, lineHeight: 26, fontWeight: '700', textAlign: 'center' },
   });
