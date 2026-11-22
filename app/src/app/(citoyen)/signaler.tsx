@@ -72,6 +72,14 @@ const MESSAGES_VERIFICATION: Record<VerificationPhoto['statut'], string> = {
   impossible: MESSAGE_ANALYSE_INDISPONIBLE,
 };
 
+// Ligne courte du résumé : l'état de la photo en un coup d'œil (le détail est dans le bandeau sauge).
+const ETIQUETTES_RESUME: Record<VerificationPhoto['statut'], string> = {
+  en_cours: 'Vérification de la photo…',
+  acceptee: 'Photo acceptée',
+  refusee: 'Photo refusée : reprenez-en une',
+  impossible: 'Photo non vérifiée, jointe telle quelle',
+};
+
 function verificationAffichee(a: EtatAnalyse): VerificationPhoto | null {
   return a.statut === 'aucune' ? null : { statut: a.statut, message: MESSAGES_VERIFICATION[a.statut] };
 }
@@ -307,6 +315,13 @@ export default function Signaler() {
           <View style={{ flex: 1, gap: 2 }}>
             <ThemedText style={styles.resumeTitre}>{categorie ? LIBELLES_CATEGORIE[categorie] : ''}</ThemedText>
             <ThemedText style={styles.resumeLieu}>{adresseLieu ?? 'Lieu à choisir'}</ThemedText>
+            {verification ? (
+              <ThemedText style={[styles.resumePhoto, { color: verification.statut === 'refusee' ? '#B3261E' : verification.statut === 'acceptee' ? '#1D3A1B' : '#5E5548' }]} accessibilityLiveRegion="polite">
+                {ETIQUETTES_RESUME[verification.statut]}
+              </ThemedText>
+            ) : (
+              <ThemedText style={[styles.resumePhoto, { color: '#5E5548' }]}>Sans photo</ThemedText>
+            )}
           </View>
           <Pressable onPress={() => setEtape('probleme')} accessibilityRole="button" accessibilityLabel="Changer de problème" style={styles.changer}>
             <ThemedText style={styles.changerTexte}>Changer</ThemedText>
@@ -460,6 +475,7 @@ const styles = StyleSheet.create({
   vignette: { width: 64, height: 64, borderRadius: 16, backgroundColor: '#DCE5CC', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   vignetteImage: { width: 64, height: 64 },
   resumeTitre: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
+  resumePhoto: { fontSize: 13, lineHeight: 19, fontWeight: '700' },
   resumeLieu: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: '#5E5548' },
   changer: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingHorizontal: 4 },
   changerTexte: { fontSize: 15, fontWeight: '600', color: '#1D3A1B', textDecorationLine: 'underline' },

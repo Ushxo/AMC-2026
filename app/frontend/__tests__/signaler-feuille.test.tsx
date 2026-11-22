@@ -15,14 +15,24 @@ jest.mock('react-native-safe-area-context', () => {
   return { ...actual, useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }), SafeAreaView: jest.requireActual('react-native').View };
 });
 jest.mock('@/components/carte', () => ({ Carte: () => null, Repere: () => null }));
+const mockJuger = jest.fn();
+jest.mock('@/lib/ml', () => ({ jugerPhoto: (...a: unknown[]) => mockJuger(...a) }));
 jest.mock('../citizen/PhotoStep', () => {
-  const { Text, Pressable } = jest.requireActual('react-native');
+  const { Text, Pressable, View } = jest.requireActual('react-native');
   return {
     __esModule: true,
-    default: ({ onSkip }: { onSkip: () => void }) => (
-      <Pressable onPress={onSkip}>
-        <Text>Étape photo</Text>
-      </Pressable>
+    default: ({ onSkip, onPhoto, onContinue }: { onSkip: () => void; onPhoto: (u: string) => void; onContinue: () => void }) => (
+      <View>
+        <Pressable onPress={onSkip}>
+          <Text>Étape photo</Text>
+        </Pressable>
+        <Pressable onPress={() => onPhoto('file:///p.jpg')}>
+          <Text>Prendre la photo</Text>
+        </Pressable>
+        <Pressable onPress={onContinue}>
+          <Text>Continuer la photo</Text>
+        </Pressable>
+      </View>
     ),
   };
 });
@@ -51,5 +61,31 @@ describe('signalement : feuille des quatre problèmes', () => {
     await render(<Signaler />);
     await fireEvent.press(screen.getByText('Continuer'));
     expect(screen.queryByText('Étape photo')).toBeNull();
+  });
+
+  it('photo acceptée : le résumé le dit, sans jamais parler de gravité ; sans photo : rien de bloquant', async () => {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://exemple.test';
+    mockJuger.mockResolvedValue({ valide: true, probabilite_valide: 97, score_gravite: 80, gravite: 'elevee', probabilites: { invalide: 3, faible: 5, moyenne: 12, elevee: 80 } });
+    await render(<Signaler />);
+    await fireEvent.press(screen.getByLabelText('Égout bouché'));
+    await fireEvent.press(screen.getByText('Continuer'));
+    await fireEvent.press(screen.getByText('Prendre la photo'));
+    await fireEvent.press(screen.getByText('Continuer la photo'));
+    expect(await screen.findByText('Photo acceptée')).toBeTruthy();
+    expect(screen.queryByText(/gravité|importance|Importance/)).toBeNull();
+    expect(screen.getByText('Envoyer le signalement')).toBeTruthy();
+  });
+
+  it('photo refusée : retirée, expliquée, et on peut en reprendre une', async () => {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://exemple.test';
+    mockJuger.mockResolvedValue({ valide: false, probabilite_valide: 5, score_gravite: null, gravite: null, probabilites: { invalide: 95, faible: 2, moyenne: 2, elevee: 1 } });
+    await render(<Signaler />);
+    await fireEvent.press(screen.getByLabelText('Égout bouché'));
+    await fireEvent.press(screen.getByText('Continuer'));
+    await fireEvent.press(screen.getByText('Prendre la photo'));
+    await fireEvent.press(screen.getByText('Continuer la photo'));
+    expect(await screen.findByText(/Photo refusée : reprenez-en une/)).toBeTruthy();
+    expect(screen.getByText(/ne montre pas un égout/)).toBeTruthy();
+    expect(screen.getByText('Ajouter une photo (facultatif)')).toBeTruthy(); // retirée, on peut en reprendre une
   });
 });
