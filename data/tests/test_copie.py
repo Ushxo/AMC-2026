@@ -38,6 +38,7 @@ def test_liste_publique_explicite():
     assert set(copier_vers_app.PUBLICS) == {
         "adresses",
         "avis-eau",
+        "avis-eau-troncons",
         "chantiers",
         "equipes-demo",
         "grilles",
@@ -46,6 +47,7 @@ def test_liste_publique_explicite():
         "signalements-demo",
         "tournees-demo",
         "tournees-demo-incident",
+        "troncons",
         "zones-inondables",
     }
 
