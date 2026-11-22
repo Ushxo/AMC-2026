@@ -14,6 +14,7 @@ import { EnteteCoquille } from "../components/EnteteCoquille";
 import ArretsFaits from "./ArretsFaits";
 import InterventionsAPlanifier from "./InterventionsAPlanifier";
 import TableauDeBord from "./TableauDeBord";
+import TrajetOptimal from "./TrajetOptimal";
 
 type Id = "interventions" | "alertes" | "optimisation" | "equipes" | "rapports";
 
@@ -64,10 +65,11 @@ export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
   const [tableau, setTableau] = useState(false);
   // Calcul demandé depuis la liste : la sélection filtrée part avec le calcul, une seule fois par demande.
   const [demande, setDemande] = useState<{ id: number; cles: string[] } | null>(null);
+  const [details, setDetails] = useState(false);
 
   return (
     <View style={styles.root}>
-      {onglet === "interventions" && !tableau ? (
+      {onglet === "optimisation" && demande && !details ? null : onglet === "interventions" && !tableau ? (
         <EnteteSuperviseur nom={nom} onLogout={onLogout} />
       ) : (
         <EnteteCoquille sousTitre={`Superviseur · ${nom ?? ""}`} onLogout={onLogout} />
@@ -78,15 +80,25 @@ export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
             onTableau={() => setTableau(true)}
             onCalculer={(cles) => {
               setDemande({ id: Date.now(), cles });
+              setDetails(false);
               setOnglet("optimisation");
             }}
           />
         ) : null}
         {onglet === "interventions" && tableau ? <TableauDeBord /> : null}
         {onglet === "alertes" ? <ListeAlertes avecResume={false} /> : null}
-        {onglet === "optimisation" ? (
-          <EcranTournees key={demande?.id ?? 0} dansCoquille clesInitiales={demande?.cles} lancerAuto={!!demande} />
+        {onglet === "optimisation" && demande && !details ? (
+          <TrajetOptimal
+            key={demande.id}
+            cles={demande.cles}
+            onRetour={() => {
+              setDemande(null);
+              setOnglet("interventions");
+            }}
+            onDetails={() => setDetails(true)}
+          />
         ) : null}
+        {onglet === "optimisation" && (!demande || details) ? <EcranTournees key={demande?.id ?? 0} dansCoquille clesInitiales={demande?.cles} /> : null}
         {onglet === "equipes" ? <EcranEquipes dansCoquille /> : null}
         {onglet === "rapports" ? <ArretsFaits /> : null}
       </View>
@@ -95,6 +107,7 @@ export default function SupervisorApp({ onLogout }: { onLogout: () => void }) {
         actif={onglet}
         onChange={(id) => {
           setTableau(false);
+          setDetails(false);
           if (id !== "optimisation") setDemande(null);
           setOnglet(id);
         }}

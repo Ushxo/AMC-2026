@@ -11,8 +11,7 @@ import { useEndroits } from "@/hooks/use-endroits";
 import { useZonesSignalements } from "@/hooks/use-zones-signalements";
 import { formaterDate, formaterNombre } from "@/lib/format";
 import { chargerAdresses } from "@/lib/officiel";
-import { adressePlusProche } from "@/lib/recherche";
-import { AUCUN_FILTRE, clesDesInterventions, interventionsAPlanifier, type FiltresInterventions, type Intervention } from "@/lib/interventions";
+import { AUCUN_FILTRE, clesDesInterventions, interventionsAPlanifier, lieuDeEndroit, type FiltresInterventions, type Intervention } from "@/lib/interventions";
 import { clesDeZone } from "@/lib/selection";
 import { CATEGORIES_PROPOSEES, LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { ILLUSTRATION_PAR_CATEGORIE, ProblemIllustration } from "../components/ProblemIllustration";
@@ -127,10 +126,7 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
   const secteurs: Choix[] = zones
     .map((z, n) => ({ valeur: z.id, libelle: `Zone ${n + 1} (${formaterNombre(clesDeZone(z, endroits).length, "endroit", "endroits")})` }))
     .filter((c) => !c.libelle.includes("(0 "));
-  const lieu = (i: Intervention) => {
-    const p = adressePlusProche(i.endroit.position, adresses);
-    return p ? `Près de ${p.libelle}` : `${i.endroit.position.latitude.toFixed(4)}, ${i.endroit.position.longitude.toFixed(4)}`;
-  };
+  const lieu = (i: Intervention) => lieuDeEndroit(i.endroit.position, adresses);
 
   return (
     <View style={styles.fond}>

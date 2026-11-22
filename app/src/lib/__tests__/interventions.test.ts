@@ -1,5 +1,5 @@
 import type { Endroit, Signalement } from '../../types';
-import { AUCUN_FILTRE, clesDesInterventions, interventionsAPlanifier } from '../interventions';
+import { AUCUN_FILTRE, clesDesInterventions, formaterDuree, interventionsAPlanifier } from '../interventions';
 import type { Zone } from '../zones';
 
 function sig(id: string, categorie: Signalement['categorie'], cree_le: string, etat: Signalement['etat'] = 'nouveau'): Signalement {
@@ -38,5 +38,13 @@ describe('interventions à planifier', () => {
   it('filtre par secteur (zone)', () => {
     const zone = { id: 'z1', signalement_ids: ['1', '2'] } as unknown as Zone;
     expect(clesDesInterventions(interventionsAPlanifier(endroits, [zone], { ...AUCUN_FILTRE, zoneId: 'z1' }))).toEqual(['b', 'a']);
+  });
+});
+
+describe('durée du trajet', () => {
+  it('se lit en minutes puis en heures', () => {
+    expect(formaterDuree(18 * 60)).toBe('18 min');
+    expect(formaterDuree(30)).toBe('1 min');
+    expect(formaterDuree(65 * 60)).toBe('1 h 05');
   });
 });

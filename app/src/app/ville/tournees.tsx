@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -67,13 +67,10 @@ export default function Tournees() {
 export function EcranTournees({
   dansCoquille = false,
   clesInitiales,
-  lancerAuto = false,
 }: {
   dansCoquille?: boolean;
   /** Sélection de départ (venue de « Interventions à planifier »). */
   clesInitiales?: string[];
-  /** Lance le calcul dès que les endroits sont chargés (bouton « Calculer le trajet optimal »). */
-  lancerAuto?: boolean;
 }) {
   const { bottom: bas } = useSafeAreaInsets();
   const bottom = dansCoquille ? 0 : bas;
@@ -127,14 +124,6 @@ export function EcranTournees({
     }
     setMessage(await lancer(parametresCalcul()));
   }
-
-  // Calcul demandé depuis la liste des interventions : une seule fois, quand les endroits sont là et que le rôle le permet.
-  const autoFait = useRef(false);
-  useEffect(() => {
-    if (!lancerAuto || autoFait.current || !peutGerer || ouverts.length === 0) return;
-    autoFait.current = true;
-    void optimiser();
-  });
 
   async function ajouterIncident() {
     if (!repli && !point) {
