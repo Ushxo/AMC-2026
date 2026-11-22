@@ -20,6 +20,8 @@ import {
 import { NUANCES } from "@/marque/nuances";
 import { garderMarqueLocale, mettreAJourOrganisation, oublierMarqueLocale, organisationAvecLocale } from "@/marque/magasin";
 import { imageLogo, LIBELLES_LOGO } from "@/marque/logos";
+import { formaterNombre } from "@/lib/format";
+import { listerComptes } from "@/lib/comptes-admin";
 import { CLES_LOGO, codeDepuisNom, creerOrganisation, enregistrerOrganisation, EXEMPLES_SERVICE, lireOrganisations, organisationEmbarquee, type Organisation } from "@/lib/organisations";
 import { useStyles } from "@/marque/utiliser";
 import { useTheme } from "@/hooks/use-theme";
@@ -54,6 +56,7 @@ export default function MarqueOrganisation() {
   const [enBase, setEnBase] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [creation, setCreation] = useState(false);
+  const [nombreComptes, setNombreComptes] = useState<Record<string, number> | null>(null);
   const [nomOrg, setNomOrg] = useState("");
   const [service, setService] = useState("");
   const [nomApp, setNomApp] = useState("");
@@ -91,6 +94,13 @@ export default function MarqueOrganisation() {
       setOrganisations(liste);
       setEnBase(r.enBase);
       if (liste[0]) charger(liste[0]);
+    });
+    // Nombre de comptes par organisation : seulement si la fonction complète répond (sinon on ne l'affiche pas).
+    void listerComptes().then((l) => {
+      if (!actif || !l?.complete) return;
+      const n: Record<string, number> = {};
+      for (const c of l.comptes) if (c.organisation) n[c.organisation] = (n[c.organisation] ?? 0) + 1;
+      setNombreComptes(n);
     });
     return () => {
       actif = false;
@@ -200,7 +210,10 @@ export default function MarqueOrganisation() {
             <Image source={imageLogo(o.logo)} style={styles.logoPetit} contentFit="cover" accessible={false} />
             <View style={{ flex: 1 }}>
               <Text style={styles.chipTexte}>{o.nom}</Text>
-              <Text style={styles.note}>{o.service ?? "Service non précisé"}</Text>
+              <Text style={styles.note}>
+                {o.service ?? "Service non précisé"}
+                {nombreComptes ? ` · ${formaterNombre(nombreComptes[o.nom] ?? 0, "compte", "comptes")}` : ""}
+              </Text>
             </View>
           </Pressable>
         ))}

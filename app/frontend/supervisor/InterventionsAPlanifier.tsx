@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { FlatList, Modal, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { VOILE_FEUILLE, FEUILLE_BASE, COULEUR_OMBRE, COULEURS_IMPORTANCE, BLANC_FIXE } from '@/components/ville/style';
+import { VOILE_FEUILLE, FEUILLE_BASE, COULEUR_OMBRE, COULEURS_IMPORTANCE, COULEURS_IMPORTANCE_SOMBRE, BLANC_FIXE } from '@/components/ville/style';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -16,16 +16,24 @@ import { AUCUN_FILTRE, clesDesInterventions, interventionsAPlanifier, lieuDeEndr
 import { clesDeZone } from "@/lib/selection";
 import { CATEGORIES_PROPOSEES, LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { IllustrationProbleme } from "@/components/illustration-probleme";
-import { useStyles } from '@/marque/utiliser';
+import { useMarque, useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
 
 // Couleurs d'importance de la maquette : rouge, orange, jaune. Le texte et la pastille pleine restent contrastés.
-export const IMPORTANCE: Record<Gravite, { fond: string; plein: string; icone: keyof typeof Ionicons.glyphMap }> = {
-  elevee: { ...COULEURS_IMPORTANCE.elevee, icone: "chevron-up" },
-  moyenne: { ...COULEURS_IMPORTANCE.moyenne, icone: "remove" },
-  faible: { ...COULEURS_IMPORTANCE.faible, icone: "chevron-down" },
-};
+type Importance = { fond: string; plein: string; accent: string; icone: keyof typeof Ionicons.glyphMap };
+const ICONES_IMPORTANCE: Record<Gravite, keyof typeof Ionicons.glyphMap> = { elevee: "chevron-up", moyenne: "remove", faible: "chevron-down" };
+function importances(sombre: boolean): Record<Gravite, Importance> {
+  const c = sombre ? COULEURS_IMPORTANCE_SOMBRE : null;
+  const t = (g: Gravite): Importance => ({ fond: (c ?? COULEURS_IMPORTANCE)[g].fond, plein: COULEURS_IMPORTANCE[g].plein, accent: c ? c[g].accent : COULEURS_IMPORTANCE[g].plein, icone: ICONES_IMPORTANCE[g] });
+  return { elevee: t("elevee"), moyenne: t("moyenne"), faible: t("faible") };
+}
+const IMPORTANCE_CLAIR = importances(false);
+const IMPORTANCE_SOMBRE = importances(true);
+/** Couleurs d'importance selon l'apparence (Sombre : fonds foncés, textes éclaircis). */
+export function useImportance(): Record<Gravite, Importance> {
+  return useMarque().apparence === "sombre" ? IMPORTANCE_SOMBRE : IMPORTANCE_CLAIR;
+}
 
 type Choix = { valeur: string | null; libelle: string };
 
@@ -81,7 +89,7 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: ke
 function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir: () => void }) {
   const styles = useStyles(creerStyles);
   const P = useTheme();
-  const c = IMPORTANCE[i.gravite];
+  const c = useImportance()[i.gravite];
   const grandTexte = useWindowDimensions().fontScale > 1.3; // texte très agrandi : on libère la place du dessin
   const titre = LIBELLES_CATEGORIE[i.categorie];
   return (
@@ -92,7 +100,7 @@ function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir:
       style={styles.ligne}
     >
       <View style={[styles.priorite, { backgroundColor: c.fond }]}>
-        <Ionicons name={c.icone} size={26} color={c.plein} />
+        <Ionicons name={c.icone} size={26} color={c.accent} />
         <Text style={[styles.prioriteTexte, { backgroundColor: c.plein }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} maxFontSizeMultiplier={1.2}>
           {LIBELLES_GRAVITE[i.gravite]}
         </Text>

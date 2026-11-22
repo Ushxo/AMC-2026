@@ -43,7 +43,7 @@ import { libelleReste, resteEstime, resumeTotalTournee } from '@/lib/durees';
 import { formaterDuree, interventionDe, lieuDeEndroit } from '@/lib/interventions';
 import { useEndroits } from '@/hooks/use-endroits';
 import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE } from '@/types';
-import { IMPORTANCE } from '../../../../frontend/supervisor/InterventionsAPlanifier';
+import { useImportance } from '../../../../frontend/supervisor/InterventionsAPlanifier';
 import { formaterNombre } from '@/lib/format';
 import {
   MESSAGE_ARRET_FAIT,
@@ -310,7 +310,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
   const endroitCourant = courant ? tousEndroits.find((e) => e.cle === courant.cle_endroit) : undefined;
   const interventionCourante = endroitCourant ? interventionDe(endroitCourant) : null;
   const graviteCourant = endroitCourant?.gravite_affichee ?? 'moyenne';
-  const importanceCourant = IMPORTANCE[graviteCourant];
+  const importanceCourant = useImportance()[graviteCourant];
   const titreCourant = interventionCourante ? LIBELLES_CATEGORIE[interventionCourante.categorie] : 'Intervention';
   const lieuCourant = courant ? lieuDeEndroit(courant.position, adressesLieu) : '';
   const pastille = finie ? 'Tournée terminée' : courant ? `Arrêt ${rangCourant + 1} sur ${total}` : '';
@@ -474,7 +474,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                       </ThemedText>
                       <ThemedText style={styles.arretLieu}>{lieuCourant}</ThemedText>
                     </View>
-                    <ThemedText style={[styles.arretEtiquette, { backgroundColor: importanceCourant.fond, color: importanceCourant.plein }]} maxFontSizeMultiplier={1.2}>
+                    <ThemedText style={[styles.arretEtiquette, { backgroundColor: importanceCourant.fond, color: importanceCourant.accent }]} maxFontSizeMultiplier={1.2}>
                       {LIBELLES_GRAVITE[graviteCourant]}
                     </ThemedText>
                   </View>

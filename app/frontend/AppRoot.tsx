@@ -5,7 +5,7 @@ import { abonnerOrganisations, lireMonOrganisation, lireOrganisations } from "@/
 import { appliquerMarquePersonnel, chargerMarqueLocale, mettreAJourOrganisation, restaurerMarqueCitoyen } from "@/marque/magasin";
 import { BarreEtat } from "@/marque/barre-etat";
 import { useMarque } from "@/marque/utiliser";
-import { Chargement } from "@/components/ville/etat-ecran";
+import { EcranOuverture } from "./components/EcranOuverture";
 import { useAcces } from "@/hooks/use-acces";
 import AuthFlow from "./auth/AuthFlow";
 import CitizenApp from "./citizen/CitizenApp";
@@ -26,7 +26,6 @@ export default function AppRoot() {
 
 function ContenuRacine() {
   const { ecran, pret, citoyen, nom, demoHorsLigne, deconnecter } = useAcces();
-  const { organisation } = useMarque();
   const [connexionPersonnel, setConnexionPersonnel] = useState(false);
   const logout = () => void deconnecter();
 
@@ -71,12 +70,12 @@ function ContenuRacine() {
     if (ecran === "superviseur" || ecran === "employe" || ecran === "admin") setConnexionPersonnel(false);
   }, [ecran]);
 
-  if (personnel && !marqueDuCompte) return <Chargement texte={`Ouverture de ${organisation.nom_app}…`} />;
+  if (personnel && !marqueDuCompte) return <EcranOuverture />;
   if (ecran === "admin") return <AdminApp onLogout={logout} />;
   if (ecran === "superviseur") return <SupervisorApp onLogout={logout} />;
   if (ecran === "employe") return <StaffApp onLogout={logout} />;
   // Reprise de la session gardée : un bref chargement évite que la carte clignote chez le personnel déjà connecté.
-  if (!pret && !citoyen) return <Chargement texte={`Ouverture de ${organisation.nom_app}…`} />;
+  if (!pret && !citoyen) return <EcranOuverture />;
   if (connexionPersonnel) return <AuthFlow onConnecte={() => setConnexionPersonnel(false)} onRetour={() => setConnexionPersonnel(false)} />;
   return <CitizenApp compteConnecte={ecran === "citoyen"} nom={nom} demoHorsLigne={demoHorsLigne} onLogout={logout} onStaffLogin={() => setConnexionPersonnel(true)} />;
 }

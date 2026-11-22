@@ -15,7 +15,7 @@ import { formaterDuree } from "@/lib/interventions";
 import { gravitesDisponibles } from "@/lib/selection";
 import { estPartiel, resumerGain } from "@/lib/tournees";
 import { LIBELLES_GRAVITE, type Gravite } from "@/types";
-import { IMPORTANCE } from "./InterventionsAPlanifier";
+import { useImportance } from "./InterventionsAPlanifier";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
@@ -24,6 +24,7 @@ const GRAVITES: Gravite[] = ["elevee", "moyenne", "faible"];
 
 // Tableau de bord du superviseur : à traiter et réglés, plan des équipes, répartition par importance, gain du dernier calcul.
 export default function TableauDeBord() {
+  const IMPORTANCE = useImportance();
   const P = useTheme();
   const styles = useStyles(creerStyles);
   const router = useRouter();
@@ -100,7 +101,7 @@ export default function TableauDeBord() {
               const pct = ouverts > 0 ? Math.round((parGravite[g] / ouverts) * 100) : 0;
               return (
                 <View key={g} style={styles.equipeLigne} accessible accessibilityLabel={`${LIBELLES_GRAVITE[g]} : ${parGravite[g]}`}>
-                  <Text style={[styles.etiquette, { backgroundColor: c.fond, color: c.plein }]} maxFontSizeMultiplier={1.2}>
+                  <Text style={[styles.etiquette, { backgroundColor: c.fond, color: c.accent }]} maxFontSizeMultiplier={1.2}>
                     {LIBELLES_GRAVITE[g]}
                   </Text>
                   <View style={[styles.piste, { flex: 1, height: 10, backgroundColor: P.backgroundElement }]}>

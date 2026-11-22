@@ -1,4 +1,5 @@
 import { estRefusOuAbsent } from './auth';
+import { abonnerTable } from './canal-partage';
 import { avecDelai } from './source';
 import { getSupabase } from './supabase';
 import { CLES_COULEURS, ORGANISATIONS_EMBARQUEES, type Couleurs, type Organisation, type TextesOrganisation } from '@/marque/organisations-embarquees';
@@ -167,34 +168,7 @@ export async function creerOrganisation(o: Organisation): Promise<string | null>
   }
 }
 
-const abonnes = new Set<() => void>();
-let canal: unknown = null;
-
-/** Dit quand une organisation change dans la base : un seul canal partagé, fermé quand le dernier abonné part. */
+/** Dit quand une organisation change dans la base : le canal Realtime est partagé (src/lib/canal-partage.ts). */
 export function abonnerOrganisations(rappel: () => void): () => void {
-  const client = getSupabase();
-  if (!client) return () => {};
-  abonnes.add(rappel);
-  if (!canal) {
-    try {
-      canal = client
-        .channel('organisations-partage')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'organisations' }, () => abonnes.forEach((f) => f()))
-        .subscribe();
-    } catch {
-      canal = null;
-    }
-  }
-  return () => {
-    abonnes.delete(rappel);
-    if (abonnes.size === 0 && canal) {
-      const c = canal;
-      canal = null;
-      try {
-        void client.removeChannel(c as Parameters<typeof client.removeChannel>[0]);
-      } catch {
-        /* rien à fermer */
-      }
-    }
-  };
+  return abonnerTable('organisations', rappel);
 }

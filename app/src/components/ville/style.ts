@@ -130,6 +130,15 @@ export const COULEURS_IMPORTANCE = {
   moyenne: { fond: '#FCE3CF', plein: '#B84A0B' },
   faible: { fond: '#FAF0C4', plein: '#8A6200' },
 } as const;
+/**
+ * Pour une apparence Sombre : fond teinté foncé de la même couleur (plus de rose pâle qui éblouit), pastille pleine inchangée,
+ * texte et icône éclaircis pour rester lisibles sur ce fond.
+ */
+export const COULEURS_IMPORTANCE_SOMBRE = {
+  elevee: { fond: '#4A1F1B', plein: '#B3261E', accent: '#FF9A90' },
+  moyenne: { fond: '#4A2C14', plein: '#B84A0B', accent: '#FFB47A' },
+  faible: { fond: '#3F3510', plein: '#8A6200', accent: '#F2D45C' },
+} as const;
 /** Commandes de la caméra : fond sombre de l'objectif, icônes claires. */
 export const CAMERA = { creme: '#F8F5ED', sombre: '#23271F', blanc: '#FFFFFF', clair: '#E6E4D8', noir: '#111111' } as const;
 

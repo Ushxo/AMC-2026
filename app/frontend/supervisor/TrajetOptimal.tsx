@@ -31,7 +31,7 @@ import { endroitsOuverts, nettoyerSelection, selectionAEnvoyer } from "@/lib/sel
 import { dateProchainQuart } from "@/lib/temps";
 import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { IllustrationProbleme } from "@/components/illustration-probleme";
-import { IMPORTANCE } from "./InterventionsAPlanifier";
+import { useImportance } from "./InterventionsAPlanifier";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
@@ -43,6 +43,7 @@ import { BoutonAction } from '@/components/bouton-action';
  * (tracé, arrêts numérotés, interventions dans l'ordre). Le détail complet du calcul reste dans l'onglet Optimisation.
  */
 export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: string[]; onRetour: () => void; onDetails: () => void }) {
+  const IMPORTANCE = useImportance();
   const styles = useStyles(creerStyles);
   const P = useTheme();
   const insets = useSafeAreaInsets();
@@ -220,7 +221,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
                         {lieu}
                       </Text>
                     </View>
-                    <Text style={[styles.etiquette, { backgroundColor: c.fond, color: c.plein }]} maxFontSizeMultiplier={1.2}>
+                    <Text style={[styles.etiquette, { backgroundColor: c.fond, color: c.accent }]} maxFontSizeMultiplier={1.2}>
                       {LIBELLES_GRAVITE[gravite]}
                     </Text>
                   </View>
@@ -247,7 +248,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
                         </Text>
                         <Text style={styles.raison}>Non servi : {n.raison}</Text>
                       </View>
-                      <Text style={[styles.etiquette, { backgroundColor: IMPORTANCE[n.gravite].fond, color: IMPORTANCE[n.gravite].plein }]} maxFontSizeMultiplier={1.2}>
+                      <Text style={[styles.etiquette, { backgroundColor: IMPORTANCE[n.gravite].fond, color: IMPORTANCE[n.gravite].accent }]} maxFontSizeMultiplier={1.2}>
                         {LIBELLES_GRAVITE[n.gravite]}
                       </Text>
                     </View>

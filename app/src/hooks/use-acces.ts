@@ -26,8 +26,8 @@ export function useAcces(): {
   const [pret, setPret] = useState(false);
   useEffect(() => {
     let actif = true;
-    // Reprise de la session gardée ; au plus 2,5 s d'attente (réseau absent : on montre la connexion).
-    const delai = setTimeout(() => actif && setPret(true), 2500);
+    // Reprise de la session gardée ; au plus 1,5 s d'attente (réseau absent : on montre la connexion).
+    const delai = setTimeout(() => actif && setPret(true), 1500);
     void restaurerSession().finally(() => {
       clearTimeout(delai);
       if (actif) setPret(true);

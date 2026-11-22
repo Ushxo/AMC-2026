@@ -18,7 +18,7 @@ import { estConfirme, manquePourConfirmer, regrouper } from '@/lib/gravite';
 import { ETIQUETTE_CONFIRME, ETIQUETTE_EN_ATTENTE_CONFIRMATION, phraseManque } from '@/lib/messages-seuil';
 import { chargerAdresses } from '@/lib/officiel';
 import { LIBELLES_CATEGORIE, LIBELLES_ETAT, LIBELLES_GRAVITE, type Gravite } from '@/types';
-import { IMPORTANCE } from '../../../frontend/supervisor/InterventionsAPlanifier';
+import { useImportance } from '../../../frontend/supervisor/InterventionsAPlanifier';
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
@@ -37,7 +37,7 @@ export default function Endroit() {
   const lieu = endroit ? lieuDeEndroit(endroit.position, adresses) : '';
   const principal = endroit ? interventionDe(endroit) : null;
   const gravite: Gravite = endroit?.gravite_affichee ?? 'moyenne';
-  const c = IMPORTANCE[gravite];
+  const c = useImportance()[gravite];
   const ouverts = endroit ? endroit.signalements.filter((s) => s.etat === 'nouveau' || s.etat === 'pris_en_charge').length : 0;
 
   return (
@@ -93,7 +93,7 @@ export default function Endroit() {
                   {estConfirme(endroit) ? '' : `. ${phraseManque(manquePourConfirmer(endroit))}`}
                 </Text>
               </View>
-              <Text style={[styles.etiquette, { backgroundColor: c.fond, color: c.plein }]} accessibilityLabel={`Importance ${LIBELLES_GRAVITE[gravite]}`} maxFontSizeMultiplier={1.2}>
+              <Text style={[styles.etiquette, { backgroundColor: c.fond, color: c.accent }]} accessibilityLabel={`Importance ${LIBELLES_GRAVITE[gravite]}`} maxFontSizeMultiplier={1.2}>
                 {LIBELLES_GRAVITE[gravite]}
               </Text>
             </View>

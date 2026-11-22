@@ -84,6 +84,7 @@ export default function CarteCitoyen({ coquille }: Props) {
   const bandes = useBandesInondation(signalements);
   const deltaRegion = useRef<number | undefined>(undefined);
   const [options, setOptions] = useState(false);
+  const [hauteurEntete, setHauteurEntete] = useState(200);
   // Retour depuis la photo : la feuille « Quel problème ? » se rouvre sur la carte, avec le problème et le lieu déjà choisis.
   const [feuille, setFeuille] = useState<{ point: { latitude: number; longitude: number } | null } | null>(() => (lireBrouillon().feuilleOuverte ? { point: lireBrouillon().lieu } : null));
   const [choixProbleme, setChoixProbleme] = useState<Categorie | null>(() => (lireBrouillon().feuilleOuverte ? lireBrouillon().categorie : null));
@@ -287,7 +288,7 @@ export default function CarteCitoyen({ coquille }: Props) {
       )}
 
       {/* En-tête vert : titre, compte, recherche d'adresse. */}
-      <View style={[styles.entete, { backgroundColor: theme.header, paddingTop: top + 10 }]}>
+      <View style={[styles.entete, { backgroundColor: theme.header, paddingTop: top + 10 }]} onLayout={(e) => setHauteurEntete(e.nativeEvent.layout.height)}>
         <View style={styles.ligneTitre}>
           <View style={styles.marqueTitre}>
             <LogoMarque taille={46} />
@@ -371,7 +372,8 @@ export default function CarteCitoyen({ coquille }: Props) {
         </View>
       ) : null}
 
-      <View pointerEvents="none" style={{ position: 'absolute', left: 16, bottom: HAUTEUR_BARRE * (coquille ? 1 : 0) + bottom + 84 }}>
+      {/* Légende en haut à gauche, sous l'en-tête : elle ne recouvre plus les repères du bas de la carte. */}
+      <View pointerEvents="none" style={{ position: 'absolute', left: 16, top: hauteurEntete + 10 }}>
         <LegendeGravite />
       </View>
 

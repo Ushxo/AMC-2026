@@ -9,6 +9,8 @@ jest.mock('@react-native-async-storage/async-storage', () => jest.requireActual(
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 const mockEnregistrer = jest.fn();
 const mockCreer = jest.fn();
+const mockComptes = jest.fn();
+jest.mock('@/lib/comptes-admin', () => ({ listerComptes: () => mockComptes() }));
 jest.mock('@/lib/organisations', () => {
   const actual = jest.requireActual('@/lib/organisations');
   return {
@@ -23,6 +25,7 @@ beforeEach(() => {
   reinitialiserMarque();
   mockEnregistrer.mockReset().mockResolvedValue(null);
   mockCreer.mockReset().mockResolvedValue(null);
+  mockComptes.mockReset().mockResolvedValue(null);
 });
 
 describe('feuille du profil : apparence', () => {
@@ -123,5 +126,19 @@ describe('administration : créer une organisation', () => {
     await fireEvent.changeText(screen.getByLabelText("Nom de l'organisation"), 'Collecte Sud');
     await fireEvent.press(screen.getByText("Créer l'organisation"));
     expect(await screen.findByText('Seul un administrateur peut créer une organisation.')).toBeTruthy();
+  });
+});
+
+describe('administration : nombre de comptes par organisation', () => {
+  it('affiché quand la liste complète répond, absent sinon', async () => {
+    mockComptes.mockResolvedValue({ complete: true, comptes: [{ organisation: 'Ville de Montréal' }, { organisation: 'Ville de Montréal' }, { organisation: 'Priorix' }] });
+    await render(<MarqueOrganisation />);
+    expect(await screen.findByText(/2 comptes/)).toBeTruthy();
+    expect(screen.getByText(/1 compte$/)).toBeTruthy();
+  });
+  it('sans la liste complète, aucun nombre inventé', async () => {
+    await render(<MarqueOrganisation />);
+    await screen.findByLabelText('Créer une organisation');
+    expect(screen.queryByText(/compte/)).toBeNull();
   });
 });
