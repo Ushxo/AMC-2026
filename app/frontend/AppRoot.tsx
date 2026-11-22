@@ -4,7 +4,7 @@ import { Session } from "./auth";
 import CitizenApp from "./citizen/CitizenApp";
 import LoginScreen from "./citizen/LoginScreen";
 import { DemoProvider } from "./context/DemoContext";
-import StaffApp from "./StaffApp";
+import EmployeeApp from "./employee/EmployeeApp";
 import SupervisorApp from "./supervisor/SupervisorApp";
 
 // Point d'entrée : connexion, puis redirection selon le rôle.
@@ -23,7 +23,7 @@ export default function AppRoot() {
       ) : session.role === "superviseur" ? (
         <SupervisorApp onLogout={logout} />
       ) : (
-        <StaffApp session={session} onLogout={logout} />
+        <EmployeeApp session={session} onLogout={logout} />
       )}
     </DemoProvider>
   );

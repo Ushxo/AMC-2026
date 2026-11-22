@@ -75,3 +75,15 @@ export function estimateMinutes(route: Intervention[]) {
   }
   return Math.max(5, Math.round(distance / 20 + route.length * 4));
 }
+
+// Résumé d'un égout pour l'employé : problème le plus grave, dernière date, photo éventuelle.
+export function describeSewer(sewerId: string, alerts: CitizenAlert[]) {
+  const sewer = SEWERS.find((s) => s.id === sewerId);
+  const own = alerts.filter((a) => a.sewerId === sewerId);
+  const kind: AlertKind = own.length
+    ? own.reduce((best, a) => (KIND_LEVEL[a.kind] < KIND_LEVEL[best] ? a.kind : best), own[0].kind)
+    : "Égout bouché";
+  const lastDate = own.map((a) => a.date).sort().reverse()[0];
+  const photoUri = [...own].reverse().find((a) => a.photoUri)?.photoUri;
+  return { sewer, kind, lastDate, photoUri };
+}

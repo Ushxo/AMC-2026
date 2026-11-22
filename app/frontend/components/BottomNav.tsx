@@ -16,23 +16,35 @@ const C = {
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
-// Icône pleine pour l'onglet actif, contour sinon.
-const TABS: { id: CitizenTab; label: string; icon: IconName; iconActive: IconName }[] = [
-  { id: "carte", label: "Carte", icon: "location-outline", iconActive: "location-sharp" },
-  { id: "alertes", label: "Mes alertes", icon: "list", iconActive: "list" },
-];
-
-type Props = {
-  active: CitizenTab;
-  onChange: (tab: CitizenTab) => void;
+export type TabDef<T extends string> = {
+  id: T;
+  label: string;
+  // Icône à afficher ; selected = onglet actif (icône pleine).
+  icon: (selected: boolean) => React.ReactNode;
 };
 
-export function BottomNav({ active, onChange }: Props) {
+const ionicon = (outline: IconName, filled: IconName) => (selected: boolean) => (
+  <Ionicons name={selected ? filled : outline} size={30} color={C.green} />
+);
+
+const CITIZEN_TABS: TabDef<CitizenTab>[] = [
+  { id: "carte", label: "Carte", icon: ionicon("location-outline", "location-sharp") },
+  { id: "alertes", label: "Mes alertes", icon: ionicon("list", "list") },
+];
+
+type TabBarProps<T extends string> = {
+  tabs: TabDef<T>[];
+  active: T;
+  onChange: (tab: T) => void;
+};
+
+// Barre d'onglets du bas, partagée par l'app citoyen et l'espace employé.
+export function TabBar<T extends string>({ tabs, active, onChange }: TabBarProps<T>) {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.nav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const selected = tab.id === active;
         return (
           <Pressable
@@ -42,13 +54,17 @@ export function BottomNav({ active, onChange }: Props) {
             accessibilityState={{ selected }}
             style={[styles.tab, selected && styles.tabActive]}
           >
-            <Ionicons name={selected ? tab.iconActive : tab.icon} size={30} color={C.green} />
+            {tab.icon(selected)}
             <Text style={[styles.label, selected && styles.labelActive]}>{tab.label}</Text>
           </Pressable>
         );
       })}
     </View>
   );
+}
+
+export function BottomNav({ active, onChange }: { active: CitizenTab; onChange: (tab: CitizenTab) => void }) {
+  return <TabBar tabs={CITIZEN_TABS} active={active} onChange={onChange} />;
 }
 
 const styles = StyleSheet.create({
