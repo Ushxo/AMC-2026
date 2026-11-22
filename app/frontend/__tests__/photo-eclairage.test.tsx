@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AppState, Linking } from 'react-native';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import PhotoStep from '../citizen/PhotoStep';
 
@@ -129,5 +131,14 @@ describe('caméra ou galerie refusée', () => {
     expect(ouvrir).toHaveBeenCalledTimes(1);
     mockPermission.etat = { granted: true };
     ouvrir.mockRestore();
+  });
+});
+
+describe('lisibilité sous chaque thème (photo-eclairage)', () => {
+  beforeEach(() => reinitialiserMarque());
+  it.each(COMBINAISONS_THEMES)('thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<PhotoStep onPhoto={jest.fn()} onBack={jest.fn()} onSkip={jest.fn()} onContinue={jest.fn()} />);
+    expect(textesIllisibles()).toEqual([]);
   });
 });

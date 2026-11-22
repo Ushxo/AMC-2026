@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import type { Endroit, ResultatOptimisation } from '../../src/types';
 import TrajetOptimal from '../supervisor/TrajetOptimal';
@@ -114,5 +116,14 @@ describe('trajet optimal', () => {
     mockLancer.mockResolvedValueOnce('Création de la demande refusée : droits insuffisants.');
     await render(<TrajetOptimal cles={['a']} onRetour={jest.fn()} onDetails={jest.fn()} />);
     expect(await screen.findByText('Création de la demande refusée : droits insuffisants.')).toBeTruthy();
+  });
+});
+
+describe('lisibilité sous chaque thème (trajet-optimal)', () => {
+  beforeEach(() => reinitialiserMarque());
+  it.each(COMBINAISONS_THEMES)('thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<TrajetOptimal cles={['a']} onRetour={jest.fn()} onDetails={jest.fn()} />);
+    expect(textesIllisibles()).toEqual([]);
   });
 });

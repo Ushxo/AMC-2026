@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import StaffApp from '../StaffApp';
 
@@ -43,5 +45,14 @@ describe('espace employé : Ma carte', () => {
     expect(screen.queryByText('Aucune équipe associée à ce compte')).toBeNull();
     await fireEvent.press(screen.getByText('Réessayer'));
     expect(reessayer).toHaveBeenCalled();
+  });
+});
+
+describe('lisibilité sous chaque thème (employe)', () => {
+  beforeEach(() => reinitialiserMarque());
+  it.each(COMBINAISONS_THEMES)('thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<StaffApp onLogout={() => {}} />);
+    expect(textesIllisibles()).toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import { codeDepuisNom, creerOrganisation, lireOrganisations, MESSAGE_ORGANISATION_MIGRATION_0010, MESSAGE_ORGANISATION_NOM, organisationDepuisLigne, ORGANISATIONS_EMBARQUEES } from '../organisations';
+import { codeDepuisNom, creerOrganisation, lireOrganisations, viderMemoireOrganisations, MESSAGE_ORGANISATION_MIGRATION_0010, MESSAGE_ORGANISATION_NOM, organisationDepuisLigne, ORGANISATIONS_EMBARQUEES } from '../organisations';
 import { textesDe } from '@/marque/organisations-embarquees';
 
 jest.mock('@react-native-async-storage/async-storage', () => jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'));
@@ -71,5 +71,37 @@ describe('création d’une organisation', () => {
   it('code déjà pris : message clair', async () => {
     mockFrom.mockReturnValue({ insert: jest.fn().mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } }) });
     expect(await creerOrganisation(nouvelle)).toMatch(/déjà ce code/);
+  });
+});
+
+describe('liste des organisations gardée en mémoire', () => {
+  beforeEach(() => viderMemoireOrganisations());
+
+  it('une seule lecture en base tant que la liste est fraîche ; « forcer » la relit', async () => {
+    const select = jest.fn().mockResolvedValue({ data: [ligne], error: null });
+    mockFrom.mockReturnValue({ select });
+    await lireOrganisations();
+    await lireOrganisations();
+    expect(select).toHaveBeenCalledTimes(1);
+    await lireOrganisations(true);
+    expect(select).toHaveBeenCalledTimes(2);
+  });
+
+  it('une écriture réussie vide la mémoire', async () => {
+    const select = jest.fn().mockResolvedValue({ data: [ligne], error: null });
+    const insert = jest.fn().mockResolvedValue({ error: null });
+    mockFrom.mockReturnValue({ select, insert });
+    await lireOrganisations();
+    await creerOrganisation(organisationDepuisLigne({ ...ligne, id: undefined })!);
+    await lireOrganisations();
+    expect(select).toHaveBeenCalledTimes(2);
+  });
+
+  it('la liste de repli (base absente) n’est pas gardée : on réessaie au prochain appel', async () => {
+    const select = jest.fn().mockResolvedValue({ data: null, error: { code: '500', message: 'panne' } });
+    mockFrom.mockReturnValue({ select });
+    await lireOrganisations();
+    await lireOrganisations();
+    expect(select).toHaveBeenCalledTimes(2);
   });
 });

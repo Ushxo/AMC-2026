@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { VOILE_FEUILLE, FEUILLE_BASE, COULEUR_REPERE, STYLE_AVIS, STYLE_CHANTIER, STYLE_ZONE_INONDABLE, COULEUR_OMBRE } from '@/components/ville/style';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Modal, ScrollView, StyleSheet, View, Switch } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, View, Switch } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { ChampTexte as TextInput } from '@/components/texte';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +14,7 @@ import { MESSAGE_RECHERCHE_INDISPONIBLE, useRechercheAdresse } from '@/hooks/use
 import { Carte, Cercle, Repere, RepereInfo, Zone, type CarteCommandes } from '@/components/carte';
 import { AvisEau } from '@/components/ville/avis-eau';
 import { ReperesEndroits } from '@/components/ville/reperes-endroits';
-import { Chargement, Erreur } from '@/components/ville/etat-ecran';
+import { Chargement } from '@/components/ville/etat-ecran';
 import { ListeEndroits } from '@/components/ville/liste-endroits';
 import { BandesInondation } from '@/components/ville/bandes-inondation';
 import { SelecteurCarte } from '@/components/ville/selecteur-carte';

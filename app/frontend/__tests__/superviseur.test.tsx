@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react-native';
 
 import type { Arret, ResultatOptimisation, Tournee } from '../../src/types';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 import ArretsFaits from '../supervisor/ArretsFaits';
 import TableauDeBord from '../supervisor/TableauDeBord';
 
@@ -115,5 +117,26 @@ describe('tableau de bord du superviseur', () => {
     mockResume.mockReturnValue({ resume, chargement: false, erreur: 'Les signalements ne peuvent pas être lus.' });
     await rerender(<TableauDeBord />);
     expect(screen.getByText('Les signalements ne peuvent pas être lus.')).toBeTruthy();
+  });
+});
+
+describe('lisibilité sous chaque thème : arrêts traités et tableau de bord', () => {
+  beforeEach(() => reinitialiserMarque());
+  it.each(COMBINAISONS_THEMES)('arrêts traités, thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, true), arret(2, false), arret(3, true)])]), chargement: false });
+    await render(<ArretsFaits />);
+    expect(textesIllisibles()).toEqual([]);
+  });
+  it.each(COMBINAISONS_THEMES)('tableau de bord, thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    mockResume.mockReturnValue({
+      resume: { parEtat: { nouveau: 5, pris_en_charge: 2, regle: 3, rejete: 0 }, parCategorie: { grille_bouchee: 4, eau_accumulee: 4, eau_douteuse: 1, absence_eau: 1, autre: 0 } },
+      chargement: false,
+      erreur: null,
+    });
+    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, false)])]), chargement: false });
+    await render(<TableauDeBord />);
+    expect(textesIllisibles()).toEqual([]);
   });
 });

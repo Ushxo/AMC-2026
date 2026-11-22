@@ -50,8 +50,28 @@ function colonneAbsente(e: unknown): boolean {
   return /service|textes/i.test(String((e as { message?: unknown } | null)?.message ?? '')) && /column|colonne|schema cache|PGRST204/i.test(String((e as { message?: unknown; code?: unknown } | null)?.message ?? '') + String((e as { code?: unknown } | null)?.code ?? ''));
 }
 
-/** Les organisations : celles de la base quand elle répond (migration 0009 lancée), sinon les deux marques embarquées. */
-export async function lireOrganisations(): Promise<{ organisations: Organisation[]; enBase: boolean }> {
+type ListeOrganisations = { organisations: Organisation[]; enBase: boolean };
+const VALIDITE_MEMOIRE_MS = 10 * 60 * 1000;
+let memoire: { valeur: ListeOrganisations; le: number } | null = null;
+
+/** Oublie la liste gardée en mémoire (après une écriture, ou pour les tests). */
+export function viderMemoireOrganisations(): void {
+  memoire = null;
+}
+
+/**
+ * Les organisations : celles de la base quand elle répond (migration 0009 lancée), sinon les deux marques embarquées.
+ * La liste lue en base est gardée en mémoire (la feuille Profil et l'administration ne la relisent pas à chaque ouverture) ;
+ * l'abonnement en direct (AppRoot) la renouvelle avec `forcer`.
+ */
+export async function lireOrganisations(forcer = false): Promise<ListeOrganisations> {
+  if (!forcer && memoire && Date.now() - memoire.le < VALIDITE_MEMOIRE_MS) return memoire.valeur;
+  const lue = await lireOrganisationsEnBase();
+  if (lue.enBase) memoire = { valeur: lue, le: Date.now() };
+  return lue;
+}
+
+async function lireOrganisationsEnBase(): Promise<ListeOrganisations> {
   const client = getSupabase();
   if (!client) return { organisations: ORGANISATIONS_EMBARQUEES, enBase: false };
   try {
@@ -114,6 +134,7 @@ export async function enregistrerOrganisation(o: Organisation): Promise<string |
   try {
     let { error } = await avecDelai(client.from('organisations').update({ ...base, service: o.service ?? null, textes: o.textes ?? {} }).eq('id', o.id), DELAI_MS);
     if (error && colonneAbsente(error)) ({ error } = await avecDelai(client.from('organisations').update(base).eq('id', o.id), DELAI_MS));
+    if (!error) viderMemoireOrganisations();
     return error ? messageOrganisation(error) : null;
   } catch {
     return MESSAGE_ORGANISATION_ECHEC;
@@ -158,7 +179,10 @@ export async function creerOrganisation(o: Organisation): Promise<string | null>
       }),
       DELAI_MS,
     );
-    if (!error) return null;
+    if (!error) {
+      viderMemoireOrganisations();
+      return null;
+    }
     if (colonneAbsente(error)) return MESSAGE_ORGANISATION_MIGRATION_0010;
     if (/duplicate|unique|23505/i.test(String(error.message) + String(error.code))) return 'Une organisation porte déjà ce code. Changez le nom.';
     if (/row-level security|42501|violates/i.test(String(error.message) + String(error.code))) return 'Seul un administrateur peut créer une organisation.';

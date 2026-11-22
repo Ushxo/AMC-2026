@@ -1,4 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import LoginScreen from '../citizen/LoginScreen';
 import SignupScreen from '../auth/SignupScreen';
@@ -69,5 +71,14 @@ describe('création de compte', () => {
     await fireEvent.changeText(screen.getByPlaceholderText(/Mot de passe/), 'assezlongpourvaloir');
     await fireEvent.press(screen.getByText('Créer mon compte'));
     await waitFor(() => expect(screen.getByText('Un compte existe déjà avec cet email.')).toBeTruthy());
+  });
+});
+
+describe('lisibilité sous chaque thème (connexion-ecrans)', () => {
+  beforeEach(() => reinitialiserMarque());
+  it.each(COMBINAISONS_THEMES)('thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<SignupScreen onBack={jest.fn()} onSignup={async () => null} />);
+    expect(textesIllisibles()).toEqual([]);
   });
 });

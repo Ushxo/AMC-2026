@@ -14,7 +14,7 @@ import { LIBELLES_CATEGORIE } from "@/types";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
-import { BLANC_FIXE } from '@/components/ville/style';
+import { texteSur } from '@/marque/couleurs';
 
 // « Arrêts faits » du superviseur : par équipe, les arrêts non faits en tête (heure et commentaire de l'équipe), puis les arrêts faits
 // (heure réelle, commentaire s'il y en a) et le prochain à venir. Lecture seule : un arrêt fait règle tout de suite ses signalements,
@@ -79,7 +79,7 @@ export default function ArretsFaits() {
                       <View key={a.rang}>
                         {n > 0 ? <View style={styles.separateur} /> : null}
                         <View style={styles.ligne} accessible accessibilityLabel={`Arrêt ${a.rang}, ${titre}, ${detail}, ${nonFait ? `non fait à ${heure}` : heure}${mot ? `, commentaire : ${mot}` : ""}`}>
-                          <Text style={[styles.numero, { backgroundColor: nonFait ? P.danger : a.fait ? P.success : P.borderForte }]}>{a.rang}</Text>
+                          <Text style={[styles.numero, { backgroundColor: nonFait ? P.danger : a.fait ? P.success : P.borderForte, color: texteSur(nonFait ? P.danger : a.fait ? P.success : P.borderForte) }]}>{a.rang}</Text>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.ligneTitre}>{titre}</Text>
                             <Text style={styles.ligneDetail}>{detail}</Text>
@@ -115,7 +115,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   carte: { backgroundColor: P.surface, borderRadius: 22, padding: 16 },
   separateur: { height: 1, backgroundColor: P.border, marginVertical: 12 },
   ligne: { flexDirection: "row", alignItems: "center", gap: 12 },
-  numero: { width: 32, height: 32, borderRadius: 16, textAlign: "center", lineHeight: 32, color: BLANC_FIXE, fontWeight: "700", fontSize: 15, overflow: "hidden" },
+  numero: { width: 32, height: 32, borderRadius: 16, textAlign: "center", lineHeight: 32, fontWeight: "700", fontSize: 15, overflow: "hidden" },
   ligneTitre: { fontSize: 15, fontWeight: "700", color: P.text },
   ligneDetail: { fontSize: 13, fontWeight: "500", color: P.textSecondary },
   heure: { fontSize: 14, fontWeight: "700", color: P.primary },

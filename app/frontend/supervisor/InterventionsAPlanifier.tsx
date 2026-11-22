@@ -16,6 +16,7 @@ import { AUCUN_FILTRE, clesDesInterventions, interventionsAPlanifier, lieuDeEndr
 import { clesDeZone } from "@/lib/selection";
 import { CATEGORIES_PROPOSEES, LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { IllustrationProbleme } from "@/components/illustration-probleme";
+import { ajusterContraste } from '@/marque/couleurs';
 import { useMarque, useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
@@ -25,7 +26,7 @@ type Importance = { fond: string; plein: string; accent: string; icone: keyof ty
 const ICONES_IMPORTANCE: Record<Gravite, keyof typeof Ionicons.glyphMap> = { elevee: "chevron-up", moyenne: "remove", faible: "chevron-down" };
 function importances(sombre: boolean): Record<Gravite, Importance> {
   const c = sombre ? COULEURS_IMPORTANCE_SOMBRE : null;
-  const t = (g: Gravite): Importance => ({ fond: (c ?? COULEURS_IMPORTANCE)[g].fond, plein: COULEURS_IMPORTANCE[g].plein, accent: c ? c[g].accent : COULEURS_IMPORTANCE[g].plein, icone: ICONES_IMPORTANCE[g] });
+  const t = (g: Gravite): Importance => ({ fond: (c ?? COULEURS_IMPORTANCE)[g].fond, plein: COULEURS_IMPORTANCE[g].plein, accent: c ? c[g].accent : ajusterContraste(COULEURS_IMPORTANCE[g].plein, COULEURS_IMPORTANCE[g].fond, 4.5), icone: ICONES_IMPORTANCE[g] });
   return { elevee: t("elevee"), moyenne: t("moyenne"), faible: t("faible") };
 }
 const IMPORTANCE_CLAIR = importances(false);

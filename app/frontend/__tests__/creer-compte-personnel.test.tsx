@@ -1,4 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import CreerComptePersonnel from '../admin/CreerComptePersonnel';
 
@@ -51,5 +53,14 @@ describe('créer un compte du personnel', () => {
     await fireEvent.press(screen.getByText('Superviseur'));
     await fireEvent.press(screen.getByText('Créer le compte'));
     await waitFor(() => expect(screen.getByText('Un compte existe déjà avec ce courriel.')).toBeTruthy());
+  });
+});
+
+describe('lisibilité sous chaque thème (creer-compte-personnel)', () => {
+  beforeEach(() => reinitialiserMarque());
+  it.each(COMBINAISONS_THEMES)('thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<CreerComptePersonnel onBack={jest.fn()} />);
+    expect(textesIllisibles()).toEqual([]);
   });
 });

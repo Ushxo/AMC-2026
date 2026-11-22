@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import FicheEquipe from '../../src/app/ville/equipe/[id]';
 
@@ -63,5 +65,14 @@ describe('fiche d’équipe', () => {
     expect(screen.getByText(/2 arrêts, dont 1 faits/)).toBeTruthy();
     await fireEvent.press(screen.getByText('Suivre ce trajet'));
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/ville/trajet/[equipe]', params: { equipe: 'e1' } });
+  });
+});
+
+describe('lisibilité sous chaque thème (fiche-equipe)', () => {
+  beforeEach(() => reinitialiserMarque());
+  it.each(COMBINAISONS_THEMES)('thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<FicheEquipe />);
+    expect(textesIllisibles()).toEqual([]);
   });
 });

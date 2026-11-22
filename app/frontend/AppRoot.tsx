@@ -38,7 +38,7 @@ function ContenuRacine() {
   useEffect(() => {
     void chargerMarqueLocale();
     const rafraichir = () =>
-      void lireOrganisations().then((r) => {
+      void lireOrganisations(true).then((r) => {
         if (r.enBase) r.organisations.forEach(mettreAJourOrganisation);
       });
     rafraichir();

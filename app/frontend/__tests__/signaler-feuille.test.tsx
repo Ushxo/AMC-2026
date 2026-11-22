@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import Signaler from '../../src/app/(citoyen)/signaler';
 
@@ -88,5 +90,14 @@ describe('signalement : feuille des quatre problèmes', () => {
     expect(await screen.findByText(/Photo refusée : reprenez-en une/)).toBeTruthy();
     expect(screen.getByText(/ne montre pas un égout/)).toBeTruthy();
     expect(screen.getByText('Ajouter une photo (facultatif)')).toBeTruthy(); // retirée, on peut en reprendre une
+  });
+});
+
+describe('lisibilité sous chaque thème (signaler-feuille)', () => {
+  beforeEach(() => reinitialiserMarque());
+  it.each(COMBINAISONS_THEMES)('thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<Signaler />);
+    expect(textesIllisibles()).toEqual([]);
   });
 });
