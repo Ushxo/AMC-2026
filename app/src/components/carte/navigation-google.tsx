@@ -48,6 +48,8 @@ type Props = {
   apercu: (session: SessionNavigation) => ReactNode;
   /** Barre d'actions fixe sous la carte pendant la navigation (la carte de Google reste entière au-dessus). */
   barre: (session: SessionNavigation) => ReactNode;
+  /** Vrai seulement quand l'écran est une route plein écran (sans en-tête) : le bord haut prend alors la couleur du bandeau de manœuvre. */
+  pleinEcran?: boolean;
 };
 
 /** Ce que l'écran peut lire et commander pendant la session de navigation. */
@@ -61,6 +63,8 @@ export type SessionNavigation = {
   /** Demande l'itinéraire vers la destination et lance le guidage (une destination demandée). */
   demarrer: () => void;
   arreter: () => void;
+  /** Remet la caméra à la suite du véhicule (le bouton de Google peut se cacher derrière notre panneau). */
+  recentrer: () => void;
 };
 
 type Etat = SessionNavigation['etat'];
@@ -80,7 +84,7 @@ const MESSAGES_SESSION: Record<string, string> = {
   locationPermissionMissing: "La position de l'appareil n'est pas autorisée.",
 };
 
-function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, barre }: Props) {
+function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, barre, pleinEcran = false }: Props) {
   const nav = biblio();
   const theme = useThemeCarte();
   const { navigationController, removeAllListeners, setOnArrival, setOnLocationChanged, setOnRemainingTimeOrDistanceChanged } = nav.useNavigation();
@@ -88,6 +92,7 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
   const { top } = useSafeAreaInsets();
   const [restant, setRestant] = useState<{ secondes: number; metres: number } | null>(null);
   const [hauteurPanneau, setHauteurPanneau] = useState(0);
+  const vueNavigation = useRef<Nav.NavigationViewController | null>(null);
   const [etat, setEtat] = useState<Etat>('init');
   const [message, setMessage] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
@@ -286,6 +291,9 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
       if (cible) void lancer(cible);
     },
     arreter,
+    recentrer: () => {
+      void vueNavigation.current?.setFollowingPerspective(nav.CameraPerspective.TILTED)?.catch?.(() => {});
+    },
   };
   // Le bandeau de manœuvre de Google prend les couleurs du thème : le bord haut (zone de l'heure) a la même couleur, sans barre de titre.
   const entete = J.header;
@@ -303,7 +311,7 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
     navigationHeaderInstructionsTextColor: J.onHeader,
   };
   return (
-    <View style={[styles.racine, etat === 'guidage' ? { backgroundColor: entete, paddingTop: top } : null]}>
+    <View style={[styles.racine, pleinEcran && etat === 'guidage' ? { backgroundColor: entete, paddingTop: top } : null]}>
       {/* La carte est toujours montée (la session de Google survit au changement d'écran) : plein cadre, sous l'aperçu. */}
       <View style={styles.vue}>
         <View_
@@ -327,7 +335,9 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
           reportIncidentButtonEnabled={false}
           onMapViewControllerCreated={setCarte}
           onMapReady={() => setCartePrete(true)}
-          onNavigationViewControllerCreated={() => {}}
+          onNavigationViewControllerCreated={(c) => {
+            vueNavigation.current = c;
+          }}
         />
       </View>
       {/* Notre panneau se pose PAR-DESSUS le bas de la carte (coins arrondis sur la carte) ; la carte réserve sa hauteur pour que le logo

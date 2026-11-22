@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Appuyable } from '@/components/appuyable';
@@ -35,6 +35,10 @@ type Props = {
   onListe: () => void;
   /** Retour à l'écran précédent (bouton d'icône), si on peut. */
   onRetour?: () => void;
+  /** Recentrer la carte sur le véhicule (bouton d'icône). */
+  onRecentrer?: () => void;
+  /** Vrai quand le panneau est collé au bas de l'écran (route plein écran) : il réserve la zone sûre du bas. */
+  avecZoneSure?: boolean;
   message?: string | null;
 };
 
@@ -42,11 +46,17 @@ type Props = {
  * Panneau du bas de la navigation : un seul ensemble, aux couleurs du thème (celui de la carte quand elle est sombre).
  * Une action principale (« Arrêt fait ? »), des actions secondaires en boutons d'icône ronds.
  */
-export function BarreNavigation({ principal, progression, lieu, etiquette, arrivee, info, suggestion, titreAction = 'Arrêt fait ?', occupe, actionActive = true, onAction, onArreter, onListe, onRetour, message }: Props) {
+export function BarreNavigation({ principal, progression, lieu, etiquette, arrivee, info, suggestion, titreAction = 'Arrêt fait ?', occupe, actionActive = true, onAction, onArreter, onListe, onRetour, onRecentrer, avecZoneSure = true, message }: Props) {
   const P = useJetonsNavigation();
   const { bottom } = useSafeAreaInsets();
+  // Un toucher maladroit ne coupe pas le guidage : une question d'une ligne d'abord.
+  const confirmerArret = () =>
+    Alert.alert('Arrêter le guidage ?', undefined, [
+      { text: 'Continuer', style: 'cancel' },
+      { text: 'Arrêter', style: 'destructive', onPress: onArreter },
+    ]);
   return (
-    <View testID="panneau-navigation" style={[styles.panneau, FEUILLE_BASE, { backgroundColor: P.surface, paddingBottom: 12 + bottom }]}>
+    <View testID="panneau-navigation" style={[styles.panneau, FEUILLE_BASE, { backgroundColor: P.surface, paddingBottom: 12 + (avecZoneSure ? bottom : 0) }]}>
       <View style={styles.textes} accessibilityLiveRegion="polite">
         {principal ? (
           <ChiffreGlissant valeur={principal} style={[styles.principal, { color: P.text }]} />
@@ -97,15 +107,16 @@ export function BarreNavigation({ principal, progression, lieu, etiquette, arriv
         <View style={styles.action}>
           <BoutonAction titre={occupe ? 'Enregistrement…' : titreAction} occupe={occupe} onPress={onAction} actif={!occupe && actionActive} />
         </View>
+        {onRecentrer ? <BoutonRond icone="locate" libelle="Recentrer la carte sur ma position" onPress={onRecentrer} /> : null}
         <BoutonRond icone="list" libelle="Liste des arrêts" onPress={onListe} />
-        <BoutonRond icone="stop" libelle="Arrêter la navigation" onPress={onArreter} />
+        <BoutonRond icone="stop" libelle="Arrêter la navigation" onPress={confirmerArret} />
       </View>
     </View>
   );
 }
 
 /** Bouton d'icône rond de 48 points (cible minimale), avec son libellé d'accessibilité. */
-function BoutonRond({ icone, libelle, onPress }: { icone: 'arrow-back' | 'list' | 'stop'; libelle: string; onPress: () => void }) {
+function BoutonRond({ icone, libelle, onPress }: { icone: 'arrow-back' | 'list' | 'stop' | 'locate'; libelle: string; onPress: () => void }) {
   const P = useJetonsNavigation();
   return (
     <Appuyable accessibilityRole="button" accessibilityLabel={libelle} onPress={onPress} style={[styles.rond, { backgroundColor: P.backgroundSelected }]}>

@@ -369,8 +369,9 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
   // Panneau du bas pendant la navigation : un seul ensemble (temps et distance, progression, problème et adresse), une action principale
   // (« Arrêt fait ? ») et des boutons d'icône (retour, liste des arrêts, arrêter).
   const distanceProchain = pos.position && cible ? distanceM(pos.position, cible) : null;
-  function barre(arreter: () => void, restant?: { secondes: number; metres: number } | null) {
-    const principal = libelleProchainArret(restant ?? (distanceProchain !== null ? { secondes: Number.NaN, metres: distanceProchain } : null));
+  function barre(arreter: () => void, restant?: { secondes: number; metres: number } | null, recentrer?: () => void) {
+    // La place de la ligne principale est réservée dès le départ : le panneau garde sa hauteur quand la mesure arrive.
+    const principal = libelleProchainArret(restant ?? (distanceProchain !== null ? { secondes: Number.NaN, metres: distanceProchain } : null)) ?? 'Calcul du trajet…';
     return (
       <>
         <SignalerPleinEcran onChange={onPleinEcran} />
@@ -389,6 +390,8 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
           onArreter={arreter}
           onListe={() => setListe(true)}
           onRetour={onPleinEcran ? () => routeur.back() : undefined}
+          onRecentrer={recentrer}
+          avecZoneSure={!!onPleinEcran}
           message={messageAffiche ?? (peutMarquer ? null : MESSAGE_SEUL_SUPERVISEUR_OU_EQUIPE)}
         />
       </>
@@ -760,13 +763,14 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
           cible={cibleNav}
           onArrivee={setArrivee}
           onIndisponible={setNavEchec}
+          pleinEcran={!!onPleinEcran}
           reperes={reperesNav}
           apercu={(session) => apercu(session)}
           barre={(session) =>
             barre(() => {
               setSuiviActif(false);
               session.arreter();
-            }, session.restant)
+            }, session.restant, session.recentrer)
           }
         />
         {feuille}

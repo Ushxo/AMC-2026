@@ -1,3 +1,4 @@
+import { Alert } from 'react-native';
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import { BarreNavigation } from '../../src/components/ville/barre-navigation';
@@ -40,9 +41,35 @@ describe('panneau du bas de la navigation', () => {
     await render(<BarreNavigation {...base} onAction={onAction} onListe={onListe} onArreter={onArreter} onRetour={onRetour} />);
     await fireEvent.press(screen.getByLabelText('Arrêt fait ?'));
     await fireEvent.press(screen.getByLabelText('Liste des arrêts'));
-    await fireEvent.press(screen.getByLabelText('Arrêter la navigation'));
     await fireEvent.press(screen.getByLabelText("Retour à l'écran précédent"));
-    expect([onAction, onListe, onArreter, onRetour].map((f) => f.mock.calls.length)).toEqual([1, 1, 1, 1]);
+    expect([onAction, onListe, onRetour].map((f) => f.mock.calls.length)).toEqual([1, 1, 1]);
+    expect(onArreter).not.toHaveBeenCalled(); // « Arrêter » demande d'abord confirmation (voir le test suivant)
+  });
+
+  it('« Arrêter » demande confirmation en une ligne ; « Continuer » ne coupe rien, « Arrêter » coupe', async () => {
+    const alerte = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const onArreter = jest.fn();
+    await render(<BarreNavigation {...base} onArreter={onArreter} />);
+    await fireEvent.press(screen.getByLabelText('Arrêter la navigation'));
+    expect(alerte).toHaveBeenCalledTimes(1);
+    const [titre, , boutons] = alerte.mock.calls[0];
+    expect(titre).toBe('Arrêter le guidage ?');
+    expect((boutons ?? []).map((b) => b.text)).toEqual(['Continuer', 'Arrêter']);
+    expect(onArreter).not.toHaveBeenCalled();
+    (boutons ?? [])[0].onPress?.(); // Continuer
+    expect(onArreter).not.toHaveBeenCalled();
+    (boutons ?? [])[1].onPress?.(); // Arrêter
+    expect(onArreter).toHaveBeenCalledTimes(1);
+    alerte.mockRestore();
+  });
+
+  it('un bouton rond « Recentrer » est dans le panneau quand on peut recentrer', async () => {
+    const onRecentrer = jest.fn();
+    const { rerender } = await render(<BarreNavigation {...base} />);
+    expect(screen.queryByLabelText('Recentrer la carte sur ma position')).toBeNull();
+    await rerender(<BarreNavigation {...base} onRecentrer={onRecentrer} />);
+    await fireEvent.press(screen.getByLabelText('Recentrer la carte sur ma position'));
+    expect(onRecentrer).toHaveBeenCalledTimes(1);
   });
 
   it('l’avis de départ n’apparaît que quand il est utile, en pastille', async () => {
