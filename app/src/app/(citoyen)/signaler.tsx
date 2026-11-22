@@ -26,6 +26,7 @@ import { jugerPhoto } from '@/lib/ml';
 import { analyseDisponible, graviteSuggeree, MESSAGE_ANALYSE_INDISPONIBLE, MESSAGE_PHOTO_PAS_EGOUT } from '@/lib/suggestion-gravite';
 import PhotoStep from '../../../frontend/citizen/PhotoStep';
 import { IllustrationProbleme } from '@/components/illustration-probleme';
+import { FeuilleProbleme } from '@/components/citoyen/feuille-probleme';
 import { lieuDeEndroit } from '@/lib/interventions';
 import { chargerAdresses, chargerRegion } from '@/lib/officiel';
 import {
@@ -49,12 +50,6 @@ import {
 const CATEGORIES: Categorie[] = CATEGORIES_PROPOSEES;
 const GRAVITES: Gravite[] = ['faible', 'moyenne', 'elevee'];
 
-const TITRE_CARTE: Partial<Record<Categorie, string>> = {
-  grille_bouchee: 'Égout bouché',
-  eau_accumulee: "Accumulation d'eau ou inondation",
-  affaissement: "Affaissement autour d'un égout",
-  grille_endommagee: "Grille d'égout endommagée",
-};
 type Etape = 'probleme' | 'photo' | 'formulaire';
 
 export default function Signaler() {
@@ -68,7 +63,8 @@ export default function Signaler() {
   const { position, permission, demander } = usePosition();
   const { chercher, indisponible: rechercheIndisponible } = useRechercheAdresse();
   // Le lieu peut venir de la carte (toucher la carte ou un regard).
-  const params = useLocalSearchParams<{ lat?: string; lng?: string }>();
+  const params = useLocalSearchParams<{ lat?: string; lng?: string; categorie?: string }>();
+  const categorieInitiale = CATEGORIES.find((c) => c === params.categorie) ?? null;
   const [point, setPoint] = useState<Coordonnees | null>(() => {
     const lat = Number(params.lat);
     const lng = Number(params.lng);
@@ -77,12 +73,12 @@ export default function Signaler() {
   const [demandePosition, setDemandePosition] = useState(false);
   const [texteAdresse, setTexteAdresse] = useState('');
   const [resultats, setResultats] = useState<ResultatRecherche[] | null>(null);
-  const [categorie, setCategorie] = useState<Categorie | null>(null);
+  const [categorie, setCategorie] = useState<Categorie | null>(categorieInitiale);
   const [gravite, setGravite] = useState<Gravite | null>(null);
   const [commentaire, setCommentaire] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [lieuOuvert, setLieuOuvert] = useState(false);
-  const [etape, setEtape] = useState<Etape>('probleme');
+  const [etape, setEtape] = useState<Etape>(categorieInitiale ? 'photo' : 'probleme');
   const [analyse, setAnalyse] = useState<{ enCours: boolean; texte: string | null }>({ enCours: false, texte: null });
   const [messages, setMessages] = useState<string[]>([]);
   const [aEssaye, setAEssaye] = useState(false);
@@ -172,56 +168,19 @@ export default function Signaler() {
 
   const termine = envoyeId !== null;
 
-  // Étape 1 : feuille « Quel problème avez-vous observé ? » (grille 2 x 2), montée depuis le bas.
+  // Étape 1 (si on arrive sans problème choisi, ou par « Changer ») : la feuille « Quel problème avez-vous observé ? ».
+  // Depuis la carte, la feuille s'ouvre sur la carte elle-même (floutée derrière) et cet écran démarre à la photo.
   if (etape === 'probleme') {
     return (
-      <View style={styles.voile}>
+      <View style={[styles.fond, { backgroundColor: theme.background }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Pressable style={styles.fondFeuille} accessibilityRole="button" accessibilityLabel="Fermer sans signaler" onPress={() => router.back()} />
-        <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 20 }]}>
-          <View style={[styles.poignee, { backgroundColor: theme.borderForte }]} />
-          <ThemedText type="subtitle" accessibilityRole="header" style={styles.titreFeuille} maxFontSizeMultiplier={1.3}>
-            Quel problème avez-vous observé ?
-          </ThemedText>
-          <View style={styles.grille}>
-            {CATEGORIES.map((c) => {
-              const choisi = categorie === c;
-              return (
-                <Pressable
-                  key={c}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: choisi }}
-                  accessibilityLabel={TITRE_CARTE[c] ?? LIBELLES_CATEGORIE[c]}
-                  onPress={() => setCategorie(c)}
-                  style={[
-                    styles.carteProbleme,
-                    { backgroundColor: choisi ? theme.accentDoux : theme.surface, borderColor: choisi ? theme.accent : theme.border, borderWidth: choisi ? 3 : 1 },
-                  ]}>
-                  <View style={styles.dessin}>
-                    <IllustrationProbleme categorie={c} taille={84} />
-                  </View>
-                  <ThemedText type="smallBold" style={styles.texteProbleme} maxFontSizeMultiplier={1.3}>
-                    {TITRE_CARTE[c] ?? LIBELLES_CATEGORIE[c]}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-          {erreursChamps.categorie && !categorie ? (
-            <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
-              {erreursChamps.categorie}
-            </ThemedText>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !categorie }}
-            onPress={() => (categorie ? setEtape('photo') : setAEssaye(true))}
-            style={[styles.continuer, { backgroundColor: categorie ? theme.accent : theme.backgroundSelected }]}>
-            <ThemedText type="smallBold" style={{ color: categorie ? theme.surface : theme.textSecondary, fontSize: 18 }}>
-              Continuer
-            </ThemedText>
-          </Pressable>
-        </View>
+        <FeuilleProbleme
+          categorie={categorie}
+          onChoisir={setCategorie}
+          onContinuer={() => (categorie ? setEtape('photo') : setAEssaye(true))}
+          onFermer={() => router.back()}
+          erreur={erreursChamps.categorie && !categorie ? erreursChamps.categorie : null}
+        />
       </View>
     );
   }
@@ -486,14 +445,4 @@ const styles = StyleSheet.create({
   commentaire: { minHeight: 96, textAlignVertical: 'top', paddingTop: 12 },
   photoBloc: { gap: 8 },
   photo: { width: '100%', height: 200, borderRadius: 14 },
-  voile: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
-  fondFeuille: { flex: 1 },
-  feuille: { borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 12, gap: 14 },
-  poignee: { alignSelf: 'center', width: 48, height: 5, borderRadius: 3 },
-  titreFeuille: { textAlign: 'center', fontSize: 24, lineHeight: 30 },
-  grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  carteProbleme: { flexBasis: '47%', flexGrow: 1, borderRadius: 22, padding: 10, alignItems: 'center', minHeight: 150, justifyContent: 'space-between' },
-  dessin: { height: 84, alignItems: 'center', justifyContent: 'center' },
-  texteProbleme: { textAlign: 'center' },
-  continuer: { minHeight: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
 });

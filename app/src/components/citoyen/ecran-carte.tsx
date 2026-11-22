@@ -47,7 +47,8 @@ import {
 } from '@/lib/couches-carte';
 import { pointDansGeometrie } from '@/lib/geo';
 import { dansQuartier, messagePositionCarte, RAYON_CITOYEN_M } from '@/lib/position-citoyen';
-import { LIBELLES_GRAVITE, type Endroit, type ResultatRecherche } from '@/types';
+import { LIBELLES_GRAVITE, type Categorie, type Endroit, type ResultatRecherche } from '@/types';
+import { FeuilleProbleme } from './feuille-probleme';
 
 function premierSignalement(e: Endroit): string {
   const ouvert = e.signalements.find((s) => s.etat === 'nouveau' || s.etat === 'pris_en_charge');
@@ -61,7 +62,7 @@ const HAUTEUR_BARRE = 92;
 
 type Props = {
   /** Dans la coquille de l'app (barre du bas, compte) : espace pour la barre et bouton de compte en haut. */
-  coquille?: { espaceBas: number; onOpenProfile: () => void };
+  coquille?: { espaceBas: number; onOpenProfile: () => void; /** Dit à la coquille quand la feuille de signalement est ouverte (la barre du bas se retire). */ onFeuille?: (ouverte: boolean) => void };
 };
 
 /** Carte des égouts : la carte plein écran, un en-tête vert avec la recherche d'adresse, un bouton de recentrage et « Signaler ». */
@@ -74,6 +75,14 @@ export default function CarteCitoyen({ coquille }: Props) {
   const { endroits, signalements, chargement, erreur, rafraichir } = useEndroits();
   const bandes = useBandesInondation(signalements);
   const [options, setOptions] = useState(false);
+  const [feuille, setFeuille] = useState<{ point: { latitude: number; longitude: number } | null } | null>(null);
+  const [choixProbleme, setChoixProbleme] = useState<Categorie | null>(null);
+  const onFeuille = coquille?.onFeuille;
+  const feuilleOuverte = feuille !== null;
+  useEffect(() => {
+    onFeuille?.(feuilleOuverte);
+    return () => onFeuille?.(false);
+  }, [onFeuille, feuilleOuverte]);
   const [coucheVisible, setCoucheVisible] = useState<EtatCouches>(COUCHES_PAR_DEFAUT);
   const [fiche, setFiche] = useState<{ element: ElementCarte; point: { latitude: number; longitude: number } | null } | null>(null);
   const [verifAdresse, setVerifAdresse] = useState<VerificationAvis | null>(null);
@@ -122,7 +131,19 @@ export default function CarteCitoyen({ coquille }: Props) {
 
   // Toucher un regard lance le signalement à cet endroit.
   function signalerIci(c: { latitude: number; longitude: number }) {
-    router.push({ pathname: '/signaler', params: { lat: String(c.latitude), lng: String(c.longitude) } });
+    setChoixProbleme(null);
+    setFeuille({ point: c });
+  }
+
+  // La feuille « Quel problème ? » monte par-dessus la carte ; « Continuer » ouvre la photo, puis les détails (plein écran).
+  function continuerSignalement() {
+    if (!choixProbleme || !feuille) return;
+    const p = feuille.point;
+    setFeuille(null);
+    router.push({
+      pathname: '/signaler',
+      params: { categorie: choixProbleme, ...(p ? { lat: String(p.latitude), lng: String(p.longitude) } : {}) },
+    });
   }
 
   return (
@@ -297,7 +318,7 @@ export default function CarteCitoyen({ coquille }: Props) {
         <Pressable accessibilityRole="button" accessibilityLabel="Options de la carte et liste des endroits" onPress={() => setOptions(true)} style={[styles.rond, { backgroundColor: theme.onHeader }]}>
           <Ionicons name="layers-outline" size={26} color={theme.primary} />
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/signaler')} style={[styles.signaler, { backgroundColor: theme.accent }]}>
+        <Pressable accessibilityRole="button" onPress={() => { setChoixProbleme(null); setFeuille({ point: null }); }} style={[styles.signaler, { backgroundColor: theme.accent }]}>
           <Ionicons name="add" size={24} color={theme.surface} />
           <ThemedText type="smallBold" style={{ color: theme.surface }} maxFontSizeMultiplier={1.3}>
             Signaler un problème
@@ -313,6 +334,15 @@ export default function CarteCitoyen({ coquille }: Props) {
             {messagePosition}
           </ThemedText>
         </View>
+      ) : null}
+
+      {feuille ? (
+        <FeuilleProbleme
+          categorie={choixProbleme}
+          onChoisir={setChoixProbleme}
+          onContinuer={continuerSignalement}
+          onFermer={() => setFeuille(null)}
+        />
       ) : null}
 
       <Modal visible={fiche !== null} transparent animationType="slide" onRequestClose={() => setFiche(null)}>

@@ -10,6 +10,8 @@ import MyAlerts from "./MyAlerts";
 // L'icône de profil ouvre la connexion du personnel de la Ville ; un compte citoyen déjà connecté peut s'y déconnecter.
 export default function CitizenApp({ compteConnecte, onLogout, onStaffLogin }: { compteConnecte: boolean; onLogout: () => void; onStaffLogin: () => void }) {
   const [tab, setTab] = useState<CitizenTab>("carte");
+  // La feuille « Quel problème ? » couvre tout le bas de l'écran : la barre du bas se retire pendant qu'elle est ouverte.
+  const [feuille, setFeuille] = useState(false);
 
   function openProfile() {
     if (!compteConnecte) {
@@ -28,8 +30,8 @@ export default function CitizenApp({ compteConnecte, onLogout, onStaffLogin }: {
 
   return (
     <View style={styles.root}>
-      {tab === "carte" ? <EcranCarteCitoyen coquille={{ espaceBas: BOTTOM_NAV_HEIGHT, onOpenProfile: openProfile }} /> : <MyAlerts />}
-      <BottomNav active={tab} onChange={setTab} />
+      {tab === "carte" ? <EcranCarteCitoyen coquille={{ espaceBas: BOTTOM_NAV_HEIGHT, onOpenProfile: openProfile, onFeuille: setFeuille }} /> : <MyAlerts />}
+      {feuille && tab === "carte" ? null : <BottomNav active={tab} onChange={setTab} />}
     </View>
   );
 }
