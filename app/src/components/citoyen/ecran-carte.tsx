@@ -28,6 +28,8 @@ import { usePositionCarte } from '@/hooks/use-position-carte';
 import { useSource } from '@/hooks/use-source';
 import { useTheme } from '@/hooks/use-theme';
 import { formaterNombre } from '@/lib/format';
+import type { Region } from '@/lib/config';
+import { abonnerBrouillon, ecrireBrouillon, lireBrouillon, viderBrouillon } from '@/lib/brouillon-signalement';
 import { chargerRegion } from '@/lib/officiel';
 import { libelleBande } from '@/lib/inondation';
 import {
@@ -44,8 +46,8 @@ import {
   type EtatCouches,
   type VerificationAvis,
 } from '@/lib/couches-carte';
-import { dansQuartier, messagePositionCarte, RAYON_CITOYEN_M } from '@/lib/position-citoyen';
-import { LIBELLES_GRAVITE, type Categorie, type Endroit, type ResultatRecherche } from '@/types';
+import { dansQuartier, decisionCentrage, messagePositionCarte, RAYON_CITOYEN_M, regionDeDepart } from '@/lib/position-citoyen';
+import { LIBELLES_GRAVITE, type Categorie, type Coordonnees, type Endroit, type ResultatRecherche } from '@/types';
 import { LogoMarque } from '@/components/logo-marque';
 import { LegendeGravite } from './legende-gravite';
 import { FeuilleProbleme } from './feuille-probleme';
@@ -82,8 +84,20 @@ export default function CarteCitoyen({ coquille }: Props) {
   const bandes = useBandesInondation(signalements);
   const deltaRegion = useRef<number | undefined>(undefined);
   const [options, setOptions] = useState(false);
-  const [feuille, setFeuille] = useState<{ point: { latitude: number; longitude: number } | null } | null>(null);
-  const [choixProbleme, setChoixProbleme] = useState<Categorie | null>(null);
+  // Retour depuis la photo : la feuille « Quel problème ? » se rouvre sur la carte, avec le problème et le lieu déjà choisis.
+  const [feuille, setFeuille] = useState<{ point: { latitude: number; longitude: number } | null } | null>(() => (lireBrouillon().feuilleOuverte ? { point: lireBrouillon().lieu } : null));
+  const [choixProbleme, setChoixProbleme] = useState<Categorie | null>(() => (lireBrouillon().feuilleOuverte ? lireBrouillon().categorie : null));
+  useEffect(() => {
+    const rouvrir = () => {
+      const b = lireBrouillon();
+      if (!b.feuilleOuverte) return;
+      setChoixProbleme(b.categorie);
+      setFeuille({ point: b.lieu });
+      ecrireBrouillon({ feuilleOuverte: false });
+    };
+    ecrireBrouillon({ feuilleOuverte: false });
+    return abonnerBrouillon(rouvrir);
+  }, []);
   const onFeuille = coquille?.onFeuille;
   const feuilleOuverte = feuille !== null;
   useEffect(() => {
@@ -105,15 +119,31 @@ export default function CarteCitoyen({ coquille }: Props) {
   const avis = useMemo(() => avisVisibles(couches.avisEau, coucheVisible), [couches.avisEau, coucheVisible]);
   // Position du téléphone : on le dit seulement si elle est sous un avis (sinon, rien à signaler de plus).
   const verifPosition = useMemo(() => (maPosition ? verifierAvis(maPosition, couches.avisEau, 'position') : null), [maPosition, couches.avisEau]);
-  const dejaCentre = useRef(false);
-
-  // À l'ouverture : la carte se centre sur le citoyen dès que sa position arrive, s'il est dans le quartier desservi.
+  // Ouverture sur le citoyen : la carte attend un instant sa dernière position connue (jamais la fenêtre de permission),
+  // puis démarre centrée dessus. Une position plus fraîche n'affine qu'une fois, et jamais après un geste de l'utilisateur.
+  const [delaiEcoule, setDelaiEcoule] = useState(false);
   useEffect(() => {
-    if (dejaCentre.current || chargement || erreur || !maPosition || !dansQuartier(maPosition, region)) return;
-    if (!carte.current) return;
-    dejaCentre.current = true;
+    const t = setTimeout(() => setDelaiEcoule(true), 400);
+    return () => clearTimeout(t);
+  }, []);
+  const attentePosition = statutPosition === 'attente' && !delaiEcoule;
+  const [depart, setDepart] = useState<{ region: Region; cadree: Coordonnees | null } | null>(null);
+  if (!depart && !chargement && !erreur && !attentePosition) {
+    setDepart({ region: regionDeDepart(maPosition, region), cadree: maPosition && dansQuartier(maPosition, region) ? maPosition : null });
+  }
+  const regionDepart = depart?.region ?? null;
+  const cadreeSur = useRef<Coordonnees | null | undefined>(undefined);
+  const geste = useRef(false);
+  const affine = useRef(false);
+  useEffect(() => {
+    if (!depart) return;
+    if (cadreeSur.current === undefined) cadreeSur.current = depart.cadree;
+    const d = decisionCentrage({ position: maPosition, region, cadreeSur: cadreeSur.current, geste: geste.current, affine: affine.current });
+    if (d === 'rien' || !carte.current || !maPosition) return;
+    if (d === 'affiner') affine.current = true;
+    cadreeSur.current = maPosition;
     carte.current.surPosition(maPosition, RAYON_CITOYEN_M);
-  }, [maPosition, chargement, erreur, region]);
+  }, [maPosition, depart, region]);
 
   async function recentrer() {
     const p = maPosition ?? (await actualiser());
@@ -151,6 +181,7 @@ export default function CarteCitoyen({ coquille }: Props) {
   function continuerSignalement() {
     if (!choixProbleme || !feuille) return;
     const p = feuille.point;
+    ecrireBrouillon({ categorie: choixProbleme, lieu: p });
     setFeuille(null);
     router.push({
       pathname: '/signaler',
@@ -168,11 +199,18 @@ export default function CarteCitoyen({ coquille }: Props) {
         <View style={styles.centre}>
           <Erreur message={erreur} onReessayer={() => void rafraichir()} />
         </View>
+      ) : !regionDepart ? (
+        <View style={styles.centre}>
+          <Chargement texte="Ouverture de la carte…" />
+        </View>
       ) : (
         <Carte
           style={styles.carte}
           commandes={carte}
-          regionInitiale={region}
+          regionInitiale={regionDepart}
+          onDeplacement={() => {
+            geste.current = true;
+          }}
           positionUtilisateur={statutPosition === 'ok'}
           onTaille={surTaille}
           onRegionChangeComplete={(r) => {
@@ -365,7 +403,10 @@ export default function CarteCitoyen({ coquille }: Props) {
           categorie={choixProbleme}
           onChoisir={setChoixProbleme}
           onContinuer={continuerSignalement}
-          onFermer={() => setFeuille(null)}
+          onFermer={() => {
+            setFeuille(null);
+            viderBrouillon();
+          }}
         />
       ) : null}
 

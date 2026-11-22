@@ -24,7 +24,14 @@ export function usePositionCarte(): {
         if (vivant.current) setEtat({ statut: 'refusee', position: null });
         return null;
       }
-      const p = await Location.getCurrentPositionAsync({});
+      // Dernière position connue : instantanée, la carte s'ouvre tout de suite au bon endroit ; la position fraîche affine ensuite.
+      try {
+        const derniere = await Location.getLastKnownPositionAsync({ maxAge: 15 * 60 * 1000 });
+        if (derniere && vivant.current) setEtat((avant) => (avant.position ? avant : { statut: 'ok', position: { latitude: derniere.coords.latitude, longitude: derniere.coords.longitude } }));
+      } catch {
+        /* pas de dernière position : on attend la fraîche */
+      }
+      const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const position = { latitude: p.coords.latitude, longitude: p.coords.longitude };
       if (vivant.current) setEtat({ statut: 'ok', position });
       return position;

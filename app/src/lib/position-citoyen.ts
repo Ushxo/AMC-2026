@@ -33,3 +33,32 @@ export function messagePositionCarte(statut: StatutPosition, position: Coordonne
   }
   return null;
 }
+
+/** Distance approximative en mètres entre deux points proches (plan local). */
+export function distanceMetres(a: Coordonnees, b: Coordonnees): number {
+  const dy = (a.latitude - b.latitude) * M_PAR_DEGRE_LAT;
+  const dx = (a.longitude - b.longitude) * 111320 * Math.cos((a.latitude * Math.PI) / 180);
+  return Math.hypot(dx, dy);
+}
+
+/** Écart au-delà duquel une position plus fraîche refait un cadrage (en dessous : aucun saut visible). */
+export const SEUIL_AFFINAGE_M = 40;
+
+/** Région de départ de la carte : centrée sur le citoyen (rayon de quartier) s'il est dans la zone des données, sinon la zone elle-même. */
+export function regionDeDepart(position: Coordonnees | null, region: Region): Region {
+  if (!position || !dansQuartier(position, region)) return region;
+  return { ...position, ...deltasPourRayon(position, RAYON_CITOYEN_M) };
+}
+
+/**
+ * Que faire de la position du citoyen sur la carte ?
+ * 'centrer' : première fois ; 'affiner' : une seule fois, si la position fraîche est loin de celle déjà cadrée ;
+ * 'rien' : hors zone, refus, position inconnue, ou l'utilisateur a déjà déplacé la carte (jamais de recentrage forcé).
+ */
+export function decisionCentrage(o: { position: Coordonnees | null; region: Region; cadreeSur: Coordonnees | null; geste: boolean; affine: boolean }): 'centrer' | 'affiner' | 'rien' {
+  const { position, region, cadreeSur, geste, affine } = o;
+  if (!position || !dansQuartier(position, region) || geste) return 'rien';
+  if (!cadreeSur) return 'centrer';
+  if (!affine && distanceMetres(position, cadreeSur) > SEUIL_AFFINAGE_M) return 'affiner';
+  return 'rien';
+}

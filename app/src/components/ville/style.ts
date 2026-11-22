@@ -130,12 +130,6 @@ export const COULEURS_IMPORTANCE = {
   moyenne: { fond: '#FCE3CF', plein: '#B84A0B' },
   faible: { fond: '#FAF0C4', plein: '#8A6200' },
 } as const;
-/** Bandeau d'avertissement jaune pâle (résultat précalculé). */
-export const FOND_AVERTISSEMENT = '#FAF0C4';
-/** Compteur « à traiter » (jaune sable). */
-export const FOND_COMPTEUR = '#F3E7C3';
-/** Fond d'un avis ou d'une vérification qui concerne l'eau (bleu pâle). */
-export const FOND_AVIS_EAU = '#E4F1F5';
 /** Commandes de la caméra : fond sombre de l'objectif, icônes claires. */
 export const CAMERA = { creme: '#F8F5ED', sombre: '#23271F', blanc: '#FFFFFF', clair: '#E6E4D8', noir: '#111111' } as const;
 

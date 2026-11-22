@@ -35,7 +35,7 @@ import { IMPORTANCE } from "./InterventionsAPlanifier";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
-import { FOND_AVERTISSEMENT, BLANC_FIXE } from '@/components/ville/style';
+import { BLANC_FIXE } from '@/components/ville/style';
 import { BoutonAction } from '@/components/bouton-action';
 
 /**
@@ -290,7 +290,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   duree: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: P.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
   dureeTexte: { fontWeight: "800", fontSize: 16, color: P.text },
   note: { fontSize: 13, color: P.textSecondary },
-  avisPrecalcule: { backgroundColor: FOND_AVERTISSEMENT, borderRadius: 16, padding: 12, gap: 2 },
+  avisPrecalcule: { backgroundColor: P.bandeau, borderRadius: 16, padding: 12, gap: 2 },
   avisTitre: { fontSize: 14, fontWeight: "700", color: P.text },
   ligneNonServi: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12 },
   raison: { fontSize: 13, fontWeight: "600", color: P.textSecondary },
