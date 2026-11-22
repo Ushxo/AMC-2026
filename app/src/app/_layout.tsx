@@ -16,6 +16,8 @@ export default function RootLayout() {
         <Stack.Screen name="ville" />
         <Stack.Screen name="essai-photo" />
         <Stack.Screen name="resultat" />
+        <Stack.Screen name="frontend" />
+        <Stack.Screen name="demo" />
       </Stack>
     </ThemeProvider>
   );
