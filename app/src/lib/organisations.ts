@@ -1,12 +1,13 @@
 import { estRefusOuAbsent } from './auth';
 import { avecDelai } from './source';
 import { getSupabase } from './supabase';
-import { CLES_COULEURS, ORGANISATIONS_EMBARQUEES, type Couleurs, type Organisation } from '@/marque/organisations-embarquees';
+import { CLES_COULEURS, ORGANISATIONS_EMBARQUEES, type Couleurs, type Organisation, type TextesOrganisation } from '@/marque/organisations-embarquees';
 
 export * from '@/marque/organisations-embarquees';
 
 const DELAI_MS = 5000;
-const CHAMPS = 'id, code, nom, nom_app, slogan, logo, couleurs';
+const CHAMPS_BASE = 'id, code, nom, nom_app, slogan, logo, couleurs';
+const CHAMPS = `${CHAMPS_BASE}, service, textes`;
 
 /** Une ligne de la table organisations, lue sous n'importe quelle forme raisonnable ; null si elle est inutilisable. */
 export function organisationDepuisLigne(l: unknown): Organisation | null {
@@ -28,7 +29,24 @@ export function organisationDepuisLigne(l: unknown): Organisation | null {
     slogan: typeof o.slogan === 'string' ? o.slogan : null,
     logo: typeof o.logo === 'string' ? o.logo : 'priorix',
     couleurs,
+    service: typeof o.service === 'string' && o.service.trim() ? o.service.trim() : null,
+    textes: textesDepuis(o.textes),
   };
+}
+
+function textesDepuis(v: unknown): Partial<TextesOrganisation> {
+  const out: Partial<TextesOrganisation> = {};
+  if (v && typeof v === 'object') {
+    const t = v as Record<string, unknown>;
+    if (typeof t.titreCarte === 'string' && t.titreCarte.trim()) out.titreCarte = t.titreCarte.trim().slice(0, 60);
+    if (typeof t.rechercheAdresse === 'string' && t.rechercheAdresse.trim()) out.rechercheAdresse = t.rechercheAdresse.trim().slice(0, 80);
+  }
+  return out;
+}
+
+/** Vrai quand l'erreur dit qu'une colonne manque (migration 0010 pas lancée). */
+function colonneAbsente(e: unknown): boolean {
+  return /service|textes/i.test(String((e as { message?: unknown } | null)?.message ?? '')) && /column|colonne|schema cache|PGRST204/i.test(String((e as { message?: unknown; code?: unknown } | null)?.message ?? '') + String((e as { code?: unknown } | null)?.code ?? ''));
 }
 
 /** Les organisations : celles de la base quand elle répond (migration 0009 lancée), sinon les deux marques embarquées. */
@@ -36,7 +54,9 @@ export async function lireOrganisations(): Promise<{ organisations: Organisation
   const client = getSupabase();
   if (!client) return { organisations: ORGANISATIONS_EMBARQUEES, enBase: false };
   try {
-    const { data, error } = await avecDelai(client.from('organisations').select(CHAMPS), DELAI_MS);
+    let { data, error } = (await avecDelai(client.from('organisations').select(CHAMPS), DELAI_MS)) as { data: unknown; error: { message?: string; code?: string } | null };
+    // Migration 0010 pas lancée : on relit sans le service ni les textes.
+    if (error && colonneAbsente(error)) ({ data, error } = (await avecDelai(client.from('organisations').select(CHAMPS_BASE), DELAI_MS)) as { data: unknown; error: { message?: string; code?: string } | null });
     if (error || !Array.isArray(data)) return { organisations: ORGANISATIONS_EMBARQUEES, enBase: false };
     const lues = data.map(organisationDepuisLigne).filter((o): o is Organisation => o !== null);
     return lues.length > 0 ? { organisations: lues, enBase: true } : { organisations: ORGANISATIONS_EMBARQUEES, enBase: false };
@@ -89,30 +109,92 @@ export async function definirOrganisationCompte(courriel: string, code: string):
 export async function enregistrerOrganisation(o: Organisation): Promise<string | null> {
   const client = getSupabase();
   if (!client || !o.id) return MESSAGE_MIGRATION_ORGANISATIONS;
+  const base = { nom: o.nom, nom_app: o.nom_app, slogan: o.slogan, logo: o.logo, couleurs: o.couleurs };
   try {
-    const { error } = await avecDelai(
-      client.from('organisations').update({ nom: o.nom, nom_app: o.nom_app, slogan: o.slogan, logo: o.logo, couleurs: o.couleurs }).eq('id', o.id),
-      DELAI_MS,
-    );
+    let { error } = await avecDelai(client.from('organisations').update({ ...base, service: o.service ?? null, textes: o.textes ?? {} }).eq('id', o.id), DELAI_MS);
+    if (error && colonneAbsente(error)) ({ error } = await avecDelai(client.from('organisations').update(base).eq('id', o.id), DELAI_MS));
     return error ? messageOrganisation(error) : null;
   } catch {
     return MESSAGE_ORGANISATION_ECHEC;
   }
 }
 
-/** Dit quand une organisation change dans la base (marque modifiée par un administrateur, sur n'importe quel téléphone). */
+/** Code d'organisation à partir de son nom : minuscules, sans accents, tirets ; unique parmi les codes existants. */
+export function codeDepuisNom(nom: string, existants: string[]): string {
+  const base =
+    nom
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 30) || 'organisation';
+  let code = base;
+  for (let n = 2; existants.includes(code); n++) code = `${base}-${n}`;
+  return code;
+}
+
+export const MESSAGE_ORGANISATION_NOM = "Entrez le nom de l'organisation (60 caractères au plus).";
+export const MESSAGE_ORGANISATION_MIGRATION_0010 = "La création d'organisation n'est pas encore disponible sur le serveur (migration 0010 à lancer).";
+
+/** Crée une organisation (réservé aux admins par la base, migration 0010). Rend un message d'erreur, ou null. */
+export async function creerOrganisation(o: Organisation): Promise<string | null> {
+  const nom = o.nom.trim();
+  if (!nom || nom.length > 60) return MESSAGE_ORGANISATION_NOM;
+  const client = getSupabase();
+  if (!client) return MESSAGE_ORGANISATION_MIGRATION_0010;
+  try {
+    const { error } = await avecDelai(
+      client.from('organisations').insert({
+        code: o.code,
+        nom,
+        nom_app: o.nom_app.trim() || nom,
+        slogan: o.slogan,
+        logo: o.logo,
+        couleurs: o.couleurs,
+        service: o.service ?? null,
+        textes: o.textes ?? {},
+      }),
+      DELAI_MS,
+    );
+    if (!error) return null;
+    if (colonneAbsente(error)) return MESSAGE_ORGANISATION_MIGRATION_0010;
+    if (/duplicate|unique|23505/i.test(String(error.message) + String(error.code))) return 'Une organisation porte déjà ce code. Changez le nom.';
+    if (/row-level security|42501|violates/i.test(String(error.message) + String(error.code))) return 'Seul un administrateur peut créer une organisation.';
+    return messageOrganisation(error);
+  } catch {
+    return MESSAGE_ORGANISATION_ECHEC;
+  }
+}
+
+const abonnes = new Set<() => void>();
+let canal: unknown = null;
+
+/** Dit quand une organisation change dans la base : un seul canal partagé, fermé quand le dernier abonné part. */
 export function abonnerOrganisations(rappel: () => void): () => void {
   const client = getSupabase();
   if (!client) return () => {};
-  try {
-    const canal = client
-      .channel(`organisations-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'organisations' }, rappel)
-      .subscribe();
-    return () => {
-      void client.removeChannel(canal);
-    };
-  } catch {
-    return () => {};
+  abonnes.add(rappel);
+  if (!canal) {
+    try {
+      canal = client
+        .channel('organisations-partage')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'organisations' }, () => abonnes.forEach((f) => f()))
+        .subscribe();
+    } catch {
+      canal = null;
+    }
   }
+  return () => {
+    abonnes.delete(rappel);
+    if (abonnes.size === 0 && canal) {
+      const c = canal;
+      canal = null;
+      try {
+        void client.removeChannel(c as Parameters<typeof client.removeChannel>[0]);
+      } catch {
+        /* rien à fermer */
+      }
+    }
+  };
 }

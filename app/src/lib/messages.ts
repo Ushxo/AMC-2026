@@ -6,7 +6,7 @@ export const MESSAGE_HORS_MONTREAL = 'Ce point est hors de Montréal. Déplacez-
 export const MESSAGE_CONNEXION_REFUSEE = 'Courriel ou mot de passe incorrect.';
 export const MESSAGE_CONNEXION_RESEAU =
   'Connexion impossible pour le moment. Vérifiez votre réseau.';
-export const MESSAGE_PAS_EMPLOYE = "Ce compte n'a pas accès au mode Ville.";
+export const MESSAGE_PAS_EMPLOYE = "Ce compte n'a pas accès à l'espace du personnel.";
 export const MESSAGE_SESSION_EXPIREE = 'Votre session a expiré. Connectez-vous de nouveau.';
 export const MESSAGE_SESSION_REQUISE = 'Connectez-vous comme employé pour changer un état.';
 export const MESSAGE_CHANGEMENT_REFUSE = "Le changement d'état n'a pas été accepté.";
@@ -42,7 +42,7 @@ export const MESSAGE_AUCUN_ENDROIT = 'Aucun signalement ouvert à planifier.';
 export const MESSAGE_INCIDENT_SIMULE = 'Incident simulé pour la démonstration.';
 export const MESSAGE_RESULTAT_PRECALCULE = 'Résultat précalculé';
 export const MESSAGE_REGLE_COMPARAISON =
-  "L'ordre d'arrivée est notre règle de comparaison, pas une pratique de la Ville.";
+  "L'ordre d'arrivée est notre règle de comparaison, pas une pratique de votre organisation.";
 export const MESSAGE_HYPOTHESES_DEMO =
   "Garages, équipes, durée d'intervention et quart sont des hypothèses de démonstration.";
 export const MESSAGE_AUCUNE_TOURNEE = "Aucune tournée pour le moment. Lancez l'optimisation.";
@@ -64,9 +64,9 @@ export const MESSAGE_RESULTAT_ARRIVE = 'Le calcul est terminé : voici le vrai r
 
 // --- Création de compte ---
 export const MESSAGE_COMPTE_CREE =
-  "Votre compte est créé. Un administrateur doit vous donner le rôle d'employé avant d'entrer dans le mode Ville.";
+  "Votre compte est créé. Un administrateur doit vous donner le rôle d'employé avant d'entrer dans l'espace du personnel.";
 export const MESSAGE_CONFIRMER_COURRIEL =
-  "Votre compte est créé. Confirmez votre courriel avec le message que nous venons de vous envoyer. Ensuite, un administrateur doit vous donner le rôle d'employé avant d'entrer dans le mode Ville.";
+  "Votre compte est créé. Confirmez votre courriel avec le message que nous venons de vous envoyer. Ensuite, un administrateur doit vous donner le rôle d'employé avant d'entrer dans l'espace du personnel.";
 export const MESSAGE_COURRIEL_UTILISE = 'Ce courriel est déjà utilisé. Essayez de vous connecter.';
 export const MESSAGE_MOT_DE_PASSE_COURT = 'Le mot de passe doit avoir 8 caractères au moins.';
 export const MESSAGE_COURRIEL_INVALIDE = 'Entrez un courriel valide.';
@@ -102,7 +102,7 @@ export const MESSAGE_TRONCON_DROITE = 'Tracé en ligne droite : le service de ro
 // --- Zones de signalements ---
 export const MESSAGE_ZONE_ESTIMEE = 'Zones de signalements : étendue estimée';
 
-export const MESSAGE_ORDRE_ESTIME = "Ordre estimé sur ce téléphone, à vol d'oiseau (sans les routes). Ce n'est pas un calcul de la Ville.";
+export const MESSAGE_ORDRE_ESTIME = "Ordre estimé sur ce téléphone, à vol d'oiseau (sans les routes). Ce n'est pas un calcul du service d'optimisation.";
 export const MESSAGE_RECALCUL_DEMANDE = "Recalcul demandé depuis votre position. Le nouvel ordre arrive dans un instant.";
 
 /** Étiquette unique pour tout ce qui est simulé ou issu de la démonstration. */

@@ -18,14 +18,14 @@ type Id = "comptes" | "marque" | "equipes" | "superviseur";
 
 const ONGLETS: Onglet<Id>[] = [
   { id: "comptes", label: "Comptes", icon: "people-circle-outline", iconActive: "people-circle" },
-  { id: "marque", label: "Marque", icon: "color-palette-outline", iconActive: "color-palette" },
+  { id: "marque", label: "Clients", nom: "Organisations clientes", icon: "business-outline", iconActive: "business" },
   { id: "equipes", label: "Équipes", icon: "people-outline", iconActive: "people" },
   { id: "superviseur", label: "Superviseur", icon: "clipboard-outline", iconActive: "clipboard" },
 ];
 
 const ENTETES: Record<Exclude<Id, "superviseur">, { titre: string; sous: string }> = {
   comptes: { titre: "Administration", sous: "Créer les comptes et choisir leur organisation" },
-  marque: { titre: "Administration", sous: "Nom, logo et couleurs de chaque organisation" },
+  marque: { titre: "Administration", sous: "Les organisations clientes : service, marque, création" },
   equipes: { titre: "Administration", sous: "Créer et modifier les équipes" },
 };
 

@@ -68,7 +68,7 @@ describe('session employé', () => {
     await restaurerSession();
     expect(employeCourant()).toBeNull();
     expect(k.signOut).toHaveBeenCalled();
-    expect(avertissementSession()).toBe("Ce compte n'a pas accès au mode Ville.");
+    expect(avertissementSession()).toBe("Ce compte n'a pas accès à l'espace du personnel.");
   });
 
   it('session expirée : retour à la connexion avec un message', async () => {

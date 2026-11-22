@@ -37,7 +37,22 @@ export type Organisation = {
   slogan: string | null;
   logo: string;
   couleurs: Partial<Couleurs>;
+  /** Ce que les équipes de l'organisation traitent (texte court, par exemple « Égouts et avis d'eau »). */
+  service?: string | null;
+  /** Mots affichés au citoyen, propres à l'organisation. */
+  textes?: Partial<TextesOrganisation>;
 };
+
+export type TextesOrganisation = { titreCarte: string; rechercheAdresse: string };
+export const TEXTES_PAR_DEFAUT: TextesOrganisation = { titreCarte: 'Carte des égouts', rechercheAdresse: 'Rechercher une adresse à Montréal' };
+
+/** Les mots de l'organisation, complétés par les valeurs par défaut. */
+export function textesDe(o: Pick<Organisation, 'textes'>): TextesOrganisation {
+  return { ...TEXTES_PAR_DEFAUT, ...(o.textes ?? {}) };
+}
+
+/** Exemples de service proposés en un toucher à la création d'une organisation. */
+export const EXEMPLES_SERVICE = ['Égouts et avis d’eau', 'Déneigement', 'Collecte', 'Entretien des parcs'];
 
 const COULEURS_PRIORIX: Couleurs = {
   text: '#2A1D14',
@@ -83,8 +98,8 @@ const COULEURS_MONTREAL: Couleurs = {
 
 /** Les deux marques embarquées : mêmes valeurs que la migration 0009 (repli sans réseau ou sans migration). */
 export const ORGANISATIONS_EMBARQUEES: Organisation[] = [
-  { code: 'priorix', nom: 'Priorix', nom_app: 'Priorix', slogan: 'Chaque équipe sait par où commencer.', logo: 'priorix', couleurs: COULEURS_PRIORIX },
-  { code: 'montreal', nom: 'Ville de Montréal', nom_app: 'Égouts Montréal', slogan: "Signalez, on s'en occupe.", logo: 'fleur', couleurs: COULEURS_MONTREAL },
+  { code: 'priorix', nom: 'Priorix', nom_app: 'Priorix', slogan: 'Chaque équipe sait par où commencer.', logo: 'priorix', couleurs: COULEURS_PRIORIX, service: 'Égouts et avis d’eau', textes: TEXTES_PAR_DEFAUT },
+  { code: 'montreal', nom: 'Ville de Montréal', nom_app: 'Ville de Montréal', slogan: "Signalez, on s'en occupe.", logo: 'fleur', couleurs: COULEURS_MONTREAL, service: 'Égouts et avis d’eau', textes: TEXTES_PAR_DEFAUT },
 ];
 export const CODE_PAR_DEFAUT = 'priorix';
 

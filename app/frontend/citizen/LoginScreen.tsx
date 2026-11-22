@@ -71,7 +71,7 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
             Connexion du personnel
           </Text>
           <Text style={styles.heroSous} maxFontSizeMultiplier={1.3}>
-            Réservée aux équipes de la Ville.
+            Réservée aux équipes des organisations qui utilisent Priorix.
           </Text>
         </View>
       </View>

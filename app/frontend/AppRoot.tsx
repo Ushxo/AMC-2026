@@ -1,15 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useFonts } from "expo-font";
-import {
-  Montserrat_400Regular,
-  Montserrat_500Medium,
-  Montserrat_600SemiBold,
-  Montserrat_700Bold,
-  Montserrat_800ExtraBold,
-} from "@expo-google-fonts/montserrat";
 
 
-import { definirPolicesChargees } from "@/components/texte";
 import { abonnerOrganisations, lireMonOrganisation, lireOrganisations } from "@/lib/organisations";
 import { appliquerMarquePersonnel, chargerMarqueLocale, mettreAJourOrganisation, restaurerMarqueCitoyen } from "@/marque/magasin";
 import { BarreEtat } from "@/marque/barre-etat";
@@ -34,15 +25,6 @@ export default function AppRoot() {
 }
 
 function ContenuRacine() {
-  // Polices de l'interface : l'écran attend leur chargement ; si le chargement échoue, tout reste en police du système.
-  const [polices, erreurPolices] = useFonts({
-    Montserrat_400Regular,
-    Montserrat_500Medium,
-    Montserrat_600SemiBold,
-    Montserrat_700Bold,
-    Montserrat_800ExtraBold,
-  });
-  definirPolicesChargees(polices && !erreurPolices);
   const { ecran, pret, citoyen, nom, demoHorsLigne, deconnecter } = useAcces();
   const { organisation } = useMarque();
   const [connexionPersonnel, setConnexionPersonnel] = useState(false);
@@ -62,17 +44,25 @@ function ContenuRacine() {
   // Après la connexion d'un compte du personnel : son organisation (mon_organisation) donne la marque de toute l'app ;
   // à la déconnexion, la marque du citoyen revient. Sans la fonction (migration pas lancée) la marque courante reste.
   const personnel = ecran === "superviseur" || ecran === "employe" || ecran === "admin";
+  // Le personnel ne voit jamais deux marques de suite : l'écran d'ouverture reste tant que la marque du compte n'est pas
+  // appliquée (plafond de 4 s, puis repli sur la marque courante).
+  const [marqueDuCompte, setMarqueDuCompte] = useState(false);
   useEffect(() => {
     if (!personnel) {
       restaurerMarqueCitoyen();
+      setMarqueDuCompte(false);
       return;
     }
     let actif = true;
+    const plafond = setTimeout(() => actif && setMarqueDuCompte(true), 4000);
     void lireMonOrganisation().then((o) => {
-      if (actif && o) appliquerMarquePersonnel(o);
+      if (!actif) return;
+      if (o) appliquerMarquePersonnel(o);
+      setMarqueDuCompte(true);
     });
     return () => {
       actif = false;
+      clearTimeout(plafond);
     };
   }, [personnel]);
 
@@ -81,7 +71,7 @@ function ContenuRacine() {
     if (ecran === "superviseur" || ecran === "employe" || ecran === "admin") setConnexionPersonnel(false);
   }, [ecran]);
 
-  if (!polices && !erreurPolices) return <Chargement texte={`Ouverture de ${organisation.nom_app}…`} />;
+  if (personnel && !marqueDuCompte) return <Chargement texte={`Ouverture de ${organisation.nom_app}…`} />;
   if (ecran === "admin") return <AdminApp onLogout={logout} />;
   if (ecran === "superviseur") return <SupervisorApp onLogout={logout} />;
   if (ecran === "employe") return <StaffApp onLogout={logout} />;

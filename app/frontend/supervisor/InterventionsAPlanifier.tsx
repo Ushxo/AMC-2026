@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { FlatList, Modal, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { VOILE_FEUILLE, FEUILLE_BASE, COULEUR_OMBRE, COULEURS_IMPORTANCE, BLANC_FIXE } from '@/components/ville/style';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -18,7 +19,6 @@ import { IllustrationProbleme } from "@/components/illustration-probleme";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
-import { COULEUR_OMBRE, COULEURS_IMPORTANCE, FOND_COMPTEUR, BLANC_FIXE } from '@/components/ville/style';
 
 // Couleurs d'importance de la maquette : rouge, orange, jaune. Le texte et la pastille pleine restent contrastés.
 export const IMPORTANCE: Record<Gravite, { fond: string; plein: string; icone: keyof typeof Ionicons.glyphMap }> = {
@@ -217,7 +217,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   page: { padding: 20, gap: 12, maxWidth: 800, width: "100%", alignSelf: "center" },
   titreRangee: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
   titre: { fontSize: 22, fontWeight: "800", color: P.text, flexShrink: 1 },
-  compteur: { backgroundColor: FOND_COMPTEUR, color: P.primary, fontWeight: "800", fontSize: 16, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
+  compteur: { backgroundColor: P.backgroundSelected, color: P.primary, fontWeight: "800", fontSize: 16, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
   sous: { color: P.textSecondary, fontSize: 15 },
   filtresTitre: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
   filtresMot: { fontSize: 20, fontWeight: "800", color: P.text },
@@ -225,8 +225,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   pilule: { flexDirection: "row", alignItems: "center", gap: 8, height: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface },
   piluleActive: { backgroundColor: P.backgroundSelected },
   piluleTexte: { color: P.text, fontSize: 15, flexShrink: 1 },
-  voile: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
-  feuille: { backgroundColor: P.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 8 },
+  voile: { flex: 1, backgroundColor: VOILE_FEUILLE },
+  feuille: { backgroundColor: P.background, ...FEUILLE_BASE, padding: 20, gap: 8 },
   feuilleTitre: { fontSize: 20, fontWeight: "800", color: P.text },
   option: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderColor: P.border },
   optionTexte: { fontSize: 17, color: P.text },

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { VOILE_FEUILLE, FEUILLE_BASE } from '@/components/ville/style';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,10 +8,11 @@ import { LogoMarque } from '@/components/logo-marque';
 import { ThemedText } from '@/components/themed-text';
 import { Bouton } from '@/components/ville/bouton';
 import { Chip } from '@/components/ville/chip';
+import { Coche } from '@/components/ville/coche';
 import { useTheme } from '@/hooks/use-theme';
 import { lireOrganisations } from '@/lib/organisations';
 import { APPARENCES, LIBELLES_APPARENCE } from '@/marque/jetons';
-import { appliquerMarquePersonnel, choisirMarqueCitoyen, definirApparence, organisationAvecLocale } from '@/marque/magasin';
+import { apercuApparence, appliquerMarquePersonnel, definirApparence, organisationAvecLocale } from '@/marque/magasin';
 import { ORGANISATIONS_EMBARQUEES, type Organisation } from '@/marque/organisations-embarquees';
 import { useMarque } from '@/marque/utiliser';
 
@@ -20,8 +22,8 @@ type Props = {
   /** Nom de la personne connectée, et son rôle en toutes lettres (absents pour un citoyen sans compte). */
   nom?: string | null;
   role?: string | null;
-  /** Le citoyen (ou la démonstration hors ligne) peut choisir la marque (« Changer de ville »). */
-  marqueChoisie?: 'citoyen' | 'demo' | null;
+  /** Seulement la démonstration hors ligne du personnel peut essayer une autre marque (annoncé simulé). Le citoyen ne choisit jamais la marque. */
+  marqueChoisie?: 'demo' | null;
   /** Actions : une seule des deux dernières selon la personne. */
   onAdministration?: () => void;
   onConnexionPersonnel?: () => void;
@@ -58,22 +60,46 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
               <ThemedText type="small" themeColor="textSecondary">
                 {role ?? 'Sans compte'} · {organisation.nom_app}
               </ThemedText>
+              {role && role !== 'Citoyen' ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  Tournées optimisées par Priorix
+                </ThemedText>
+              ) : null}
             </View>
           </View>
 
           <ThemedText type="smallBold" accessibilityRole="header">
             Apparence
           </ThemedText>
-          <View style={styles.rangee}>
-            {APPARENCES.map((a) => (
-              <Chip key={a} titre={LIBELLES_APPARENCE[a]} selectionne={apparence === a} onPress={() => definirApparence(a)} />
-            ))}
+          <View style={styles.liste}>
+            {APPARENCES.map((a) => {
+              const actif = apparence === a;
+              return (
+                <Pressable
+                  key={a}
+                  accessibilityRole="radio"
+                  accessibilityLabel={LIBELLES_APPARENCE[a]}
+                  accessibilityState={{ checked: actif, selected: actif }}
+                  onPress={() => definirApparence(a)}
+                  style={[styles.option, { backgroundColor: actif ? theme.backgroundSelected : theme.backgroundElement, borderColor: actif ? theme.primary : theme.border }]}>
+                  <View style={styles.pastille} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                    {apercuApparence(organisation, a).map((c, n) => (
+                      <View key={n} style={[styles.point, { backgroundColor: c, borderColor: theme.borderForte }]} />
+                    ))}
+                  </View>
+                  <ThemedText type={actif ? 'smallBold' : 'small'} style={{ flex: 1 }}>
+                    {LIBELLES_APPARENCE[a]}
+                  </ThemedText>
+                  {actif ? <Coche /> : null}
+                </Pressable>
+              );
+            })}
           </View>
 
-          {marqueChoisie ? (
+          {marqueChoisie === 'demo' ? (
             <>
               <ThemedText type="smallBold" accessibilityRole="header">
-                Changer de ville
+                Marque de démonstration
               </ThemedText>
               <View style={styles.rangee}>
                 {organisations.map((o) => (
@@ -82,12 +108,12 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
                     titre={o.nom_app}
                     selectionne={organisation.code === o.code}
                     libelleAccessible={`${o.nom} : ${o.nom_app}${organisation.code === o.code ? ', sélectionnée' : ''}`}
-                    onPress={() => (marqueChoisie === 'demo' ? appliquerMarquePersonnel(o) : choisirMarqueCitoyen(o))}
+                    onPress={() => appliquerMarquePersonnel(o)}
                   />
                 ))}
               </View>
               <ThemedText type="small" themeColor="textSecondary">
-                {marqueChoisie === 'demo' ? 'Démonstration : la marque change sur ce téléphone seulement.' : 'Votre choix est gardé sur ce téléphone.'}
+                Simulé pour la démonstration hors ligne : la marque change sur ce téléphone seulement.
               </ThemedText>
             </>
           ) : null}
@@ -103,9 +129,13 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
 }
 
 const styles = StyleSheet.create({
-  voile: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
-  feuille: { maxHeight: '85%', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  voile: { flex: 1, backgroundColor: VOILE_FEUILLE },
+  feuille: { maxHeight: '85%', ...FEUILLE_BASE },
   contenu: { padding: 20, gap: 12 },
   entete: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  liste: { gap: 8 },
+  option: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1 },
+  pastille: { flexDirection: 'row' },
+  point: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, marginRight: -8 },
 });

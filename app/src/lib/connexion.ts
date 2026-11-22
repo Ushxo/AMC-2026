@@ -7,7 +7,7 @@ export type EcranRole = 'citoyen' | 'employe' | 'superviseur' | 'admin';
 
 export type ResultatConnexion = { ok: true; ecran: EcranRole } | { ok: false; message: string };
 
-export const MESSAGE_COMPTE_NON_CONFIGURE = "Ce compte n'est pas encore configuré. Contactez la Ville.";
+export const MESSAGE_COMPTE_NON_CONFIGURE = "Ce compte n'est pas encore configuré. Contactez l'administrateur de votre organisation.";
 
 /**
  * Connexion unique de l'application : un citoyen, un employé ou un superviseur entrent par le même écran.

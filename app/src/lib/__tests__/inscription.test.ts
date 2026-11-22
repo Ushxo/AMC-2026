@@ -31,7 +31,7 @@ describe('creerCompte', () => {
     const r = await creerCompte('ana@exemple.ca', '12345678');
     expect(r).toEqual({
       statut: 'cree',
-      message: "Votre compte est créé. Un administrateur doit vous donner le rôle d'employé avant d'entrer dans le mode Ville.",
+      message: "Votre compte est créé. Un administrateur doit vous donner le rôle d'employé avant d'entrer dans l'espace du personnel.",
     });
     expect(k.signOut).toHaveBeenCalled();
     expect(employeCourant()).toBeNull();

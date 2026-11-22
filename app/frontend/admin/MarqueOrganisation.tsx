@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { Texte as Text, ChampTexte as TextInput } from "@/components/texte";
 
@@ -19,7 +20,7 @@ import {
 import { NUANCES } from "@/marque/nuances";
 import { garderMarqueLocale, mettreAJourOrganisation, oublierMarqueLocale, organisationAvecLocale } from "@/marque/magasin";
 import { imageLogo, LIBELLES_LOGO } from "@/marque/logos";
-import { CLES_LOGO, enregistrerOrganisation, lireOrganisations, organisationEmbarquee, type Organisation } from "@/lib/organisations";
+import { CLES_LOGO, codeDepuisNom, creerOrganisation, enregistrerOrganisation, EXEMPLES_SERVICE, lireOrganisations, organisationEmbarquee, type Organisation } from "@/lib/organisations";
 import { useStyles } from "@/marque/utiliser";
 import { useTheme } from "@/hooks/use-theme";
 import type { Jetons } from "@/marque/jetons";
@@ -52,6 +53,9 @@ export default function MarqueOrganisation() {
   const [organisations, setOrganisations] = useState<Organisation[] | null>(null);
   const [enBase, setEnBase] = useState(false);
   const [code, setCode] = useState<string | null>(null);
+  const [creation, setCreation] = useState(false);
+  const [nomOrg, setNomOrg] = useState("");
+  const [service, setService] = useState("");
   const [nomApp, setNomApp] = useState("");
   const [slogan, setSlogan] = useState("");
   const [logo, setLogo] = useState("priorix");
@@ -60,10 +64,17 @@ export default function MarqueOrganisation() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ texte: string; ok: boolean } | null>(null);
 
-  const org = organisations?.find((o) => o.code === code) ?? null;
+  const existante = organisations?.find((o) => o.code === code) ?? null;
+  // En création : une organisation provisoire, sans identifiant, avec un code tiré du nom.
+  const org: Organisation | null = creation
+    ? { code: codeDepuisNom(nomOrg, (organisations ?? []).map((o) => o.code)), nom: nomOrg.trim(), nom_app: nomApp, slogan: null, logo, couleurs: couleurs ?? {}, service: service.trim() || null, textes: {} }
+    : existante;
 
   function charger(o: Organisation) {
+    setCreation(false);
     setCode(o.code);
+    setNomOrg(o.nom);
+    setService(o.service ?? "");
     setNomApp(o.nom_app);
     setSlogan(o.slogan ?? "");
     setLogo(o.logo);
@@ -96,6 +107,19 @@ export default function MarqueOrganisation() {
     setMessage(null);
   }
 
+  function commencerCreation() {
+    setCreation(true);
+    setCode(null);
+    setNomOrg("");
+    setService("");
+    setNomApp("");
+    setSlogan("");
+    setLogo("priorix");
+    setCouleurs(completerCouleurs(PREREGLAGES[0] ? paletteDepuisGraines(PREREGLAGES[0].graines, (organisationEmbarquee("priorix")?.couleurs ?? {}) as Couleurs) : {}, (organisationEmbarquee("priorix")?.couleurs ?? {}) as Couleurs));
+    setSaisies({});
+    setMessage(null);
+  }
+
   function appliquerPrereglage(graines: Graines) {
     if (!couleurs) return;
     setCouleurs(paletteDepuisGraines(graines, couleurs));
@@ -105,15 +129,35 @@ export default function MarqueOrganisation() {
 
   async function enregistrer() {
     if (!org || !couleurs) return;
-    if (nomApp.trim().length < 2) {
+    if (creation && (nomOrg.trim().length < 2 || nomOrg.trim().length > 60)) {
+      setMessage({ texte: "Entrez le nom de l'organisation (2 à 60 caractères).", ok: false });
+      return;
+    }
+    const nomAffiche = nomApp.trim() || (creation ? nomOrg.trim() : "");
+    if (nomAffiche.length < 2) {
       setMessage({ texte: "Entrez le nom de l'app (2 caractères au moins).", ok: false });
       return;
     }
     // Un couple illisible est corrigé avant l'enregistrement, et on le dit.
     const corrigees = problemes.length > 0 ? corrigerContraste(couleurs) : couleurs;
     const note = problemes.length > 0 ? " Des couleurs ont été corrigées pour rester lisibles." : "";
-    const maj: Organisation = { ...org, nom_app: nomApp.trim(), slogan: slogan.trim() || null, logo, couleurs: corrigees };
+    const maj: Organisation = { ...org, nom: nomOrg.trim() || org.nom, nom_app: nomAffiche, slogan: slogan.trim() || null, logo, couleurs: corrigees, service: service.trim() || null };
     setBusy(true);
+    if (creation) {
+      const echec = await creerOrganisation(maj);
+      setBusy(false);
+      if (echec) {
+        setMessage({ texte: echec, ok: false });
+        return;
+      }
+      const lue = await lireOrganisations();
+      setOrganisations(lue.organisations.map(organisationAvecLocale));
+      setEnBase(lue.enBase);
+      setCreation(false);
+      setCode(maj.code);
+      setMessage({ texte: `Organisation « ${maj.nom} » créée. Rattachez-lui des comptes dans l'onglet Comptes.`, ok: true });
+      return;
+    }
     const refus = org.id ? await enregistrerOrganisation(maj) : "local";
     setBusy(false);
     if (refus && refus !== "local") {
@@ -148,16 +192,24 @@ export default function MarqueOrganisation() {
   return (
     <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
       <Text style={styles.titre} accessibilityRole="header">
-        Organisation
+        Organisations
       </Text>
-      <View style={styles.rangee}>
+      <View style={styles.liste}>
         {organisations.map((o) => (
-          <Pressable key={o.code} accessibilityRole="radio" accessibilityState={{ selected: code === o.code }} onPress={() => charger(o)} style={[styles.chip, code === o.code && styles.chipActif]}>
-            <Text style={styles.chipTexte}>{o.nom}</Text>
+          <Pressable key={o.code} accessibilityRole="radio" accessibilityState={{ selected: !creation && code === o.code }} accessibilityLabel={`${o.nom}${o.service ? `, ${o.service}` : ""}`} onPress={() => charger(o)} style={[styles.ligneOrg, !creation && code === o.code && styles.chipActif]}>
+            <Image source={imageLogo(o.logo)} style={styles.logoPetit} contentFit="cover" accessible={false} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.chipTexte}>{o.nom}</Text>
+              <Text style={styles.note}>{o.service ?? "Service non précisé"}</Text>
+            </View>
           </Pressable>
         ))}
+        <Pressable accessibilityRole="button" accessibilityLabel="Créer une organisation" onPress={commencerCreation} style={[styles.ligneOrg, creation && styles.chipActif]}>
+          <Ionicons name="add-circle-outline" size={28} color={P.primary} />
+          <Text style={styles.chipTexte}>Créer une organisation</Text>
+        </Pressable>
       </View>
-      {!enBase ? <Text style={styles.note}>Les organisations viennent de l&apos;app (la migration 0009 n&apos;est pas encore lancée) : l&apos;enregistrement vaut pour ce téléphone.</Text> : null}
+      {!enBase ? <Text style={styles.note}>Les organisations viennent de l&apos;app (migrations 0009 et 0010 pas encore lancées) : l&apos;enregistrement vaut pour ce téléphone, la création est impossible.</Text> : null}
 
       <Text style={styles.titre} accessibilityRole="header">
         Aperçu en direct
@@ -165,7 +217,21 @@ export default function MarqueOrganisation() {
       <ApercuMarque jetons={apercu} nomApp={nomApp} slogan={slogan.trim() || null} logo={logo} />
 
       <Text style={styles.titre} accessibilityRole="header">
-        Nom, slogan et logo
+        {creation ? "Nouvelle organisation" : "Organisation et service"}
+      </Text>
+      <AuthField icon="business-outline" label="Nom de l'organisation" value={nomOrg} onChangeText={(v) => { setNomOrg(v); setMessage(null); }} maxLength={60} />
+      <AuthField icon="construct-outline" label="Service : ce que ses équipes traitent" value={service} onChangeText={(v) => { setService(v); setMessage(null); }} maxLength={60} />
+      <View style={styles.rangee}>
+        {EXEMPLES_SERVICE.map((e) => (
+          <Pressable key={e} accessibilityRole="button" accessibilityLabel={`Service : ${e}`} onPress={() => { setService(e); setMessage(null); }} style={[styles.chip, service === e && styles.chipActif]}>
+            <Text style={styles.chipTexte}>{e}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {creation ? <Text style={styles.note}>Code de l&apos;organisation : {org?.code}</Text> : null}
+
+      <Text style={styles.titre} accessibilityRole="header">
+        Nom de l&apos;app, slogan et logo
       </Text>
       <AuthField icon="pricetag-outline" label="Nom de l'app" value={nomApp} onChangeText={(v) => { setNomApp(v); setMessage(null); }} maxLength={40} />
       <AuthField icon="chatbubble-outline" label="Slogan (80 caractères au plus)" value={slogan} onChangeText={(v) => { setSlogan(v); setMessage(null); }} maxLength={80} />
@@ -241,8 +307,8 @@ export default function MarqueOrganisation() {
       {problemes.length > 0 ? <AuthMessage>Un couple de couleurs est illisible : il sera corrigé à l&apos;enregistrement.</AuthMessage> : null}
 
       {message ? <AuthMessage ok={message.ok}>{message.texte}</AuthMessage> : null}
-      <AuthButton label="Enregistrer la marque" onPress={() => void enregistrer()} busy={busy} />
-      <AuthButton label="Rétablir les valeurs d'origine" onPress={retablir} outline />
+      <AuthButton label={creation ? "Créer l'organisation" : "Enregistrer l'organisation"} onPress={() => void enregistrer()} busy={busy} />
+      {creation ? <AuthButton label="Annuler" onPress={() => existante ? charger(existante) : organisations[0] && charger(organisations[0])} outline /> : <AuthButton label="Rétablir les valeurs d'origine" onPress={retablir} outline />}
     </ScrollView>
   );
 }
@@ -253,6 +319,9 @@ const creerStyles = (P: Jetons) =>
     titre: { fontSize: 18, fontWeight: "700", color: P.text, marginTop: 8 },
     note: { fontSize: 13, color: P.textSecondary, lineHeight: 19 },
     rangee: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    liste: { gap: 8 },
+    ligneOrg: { minHeight: 64, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexDirection: "row", alignItems: "center", gap: 12 },
+    logoPetit: { width: 40, height: 40, borderRadius: 12 },
     chip: { minHeight: 48, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexDirection: "row", alignItems: "center", gap: 8 },
     chipActif: { backgroundColor: P.backgroundSelected, borderWidth: 2, borderColor: P.primary },
     chipTexte: { fontSize: 14, fontWeight: "700", color: P.text },

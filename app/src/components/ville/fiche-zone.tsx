@@ -1,5 +1,6 @@
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
+import { FEUILLE_BASE, VOILE_FEUILLE, CIBLE_MIN, STYLE_ZONE } from '@/components/ville/style';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -10,7 +11,6 @@ import { type Zone } from '@/lib/zones';
 import { LIBELLES_CATEGORIE, LIBELLES_ETAT, LIBELLES_GRAVITE, type Signalement } from '@/types';
 
 import { Bouton } from './bouton';
-import { CIBLE_MIN, STYLE_ZONE } from './style';
 
 type Props = {
   zone: Zone | null;
@@ -66,8 +66,8 @@ export function FicheZone({ zone, signalements, onFermer, onOuvrir }: Props) {
 }
 
 const styles = StyleSheet.create({
-  fond: { flex: 1 },
-  feuille: { maxHeight: '70%', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  fond: { flex: 1, backgroundColor: VOILE_FEUILLE },
+  feuille: { maxHeight: '70%', ...FEUILLE_BASE },
   contenu: { padding: 20, gap: 12 },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pastille: { width: 14, height: 14, borderRadius: 7 },

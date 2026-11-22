@@ -26,7 +26,6 @@ export default function CitizenApp({ compteConnecte, nom, demoHorsLigne, onLogou
         onFermer={() => setProfil(false)}
         nom={compteConnecte ? (nom ?? null) : null}
         role={compteConnecte ? "Citoyen" : null}
-        marqueChoisie={demoHorsLigne ? "demo" : "citoyen"}
         onConnexionPersonnel={compteConnecte ? undefined : onStaffLogin}
         onDeconnexion={compteConnecte ? onLogout : undefined}
       />

@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
+import { FEUILLE_BASE } from '@/components/ville/style';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IllustrationProbleme } from '@/components/illustration-probleme';
@@ -93,7 +94,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   plein: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   teinte: { backgroundColor: 'rgba(248, 244, 234, 0.35)' },
   voile: { backgroundColor: 'rgba(248, 244, 234, 0.72)' },
-  feuille: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 12, gap: 16 },
+  feuille: { position: 'absolute', left: 0, right: 0, bottom: 0, ...FEUILLE_BASE, paddingHorizontal: 20, paddingTop: 12, gap: 16 },
   poignee: { alignSelf: 'center', width: 48, height: 5, borderRadius: 3 },
   titre: { textAlign: 'center', fontSize: 24, lineHeight: 30 },
   grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },

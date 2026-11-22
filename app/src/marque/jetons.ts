@@ -1,5 +1,7 @@
 import { CLES_COULEURS, type Couleurs, type CleCouleur } from './organisations-embarquees';
 
+import { APPARENCES_MAIN } from './apparences-main';
+import { ORGANISATIONS_EMBARQUEES } from './organisations-embarquees';
 import { ajusterContraste, assombrir, contraste, eclaircir, estCouleurHex, melanger, texteSur } from './couleurs';
 
 export type { Couleurs, CleCouleur };
@@ -52,8 +54,13 @@ export function jetonsDepuis(c: Couleurs): Jetons {
 }
 
 /** Variante d'apparence appliquée à la palette de la marque. */
-export function appliquerApparence(base: Couleurs, apparence: Apparence): Couleurs {
+export function appliquerApparence(base: Couleurs, apparence: Apparence, code?: string): Couleurs {
   if (apparence === 'standard') return base;
+
+  // Marque embarquée non modifiée : variante réglée à la main. Sinon (marque d'une autre organisation, ou couleurs retouchées) : calcul.
+  const main = code ? APPARENCES_MAIN[code]?.[apparence] : undefined;
+  const origine = ORGANISATIONS_EMBARQUEES.find((o) => o.code === code);
+  if (main && origine && origine.couleurs.primary?.toUpperCase() === base.primary.toUpperCase()) return { ...base, ...main };
 
   if (apparence === 'daltonisme') {
     // Sans rouge ni vert pour dire « bon » ou « mauvais » : bleu et vermillon (palette sûre pour le daltonisme). Les mots restent écrits partout.

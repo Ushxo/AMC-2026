@@ -6,13 +6,14 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LogoMarque } from "@/components/logo-marque";
-import { useStyles } from '@/marque/utiliser';
+import { useMarque, useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
 
 // En-tête vert des pages des maquettes : flèche de retour (facultative), titre, sous-titre.
 export function EnteteVert({ titre, sousTitre, onBack, libelleRetour = "Retour", droite }: { titre: string; sousTitre?: string; onBack?: () => void; libelleRetour?: string; droite?: ReactNode }) {
   const P = useTheme();
+  const { organisation } = useMarque();
   const styles = useStyles(creerStyles);
   const insets = useSafeAreaInsets();
   return (
@@ -25,6 +26,11 @@ export function EnteteVert({ titre, sousTitre, onBack, libelleRetour = "Retour",
         <LogoMarque taille={44} />
       )}
       <View style={{ flex: 1 }}>
+        {onBack ? null : (
+          <Text style={styles.organisation} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+            {organisation.nom_app}
+          </Text>
+        )}
         <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
           {titre}
         </Text>
@@ -42,6 +48,7 @@ export function EnteteVert({ titre, sousTitre, onBack, libelleRetour = "Retour",
 const creerStyles = (P: Jetons) => StyleSheet.create({
   entete: { backgroundColor: P.header, paddingHorizontal: 20, paddingBottom: 24, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
+  organisation: { color: P.onHeaderSoft, fontSize: 13, fontWeight: "600" },
   titre: { color: P.onHeader, fontSize: 26, fontWeight: "700" },
-  sous: { color: P.bandeau, fontSize: 15, fontWeight: "500" },
+  sous: { color: P.onHeaderSoft, fontSize: 15, fontWeight: "500" },
 });

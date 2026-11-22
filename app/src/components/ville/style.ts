@@ -138,3 +138,8 @@ export const FOND_COMPTEUR = '#F3E7C3';
 export const FOND_AVIS_EAU = '#E4F1F5';
 /** Commandes de la caméra : fond sombre de l'objectif, icônes claires. */
 export const CAMERA = { creme: '#F8F5ED', sombre: '#23271F', blanc: '#FFFFFF', clair: '#E6E4D8', noir: '#111111' } as const;
+
+/** Voile sombre uniforme derrière toute feuille ou fenêtre. */
+export const VOILE_FEUILLE = 'rgba(0,0,0,0.4)';
+/** Coins du haut de toute feuille : rayon de l'échelle, contenu coupé aux coins, fond plein opaque, ni bordure ni ombre. */
+export const FEUILLE_BASE = { borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' } as const;

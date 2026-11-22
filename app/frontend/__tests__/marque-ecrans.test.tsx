@@ -8,45 +8,58 @@ import MarqueOrganisation from '../admin/MarqueOrganisation';
 jest.mock('@react-native-async-storage/async-storage', () => jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 const mockEnregistrer = jest.fn();
+const mockCreer = jest.fn();
 jest.mock('@/lib/organisations', () => {
   const actual = jest.requireActual('@/lib/organisations');
   return {
     ...actual,
     lireOrganisations: async () => ({ organisations: actual.ORGANISATIONS_EMBARQUEES.map((o: object, i: number) => ({ ...o, id: `o${i}` })), enBase: true }),
     enregistrerOrganisation: (...a: unknown[]) => mockEnregistrer(...a),
+    creerOrganisation: (...a: unknown[]) => mockCreer(...a),
   };
 });
 
 beforeEach(() => {
   reinitialiserMarque();
   mockEnregistrer.mockReset().mockResolvedValue(null);
+  mockCreer.mockReset().mockResolvedValue(null);
 });
 
-describe('feuille du profil : apparence et changement de ville', () => {
-  it('le citoyen change de ville : toute la marque change en direct', async () => {
-    await render(<FeuilleProfil visible onFermer={jest.fn()} marqueChoisie="citoyen" onConnexionPersonnel={jest.fn()} />);
+describe('feuille du profil : apparence', () => {
+  it('le citoyen ne peut pas changer de ville ni de marque', async () => {
+    await render(<FeuilleProfil visible onFermer={jest.fn()} onConnexionPersonnel={jest.fn()} />);
+    expect(screen.queryByText('Changer de ville')).toBeNull();
+    expect(screen.queryByText('Marque de démonstration')).toBeNull();
+    expect(screen.queryByLabelText(/Ville de Montréal : /)).toBeNull();
     expect(lireMarque().organisation.code).toBe('priorix');
-    await fireEvent.press(await screen.findByLabelText(/Ville de Montréal : Égouts Montréal/));
-    expect(lireMarque().organisation.code).toBe('montreal');
-    expect(lireMarque().jetons.primary).toBe('#B5121B');
-    expect(screen.getByText('Votre choix est gardé sur ce téléphone.')).toBeTruthy();
+    expect(screen.queryByText('Tournées optimisées par Priorix')).toBeNull();
   });
 
-  it('apparence : trois variantes appliquées à la marque courante', async () => {
-    await render(<FeuilleProfil visible onFermer={jest.fn()} marqueChoisie="citoyen" />);
-    await fireEvent.press(screen.getByText('Sombre'));
+  it('apparence : quatre variantes avec aperçu, appliquées à la marque courante', async () => {
+    await render(<FeuilleProfil visible onFermer={jest.fn()} />);
+    expect(screen.getAllByRole('radio').length).toBe(4);
+    await fireEvent.press(screen.getByLabelText('Sombre'));
     expect(lireMarque().apparence).toBe('sombre');
-    await fireEvent.press(screen.getByText('Contraste élevé'));
+    expect(lireMarque().jetons.background).toBe('#111A12');
+    await fireEvent.press(screen.getByLabelText('Contraste élevé'));
     expect(lireMarque().jetons.background).toBe('#FFFFFF');
-    await fireEvent.press(screen.getByText('Standard'));
+    await fireEvent.press(screen.getByLabelText('Standard'));
     expect(lireMarque().apparence).toBe('standard');
   });
 
-  it('un compte du personnel ne change pas de ville (sa marque vient de son organisation)', async () => {
+  it('un compte du personnel ne change pas de ville ; il voit « Tournées optimisées par Priorix »', async () => {
     await render(<FeuilleProfil visible onFermer={jest.fn()} nom="Léa" role="Superviseur" onDeconnexion={jest.fn()} />);
     expect(screen.queryByText('Changer de ville')).toBeNull();
     expect(screen.getByText('Apparence')).toBeTruthy();
+    expect(screen.getByText('Tournées optimisées par Priorix')).toBeTruthy();
     expect(screen.getByText('Se déconnecter')).toBeTruthy();
+  });
+
+  it('la démonstration hors ligne du personnel peut essayer une marque, annoncée simulée', async () => {
+    await render(<FeuilleProfil visible onFermer={jest.fn()} nom="Léa" role="Superviseur" marqueChoisie="demo" />);
+    expect(screen.getByText(/Simulé pour la démonstration hors ligne/)).toBeTruthy();
+    await fireEvent.press(await screen.findByLabelText(/Ville de Montréal : Ville de Montréal/));
+    expect(lireMarque().organisation.code).toBe('montreal');
   });
 });
 
@@ -59,7 +72,7 @@ describe('administration : marque de l’organisation', () => {
     expect(screen.getAllByText(/^Lisible :/).length).toBeGreaterThanOrEqual(5); // tous les couples sont lisibles
     expect(screen.queryByText(/^Illisible :/)).toBeNull();
     await fireEvent.changeText(screen.getByLabelText("Nom de l'app"), 'Priorix Bleu');
-    await fireEvent.press(screen.getByText('Enregistrer la marque'));
+    await fireEvent.press(screen.getByText("Enregistrer l'organisation"));
     await waitFor(() => expect(screen.getByText(/Marque enregistrée/)).toBeTruthy());
     expect(mockEnregistrer).toHaveBeenCalledWith(expect.objectContaining({ nom_app: 'Priorix Bleu', couleurs: expect.objectContaining({ primary: '#0F4C81' }) }));
     expect(lireMarque().organisation.nom_app).toBe('Priorix Bleu');
@@ -73,7 +86,7 @@ describe('administration : marque de l’organisation', () => {
     await fireEvent.changeText(screen.getByLabelText('Couleur principale, code couleur'), '#12');
     expect(screen.queryByText(/^Illisible :/)).toBeNull();
     await fireEvent.changeText(screen.getByLabelText("Nom de l'app"), 'P');
-    await fireEvent.press(screen.getByText('Enregistrer la marque'));
+    await fireEvent.press(screen.getByText("Enregistrer l'organisation"));
     expect(await screen.findByText(/2 caractères au moins/)).toBeTruthy();
     expect(mockEnregistrer).not.toHaveBeenCalled();
   });
@@ -83,8 +96,32 @@ describe('administration : marque de l’organisation', () => {
     await render(<MarqueOrganisation />);
     await screen.findByLabelText('Aperçu de la marque Priorix');
     await fireEvent.press(screen.getByLabelText('Préréglage Rouge Montréal'));
-    await fireEvent.press(screen.getByText('Enregistrer la marque'));
+    await fireEvent.press(screen.getByText("Enregistrer l'organisation"));
     expect(await screen.findByText(/Seul un administrateur/)).toBeTruthy();
     expect(lireMarque().jetons.primary).toBe(organisationEmbarquee('priorix')!.couleurs.primary);
+  });
+});
+
+describe('administration : créer une organisation', () => {
+  it('nom, service en un toucher, création : aucune organisation fictive n’existe d’avance', async () => {
+    await render(<MarqueOrganisation />);
+    expect(await screen.findByLabelText('Créer une organisation')).toBeTruthy();
+    expect(screen.queryByLabelText(/^Déneigement/)).toBeNull(); // la liste ne contient que les organisations réelles ; « Déneigement » n'est qu'un exemple de service
+    await fireEvent.press(screen.getByLabelText('Créer une organisation'));
+    await fireEvent.changeText(screen.getByLabelText("Nom de l'organisation"), 'Déneigement Nord');
+    expect(screen.getByText(/Code de l'organisation : deneigement-nord/)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Service : Déneigement'));
+    await fireEvent.press(screen.getByText("Créer l'organisation"));
+    await waitFor(() => expect(mockCreer).toHaveBeenCalled());
+    expect(mockCreer.mock.calls[0][0]).toMatchObject({ code: 'deneigement-nord', nom: 'Déneigement Nord', nom_app: 'Déneigement Nord', service: 'Déneigement' });
+  });
+
+  it('un refus du serveur est affiché tel quel', async () => {
+    mockCreer.mockResolvedValue('Seul un administrateur peut créer une organisation.');
+    await render(<MarqueOrganisation />);
+    await fireEvent.press(await screen.findByLabelText('Créer une organisation'));
+    await fireEvent.changeText(screen.getByLabelText("Nom de l'organisation"), 'Collecte Sud');
+    await fireEvent.press(screen.getByText("Créer l'organisation"));
+    expect(await screen.findByText('Seul un administrateur peut créer une organisation.')).toBeTruthy();
   });
 });

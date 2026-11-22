@@ -9,7 +9,6 @@ import {
   organisationAvecLocale,
   appliquerMarquePersonnel,
   chargerMarqueLocale,
-  choisirMarqueCitoyen,
   definirApparence,
   lireMarque,
   mettreAJourOrganisation,
@@ -100,6 +99,25 @@ describe('apparences', () => {
     }
     expect(manques).toEqual([]);
   });
+  it('apparences réglées à la main : tous les couples lisibles, identité gardée', () => {
+    const manques: string[] = [];
+    for (const o of ORGANISATIONS_EMBARQUEES) {
+      for (const a of ['sombre', 'contraste', 'daltonisme'] as const) {
+        const c = appliquerApparence(o.couleurs as Couleurs, a, o.code);
+        manques.push(...problemesContraste(c).map((p) => `${o.code}/${a}: ${p.jeton} sur ${p.contre} ${p.rapport.toFixed(1)}`));
+        for (const fond of ['background', 'surface', 'backgroundElement', 'backgroundSelected'] as const) {
+          for (const t of ['primary', 'danger', 'success'] as const) {
+            if (contraste(c[t], c[fond]) < 4.5) manques.push(`${o.code}/${a}: ${t} sur ${fond} ${contraste(c[t], c[fond]).toFixed(1)}`);
+          }
+          if (contraste(c.accent, c[fond]) < 3) manques.push(`${o.code}/${a}: accent sur ${fond} ${contraste(c.accent, c[fond]).toFixed(1)}`);
+        }
+        if (contraste(c.onAction, c.action) < 4.5 || contraste(c.onPrimary, c.primary) < 4.5) manques.push(`${o.code}/${a}: texte sur bouton`);
+      }
+      // la marque se reconnaît : l'en-tête garde sa teinte en daltonisme, le rouge de Montréal reste rouge en contraste élevé
+      expect(appliquerApparence(o.couleurs as Couleurs, 'daltonisme', o.code).header).toBe(o.couleurs.header);
+    }
+    expect(manques).toEqual([]);
+  });
   it('s’applique à toute marque (Montréal en sombre)', () => {
     expect(problemesContraste(appliquerApparence(montreal.couleurs as Couleurs, 'sombre'))).toEqual([]);
     expect(problemesContraste(appliquerApparence(montreal.couleurs as Couleurs, 'contraste'))).toEqual([]);
@@ -126,28 +144,25 @@ describe('marque courante', () => {
   it('changer de marque recolore tout en direct et prévient les écrans abonnés', () => {
     const rappel = jest.fn();
     const arret = abonnerMarque(rappel);
-    choisirMarqueCitoyen(montreal);
+    appliquerMarquePersonnel(montreal);
     expect(lireMarque().jetons.primary).toBe('#B5121B');
-    expect(lireMarque().organisation.nom_app).toBe('Égouts Montréal');
+    expect(lireMarque().organisation.nom_app).toBe('Ville de Montréal');
     expect(rappel).toHaveBeenCalled();
     arret();
   });
 
-  it('le choix du citoyen est gardé au redémarrage, avec l’apparence', async () => {
-    choisirMarqueCitoyen(montreal);
+  it('seule l’apparence est gardée au redémarrage : le citoyen ne choisit jamais la marque, même avec un ancien choix stocké', async () => {
+    await AsyncStorage.setItem('priorix:marque-citoyen', 'montreal'); // reste d'une ancienne version
     definirApparence('sombre');
     await new Promise((r) => setTimeout(r, 10));
-    expect(await AsyncStorage.getItem('priorix:marque-citoyen')).toBe('montreal');
     expect(await AsyncStorage.getItem('priorix:apparence')).toBe('sombre');
     reinitialiserMarque();
-    expect(lireMarque().organisation.code).toBe('priorix');
     await chargerMarqueLocale(ORGANISATIONS_EMBARQUEES);
-    expect(lireMarque().organisation.code).toBe('montreal');
+    expect(lireMarque().organisation.code).toBe('priorix');
     expect(lireMarque().apparence).toBe('sombre');
   });
 
-  it('un compte du personnel prend sa marque, et la marque du citoyen revient à la déconnexion', () => {
-    choisirMarqueCitoyen(priorix);
+  it('un compte du personnel prend sa marque, et la marque par défaut de l’app revient à la déconnexion', () => {
     appliquerMarquePersonnel(montreal);
     expect(lireMarque().organisation.code).toBe('montreal');
     expect(lireMarque().duPersonnel).toBe(true);
@@ -166,28 +181,28 @@ describe('marque courante', () => {
   });
 
   it('l’apparence s’applique à la marque courante', () => {
-    choisirMarqueCitoyen(montreal);
+    appliquerMarquePersonnel(montreal);
     definirApparence('contraste');
     expect(lireMarque().jetons.background).toBe('#FFFFFF');
     expect(lireMarque().organisation.code).toBe('montreal');
   });
 
   it('une marque réglée sans la base est gardée au redémarrage, puis remplacée quand la base la donne', async () => {
-    const perso = { ...montreal, nom_app: 'Égouts Montréal 2', couleurs: { ...montreal.couleurs, primary: '#0F4C81' } };
+    const perso = { ...montreal, nom_app: 'Ville de Montréal 2', couleurs: { ...montreal.couleurs, primary: '#0F4C81' } };
     garderMarqueLocale(perso);
     await new Promise((r) => setTimeout(r, 10));
-    expect(organisationAvecLocale(montreal).nom_app).toBe('Égouts Montréal 2');
+    expect(organisationAvecLocale(montreal).nom_app).toBe('Ville de Montréal 2');
     reinitialiserMarque();
-    expect(organisationAvecLocale(montreal).nom_app).toBe('Égouts Montréal'); // l'état est vidé : on repart de zéro
-    choisirMarqueCitoyen(montreal);
+    expect(organisationAvecLocale(montreal).nom_app).toBe('Ville de Montréal'); // l'état est vidé : on repart de zéro
+    appliquerMarquePersonnel(montreal);
     garderMarqueLocale(perso);
     await new Promise((r) => setTimeout(r, 10));
     reinitialiserMarque();
     await chargerMarqueLocale(ORGANISATIONS_EMBARQUEES);
-    expect(organisationAvecLocale(montreal).nom_app).toBe('Égouts Montréal 2');
+    expect(organisationAvecLocale(montreal).nom_app).toBe('Ville de Montréal 2');
     // la base la reprend : la copie locale disparaît
-    mettreAJourOrganisation({ ...montreal, id: 'o2', nom_app: 'Égouts Montréal (base)' });
-    expect(organisationAvecLocale(montreal).nom_app).toBe('Égouts Montréal');
+    mettreAJourOrganisation({ ...montreal, id: 'o2', nom_app: 'Ville de Montréal (base)' });
+    expect(organisationAvecLocale(montreal).nom_app).toBe('Ville de Montréal');
     oublierMarqueLocale('montreal');
   });
 

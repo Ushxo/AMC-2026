@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { VOILE_FEUILLE, FEUILLE_BASE, COULEUR_REPERE, STYLE_AVIS, STYLE_CHANTIER, STYLE_ZONE_INONDABLE, COULEUR_OMBRE } from '@/components/ville/style';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Modal, ScrollView, StyleSheet, View, Switch } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
@@ -17,7 +18,6 @@ import { Chargement, Erreur } from '@/components/ville/etat-ecran';
 import { ListeEndroits } from '@/components/ville/liste-endroits';
 import { BandesInondation } from '@/components/ville/bandes-inondation';
 import { SelecteurCarte } from '@/components/ville/selecteur-carte';
-import { COULEUR_REPERE, STYLE_AVIS, STYLE_CHANTIER, STYLE_ZONE_INONDABLE, COULEUR_OMBRE } from '@/components/ville/style';
 import { useCouches } from '@/hooks/use-couches';
 import { useBandesInondation } from '@/hooks/use-bandes-inondation';
 import { useBouchesExistantes } from '@/hooks/use-bouches-existantes';
@@ -49,6 +49,7 @@ import { LIBELLES_GRAVITE, type Categorie, type Endroit, type ResultatRecherche 
 import { LogoMarque } from '@/components/logo-marque';
 import { LegendeGravite } from './legende-gravite';
 import { FeuilleProbleme } from './feuille-probleme';
+import { textesDe } from '@/marque/organisations-embarquees';
 import { useMarque, useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
 
@@ -73,6 +74,7 @@ export default function CarteCitoyen({ coquille }: Props) {
   const { top, bottom } = useSafeAreaInsets();
   const theme = useTheme();
   const { organisation } = useMarque();
+  const textes = textesDe(organisation);
   const router = useRouter();
   const { etat } = useSource();
   const { couches } = useCouches();
@@ -256,7 +258,7 @@ export default function CarteCitoyen({ coquille }: Props) {
                 {organisation.nom_app}
               </ThemedText>
               <ThemedText type="subtitle" accessibilityRole="header" style={[styles.titre, { color: theme.onHeader }]} maxFontSizeMultiplier={1.3}>
-                Carte des égouts
+                {textes.titreCarte}
               </ThemedText>
             </View>
           </View>
@@ -270,7 +272,7 @@ export default function CarteCitoyen({ coquille }: Props) {
           <Ionicons name="search" size={24} color={theme.primary} />
           <TextInput
             style={[styles.champ, { color: theme.text }]}
-            placeholder="Rechercher une adresse à Montréal"
+            placeholder={textes.rechercheAdresse}
             placeholderTextColor={theme.textSecondary}
             value={texte}
             onChangeText={(v) => {
@@ -281,7 +283,7 @@ export default function CarteCitoyen({ coquille }: Props) {
             onSubmitEditing={() => void lancerRecherche()}
             returnKeyType="search"
             autoCorrect={false}
-            accessibilityLabel="Rechercher une adresse à Montréal"
+            accessibilityLabel={textes.rechercheAdresse}
           />
         </View>
       </View>
@@ -492,9 +494,9 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   verif: { position: 'absolute', left: 20, right: 20, borderRadius: 16, borderWidth: 1, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },
   lienVerif: { minHeight: 36, justifyContent: 'center' },
   avisPosition: { position: 'absolute', left: 16, right: 16, borderRadius: 16, padding: 12 },
-  voile: { flex: 1 },
+  voile: { flex: 1, backgroundColor: VOILE_FEUILLE },
   ligneCouche: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   ligneAvis: { minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: P.border },
-  feuille: { maxHeight: '80%', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  feuille: { maxHeight: '80%', ...FEUILLE_BASE },
   contenuFeuille: { padding: 20, gap: 12 },
 });

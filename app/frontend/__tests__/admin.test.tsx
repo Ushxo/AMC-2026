@@ -45,7 +45,7 @@ describe('espace d’administration', () => {
     await fireEvent.press(screen.getByText('Créer un compte du personnel (écran)'));
     await fireEvent.press(screen.getByText('Équipes'));
     expect(screen.getByText('Écran des équipes')).toBeTruthy();
-    await fireEvent.press(screen.getByText('Marque'));
+    await fireEvent.press(screen.getByText('Clients'));
     expect(await screen.findByText('Aperçu en direct')).toBeTruthy();
     expect(screen.getByText('Ville de Montréal')).toBeTruthy();
     await fireEvent.press(screen.getByText('Superviseur'));

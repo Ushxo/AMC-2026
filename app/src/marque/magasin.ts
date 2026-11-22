@@ -11,7 +11,6 @@ export type EtatMarque = {
   duPersonnel: boolean;
 };
 
-const CLE_CODE = 'priorix:marque-citoyen';
 const CLE_APPARENCE = 'priorix:apparence';
 const CLE_LOCALES = 'priorix:marques-locales';
 
@@ -19,7 +18,13 @@ const PAR_DEFAUT = ORGANISATIONS_EMBARQUEES.find((o) => o.code === CODE_PAR_DEFA
 
 function calculer(organisation: Organisation, apparence: Apparence): Jetons {
   const base = completerCouleurs(organisation.couleurs, PAR_DEFAUT.couleurs as Couleurs);
-  return jetonsDepuis(appliquerApparence(base, apparence));
+  return jetonsDepuis(appliquerApparence(base, apparence, organisation.code));
+}
+
+/** Quatre couleurs réelles d'une apparence, pour la pastille d'aperçu : en-tête, fond, surface, action. */
+export function apercuApparence(organisation: Organisation, apparence: Apparence): string[] {
+  const j = calculer(organisation, apparence);
+  return [j.header, j.background, j.surface, j.action];
 }
 
 function creerEtat(organisation: Organisation, apparence: Apparence, duPersonnel: boolean): EtatMarque {
@@ -69,21 +74,13 @@ async function garder(cle: string, valeur: string) {
   }
 }
 
-/** Le citoyen choisit une organisation (« Changer de ville ») : appliquée tout de suite et gardée au redémarrage. */
-export function choisirMarqueCitoyen(organisation: Organisation): void {
-  marqueCitoyen = organisation;
-  etat = creerEtat(organisation, etat.apparence, false);
-  notifier();
-  void garder(CLE_CODE, organisation.code);
-}
-
-/** Après la connexion d'un compte du personnel : sa marque s'applique, sans toucher au choix du citoyen. */
+/** Après la connexion d'un compte du personnel : sa marque s'applique, la marque par défaut de l'app reste celle du citoyen (il ne choisit jamais la marque). */
 export function appliquerMarquePersonnel(organisation: Organisation): void {
   etat = creerEtat(organisation, etat.apparence, true);
   notifier();
 }
 
-/** À la déconnexion : retour à la marque du citoyen. */
+/** À la déconnexion : retour à la marque par défaut de l'app (Priorix aujourd'hui). */
 export function restaurerMarqueCitoyen(): void {
   if (!etat.duPersonnel && etat.organisation.code === marqueCitoyen.code) return;
   etat = creerEtat(marqueCitoyen, etat.apparence, false);
@@ -140,7 +137,7 @@ export async function chargerMarqueLocale(organisations: Organisation[] = ORGANI
   try {
     const st = stockage();
     if (!st) return;
-    const [code, apparence, brut] = await Promise.all([st.getItem(CLE_CODE), st.getItem(CLE_APPARENCE), st.getItem(CLE_LOCALES)]);
+    const [apparence, brut] = await Promise.all([st.getItem(CLE_APPARENCE), st.getItem(CLE_LOCALES)]);
     try {
       const l = brut ? JSON.parse(brut) : {};
       if (l && typeof l === 'object') locales = l as Record<string, Organisation>;
@@ -148,7 +145,8 @@ export async function chargerMarqueLocale(organisations: Organisation[] = ORGANI
       locales = {};
     }
     const app = APPARENCES.find((a) => a === apparence) ?? etat.apparence;
-    const base = (code ? (organisations.find((o) => o.code === code) ?? organisationEmbarquee(code)) : undefined) ?? marqueCitoyen;
+    // Le citoyen ne choisit jamais la marque : même un ancien choix stocké est ignoré, c'est la marque par défaut de l'app.
+    const base = organisations.find((o) => o.code === PAR_DEFAUT.code) ?? organisationEmbarquee(PAR_DEFAUT.code) ?? marqueCitoyen;
     const org = organisationAvecLocale(base);
     marqueCitoyen = org;
     etat = creerEtat(etat.duPersonnel ? etat.organisation : org, app, etat.duPersonnel);
