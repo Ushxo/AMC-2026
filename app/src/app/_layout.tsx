@@ -13,6 +13,7 @@ export default function RootLayout() {
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(citoyen)" />
+        <Stack.Screen name="connexion" />
         <Stack.Screen name="ville" />
         <Stack.Screen name="essai-photo" />
         <Stack.Screen name="resultat" />

@@ -49,3 +49,18 @@ export function roleCourant(): RoleVille | null {
 export function peutGerer(r: RoleVille | null): boolean {
   return r === 'superviseur' || r === 'admin';
 }
+
+// --- Compte citoyen connecté (inscription publique) ---
+
+export type CitoyenConnecte = { user_id: string; nom: string; courriel: string };
+
+let citoyen: CitoyenConnecte | null = null;
+
+export function citoyenCourant(): CitoyenConnecte | null {
+  return citoyen;
+}
+
+export function definirCitoyen(c: CitoyenConnecte | null): void {
+  citoyen = c;
+  ecouteurs.forEach((f) => f());
+}

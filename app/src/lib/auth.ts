@@ -14,9 +14,11 @@ import {
 } from './messages';
 import {
   definirAvertissement,
+  definirCitoyen,
   definirEmploye,
   employeCourant,
   estEmployeDemo,
+  type CitoyenConnecte,
   type RoleVille,
 } from './session';
 import { getSupabase } from './supabase';
@@ -73,6 +75,49 @@ function evaluerProfil(
   return { connu: true, acces: { employe: { user_id: userId, nom, courriel }, role } };
 }
 
+export type Identite = { type: 'employe'; acces: Acces } | { type: 'citoyen'; citoyen: CitoyenConnecte };
+
+function nomDuProfil(p: ProfilBrut | null, courriel: string): string {
+  return [p?.prenom, p?.nom].filter((x) => typeof x === 'string' && x).join(' ').trim() || courriel;
+}
+
+/**
+ * Qui est ce compte : un employé de la Ville (avec son rôle), un citoyen, ou personne.
+ * Même ordre de lecture que lireAcces : rpc('mon_profil'), rpc('mon_role'), table `profils`, puis `employes`.
+ */
+export async function lireIdentite(userId: string, courriel: string): Promise<Identite | null> {
+  const client = getSupabase();
+  if (!client) return null;
+
+  const depuis = (p: ProfilBrut | null): Identite | null | undefined => {
+    const e = evaluerProfil(p, userId, courriel);
+    if (!e.connu) return undefined; // profil illisible : on essaie la source suivante
+    if (e.acces) return { type: 'employe', acces: e.acces };
+    return { type: 'citoyen', citoyen: { user_id: userId, nom: nomDuProfil(p, courriel), courriel } };
+  };
+
+  for (const fonction of ['mon_profil', 'mon_role']) {
+    const r = await client.rpc(fonction);
+    if (r.error) {
+      if (estRefusOuAbsent(r.error)) continue;
+      throw r.error;
+    }
+    const i = depuis(normaliserProfil(r.data));
+    if (i !== undefined) return i;
+  }
+
+  const profil = await client.from('profils').select('role, poste, prenom, nom').eq('id', userId).maybeSingle();
+  if (profil.error && !estRefusOuAbsent(profil.error)) throw profil.error;
+  const depuisTable = depuis(normaliserProfil(profil.data));
+  if (depuisTable !== undefined) return depuisTable;
+
+  const { data, error } = await client.from('employes').select('user_id, nom').eq('user_id', userId).maybeSingle();
+  if (error) throw error;
+  return data
+    ? { type: 'employe', acces: { employe: { user_id: userId, nom: data.nom as string, courriel }, role: 'superviseur' } }
+    : null;
+}
+
 /**
  * Accès de ce compte au mode Ville, dans l'ordre : rpc('mon_profil'), rpc('mon_role'), table `profils`.
  * Comme dans la base, le profil décide : s'il existe (même citoyen), la table `employes` est ignorée.
@@ -127,15 +172,17 @@ export async function restaurerSession(): Promise<void> {
 async function adopterCompte(userId: string, courriel: string): Promise<void> {
   const client = getSupabase();
   if (!client) return;
-  let acces: Acces | null;
+  let identite: Identite | null;
   try {
-    acces = await lireAcces(userId, courriel);
+    identite = await lireIdentite(userId, courriel);
   } catch {
     definirAvertissement(MESSAGE_PANNE_EMPLOYES); // lecture en panne : la session est gardée
     return;
   }
-  if (acces) {
-    if (!employeCourant()) definirEmploye(acces.employe, acces.role);
+  if (identite?.type === 'employe') {
+    if (!employeCourant()) definirEmploye(identite.acces.employe, identite.acces.role);
+  } else if (identite?.type === 'citoyen') {
+    definirCitoyen(identite.citoyen); // un compte citoyen garde sa session : il n'a pas accès au mode Ville, mais il est connecté
   } else {
     await client.auth.signOut();
     definirAvertissement(MESSAGE_PAS_EMPLOYE);
@@ -151,6 +198,7 @@ export function surveillerSession(): () => void {
   if (!client) return () => {};
   const { data } = client.auth.onAuthStateChange((evenement, session) => {
     const e = employeCourant();
+    if (evenement === 'SIGNED_OUT') definirCitoyen(null);
     if (evenement === 'SIGNED_OUT' && e && !estEmployeDemo(e)) {
       definirEmploye(null);
       definirAvertissement(MESSAGE_SESSION_EXPIREE);

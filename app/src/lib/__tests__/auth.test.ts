@@ -5,7 +5,7 @@ import {
   roleDepuisProfil,
   surveillerSession,
 } from '../auth';
-import { avertissementSession, definirAvertissement, definirEmploye, employeCourant, peutGerer, roleCourant } from '../session';
+import { avertissementSession, citoyenCourant, definirAvertissement, definirCitoyen, definirEmploye, employeCourant, peutGerer, roleCourant } from '../session';
 import { getSupabase } from '../supabase';
 
 jest.mock('../supabase', () => ({ getSupabase: jest.fn() }));
@@ -128,13 +128,16 @@ describe('rôles (table profils)', () => {
     expect(roleCourant()).toBe('superviseur');
   });
 
-  it('profil citoyen sans ligne employes : refusé avec le message', async () => {
+  it('profil citoyen sans ligne employes : pas d\'accès au mode Ville, mais la session citoyen est gardée', async () => {
+    definirCitoyen(null);
     const k = client({ session: true, employe: false, profil: { role: 'citoyen', poste: null } });
     mockGet.mockReturnValue(k.c);
     await restaurerSession();
     expect(employeCourant()).toBeNull();
-    expect(k.signOut).toHaveBeenCalled();
-    expect(avertissementSession()).toBe("Ce compte n'a pas accès au mode Ville.");
+    expect(citoyenCourant()?.courriel).toBeDefined();
+    expect(k.signOut).not.toHaveBeenCalled();
+    expect(avertissementSession()).toBeNull();
+    definirCitoyen(null);
   });
 
   it('démonstration hors ligne : superviseur simulé', () => {
@@ -223,12 +226,13 @@ describe('profil : rpc d\u2019abord, puis table, puis employes', () => {
 
 describe('priorité du profil sur la table employes', () => {
   it('un profil citoyen décide, même avec une ancienne ligne dans employes', async () => {
+    definirCitoyen(null);
     const k = client({ session: true, employe: true, profil: { role: 'citoyen', poste: null } });
     mockGet.mockReturnValue(k.c);
     await restaurerSession();
-    expect(employeCourant()).toBeNull();
-    expect(k.signOut).toHaveBeenCalled();
-    expect(avertissementSession()).toBe("Ce compte n'a pas accès au mode Ville.");
+    expect(employeCourant()).toBeNull(); // pas employé
+    expect(citoyenCourant()).not.toBeNull(); // citoyen connecté
+    definirCitoyen(null);
   });
 
   it('rpc qui répond citoyen : refusé sans consulter employes', async () => {

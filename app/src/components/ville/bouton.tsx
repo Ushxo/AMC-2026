@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 
-import { CIBLE_MIN, COULEUR_ACCENT } from './style';
+import { CIBLE_MIN } from './style';
 
 type Props = {
   titre: string;
@@ -41,14 +41,14 @@ export function Bouton({
         styles.bouton,
         pleineLargeur ? styles.pleine : null,
         {
-          backgroundColor: plein ? COULEUR_ACCENT : selectionne ? theme.backgroundSelected : theme.backgroundElement,
+          backgroundColor: plein ? theme.primary : selectionne ? theme.backgroundSelected : theme.backgroundElement,
           opacity: !actif ? 0.45 : pressed ? 0.7 : 1,
           transform: [{ scale: pressed ? 0.98 : 1 }],
         },
       ]}>
       <View style={styles.contenu}>
-        {occupe ? <ActivityIndicator size="small" color={plein ? '#ffffff' : undefined} /> : null}
-        <ThemedText type="smallBold" style={plein ? styles.texteBlanc : undefined}>
+        {occupe ? <ActivityIndicator size="small" color={plein ? theme.onPrimary : undefined} /> : null}
+        <ThemedText type="smallBold" style={plein ? { color: theme.onPrimary } : undefined}>
           {selectionne ? `✓ ${titre}` : titre}
         </ThemedText>
       </View>
@@ -66,5 +66,4 @@ const styles = StyleSheet.create({
   },
   pleine: { width: '100%' },
   contenu: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  texteBlanc: { color: '#ffffff' },
 });

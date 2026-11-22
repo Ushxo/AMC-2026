@@ -1,9 +1,10 @@
 import React, { useRef, useState } from "react";
 import { Image, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { CameraView, useCameraPermissions as usePermissionCamera, type VueCamera } from "@/lib/camera-optionnelle";
 
 const C = {
   green: "#1D341B",
@@ -36,8 +37,8 @@ function FrameCorners() {
 
 export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinue }: Props) {
   const insets = useSafeAreaInsets();
-  const camera = useRef<CameraView>(null);
-  const [permission, requestPermission] = useCameraPermissions();
+  const camera = useRef<VueCamera>(null);
+  const [permission, requestPermission] = usePermissionCamera();
   const [facing, setFacing] = useState<"back" | "front">("back");
   const [flash, setFlash] = useState(false);
   const [ready, setReady] = useState(false);
@@ -45,6 +46,12 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
   async function capture() {
     if (photoUri) {
       onPhoto(undefined);
+      return;
+    }
+    if (!CameraView) {
+      // Pas de caméra intégrée : appareil photo du système.
+      const r = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.75 });
+      if (!r.canceled) onPhoto(r.assets[0].uri);
       return;
     }
     if (!camera.current || !ready) return;
@@ -68,6 +75,14 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
   function renderPreview() {
     if (photoUri) {
       return <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />;
+    }
+    if (!CameraView) {
+      return (
+        <View style={styles.permission}>
+          <Ionicons name="camera-outline" size={48} color={C.cream} />
+          <Text style={styles.permissionText}>Touchez le bouton rond pour ouvrir l’appareil photo, ou choisissez une photo dans la galerie.</Text>
+        </View>
+      );
     }
     if (!permission) return null;
     if (!permission.granted) {

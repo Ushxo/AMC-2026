@@ -1,29 +1,28 @@
-import React, { useState } from "react";
+import React from "react";
 
-import { Session } from "./auth";
+import { useAcces } from "@/hooks/use-acces";
+import AuthFlow from "./auth/AuthFlow";
 import CitizenApp from "./citizen/CitizenApp";
-import LoginScreen from "./citizen/LoginScreen";
 import { DemoProvider } from "./context/DemoContext";
 import StaffApp from "./StaffApp";
 import SupervisorApp from "./supervisor/SupervisorApp";
 
-// Point d'entrée : connexion, puis redirection selon le rôle.
-// Le DemoProvider est au-dessus de tout : les signalements d'un citoyen
-// restent visibles quand on se reconnecte en superviseur.
+// Point d'entrée : connexion réelle (comptes, mot de passe oublié, démonstration hors ligne), puis la coquille du rôle.
+// Le contenu des coquilles passe des données de maquette (DemoProvider) à nos données réelles palier par palier.
 export default function AppRoot() {
-  const [session, setSession] = useState<Session | null>(null);
-  const logout = () => setSession(null);
+  const { ecran, nom, deconnecter } = useAcces();
+  const logout = () => void deconnecter();
 
   return (
     <DemoProvider>
-      {!session ? (
-        <LoginScreen onLogin={setSession} />
-      ) : session.role === "citoyen" ? (
+      {!ecran ? (
+        <AuthFlow onConnecte={() => {}} />
+      ) : ecran === "citoyen" ? (
         <CitizenApp onLogout={logout} />
-      ) : session.role === "superviseur" ? (
+      ) : ecran === "superviseur" ? (
         <SupervisorApp onLogout={logout} />
       ) : (
-        <StaffApp session={session} onLogout={logout} />
+        <StaffApp session={{ email: nom ?? "", role: "employe" }} onLogout={logout} />
       )}
     </DemoProvider>
   );

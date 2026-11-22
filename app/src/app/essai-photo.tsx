@@ -2,7 +2,7 @@
 // Page 1 : caméra. On prend une photo (ou on en choisit une dans la galerie),
 // puis « Continuer » envoie la photo au serveur ML (page résultat).
 
-import { CameraView, useCameraPermissions, type CameraType, type FlashMode } from 'expo-camera';
+import type { CameraType, FlashMode } from 'expo-camera';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CameraView, useCameraPermissions, type VueCamera } from '@/lib/camera-optionnelle';
 import { reveillerServeurML } from '@/lib/ml';
 
 const ORANGE = '#EE6A1F';
@@ -19,7 +20,7 @@ const BARRE = '#2A2724';
 
 export default function EcranCamera() {
   const router = useRouter();
-  const camera = useRef<CameraView>(null);
+  const camera = useRef<VueCamera>(null);
   const [permission, demanderPermission] = useCameraPermissions();
   const [cote, setCote] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
@@ -64,7 +65,7 @@ export default function EcranCamera() {
         <View style={styles.cadre}>
           {photo ? (
             <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : permission?.granted ? (
+          ) : CameraView && permission?.granted ? (
             <CameraView
               ref={camera}
               style={StyleSheet.absoluteFill}
@@ -74,7 +75,9 @@ export default function EcranCamera() {
           ) : (
             <View style={styles.permission}>
               <Text style={styles.permissionTexte}>
-                L’app a besoin de la caméra pour photographier l’égout.
+                {CameraView
+                  ? 'L’app a besoin de la caméra pour photographier l’égout.'
+                  : 'La caméra intégrée n’est pas disponible dans cette version de l’app : choisissez une photo dans la galerie.'}
               </Text>
               <Pressable style={styles.boutonPermission} onPress={demanderPermission}>
                 <Text style={styles.texteContinuer}>Autoriser la caméra</Text>
