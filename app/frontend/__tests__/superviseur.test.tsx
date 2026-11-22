@@ -1,0 +1,87 @@
+import { render, screen } from '@testing-library/react-native';
+
+import type { Arret, ResultatOptimisation, Tournee } from '../../src/types';
+import ArretsFaits from '../supervisor/ArretsFaits';
+import TableauDeBord from '../supervisor/TableauDeBord';
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+
+const mockTournees = jest.fn();
+const mockResume = jest.fn();
+jest.mock('@/hooks/use-tournees', () => ({ useTournees: () => mockTournees() }));
+jest.mock('@/hooks/use-resume-ville', () => ({ useResumeVille: () => mockResume() }));
+
+const arret = (rang: number, fait: boolean): Arret => ({
+  rang,
+  cle_endroit: `c${rang}`,
+  signalement_ids: ['s'],
+  position: { latitude: 45.5, longitude: -73.57 },
+  arrivee_prevue: '2026-11-22T12:00:00Z',
+  depart_prevu: '2026-11-22T12:10:00Z',
+  fait,
+  ...(fait ? { fait_le: '2026-11-22T12:05:00Z' } : {}),
+});
+const tournee = (nom: string, arrets: Arret[]): Tournee => ({
+  equipe_id: nom,
+  equipe_nom: nom,
+  distance_m: 5000,
+  duree_s: 3600,
+  debut_prevu: '2026-11-22T12:00:00Z',
+  fin_prevue: '2026-11-22T13:00:00Z',
+  geometrie: null,
+  arrets,
+});
+const resultat = (tournees: Tournee[]) => ({ tournees }) as unknown as ResultatOptimisation;
+
+describe('rapports du superviseur : arrêts faits (lecture)', () => {
+  it('chargement, aucune tournée, aucun arrêt fait', async () => {
+    mockTournees.mockReturnValue({ resultat: null, chargement: true });
+    const { rerender } = await render(<ArretsFaits />);
+    expect(screen.getByText('Chargement des tournées…')).toBeTruthy();
+    mockTournees.mockReturnValue({ resultat: resultat([]), chargement: false });
+    await rerender(<ArretsFaits />);
+    expect(screen.getByText('Aucune tournée pour le moment.')).toBeTruthy();
+    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, false)])]), chargement: false });
+    await rerender(<ArretsFaits />);
+    expect(screen.getByText('Aucun arrêt fait pour le moment.')).toBeTruthy();
+  });
+
+  it('liste les arrêts faits de chaque équipe', async () => {
+    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, true), arret(2, false), arret(3, true)])]), chargement: false });
+    await render(<ArretsFaits />);
+    expect(screen.getByText('Équipe 1')).toBeTruthy();
+    expect(screen.getByText('2 arrêts faits sur 3')).toBeTruthy();
+    expect(screen.getByText(/^1\. fait à /)).toBeTruthy();
+    expect(screen.queryByText(/^2\. /)).toBeNull();
+  });
+});
+
+describe('tableau de bord du superviseur', () => {
+  it('chiffres à traiter et réglés, et le plan des équipes', async () => {
+    mockResume.mockReturnValue({
+      resume: { parEtat: { nouveau: 5, pris_en_charge: 2, regle: 3, rejete: 0 }, parCategorie: { grille_bouchee: 4, eau_accumulee: 4, eau_douteuse: 1, absence_eau: 1, autre: 0 } },
+      chargement: false,
+      erreur: null,
+    });
+    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, false)])]), chargement: false });
+    await render(<TableauDeBord />);
+    expect(screen.getByLabelText('7 signalements à traiter')).toBeTruthy();
+    expect(screen.getByLabelText('3 signalements réglés')).toBeTruthy();
+    expect(screen.getByText(/Total toutes équipes/)).toBeTruthy();
+  });
+
+  it('sans plan : invite à lancer l’optimisation ; erreur de lecture : message', async () => {
+    const resume = { parEtat: { nouveau: 0, pris_en_charge: 0, regle: 0, rejete: 0 }, parCategorie: { grille_bouchee: 0, eau_accumulee: 0, eau_douteuse: 0, absence_eau: 0, autre: 0 } };
+    mockResume.mockReturnValue({ resume, chargement: false, erreur: null });
+    mockTournees.mockReturnValue({ resultat: null, chargement: false });
+    const { rerender } = await render(<TableauDeBord />);
+    expect(screen.getByText(/Aucun plan pour le moment/)).toBeTruthy();
+    mockResume.mockReturnValue({ resume, chargement: false, erreur: 'Les signalements ne peuvent pas être lus.' });
+    await rerender(<TableauDeBord />);
+    expect(screen.getByText('Les signalements ne peuvent pas être lus.')).toBeTruthy();
+  });
+});
