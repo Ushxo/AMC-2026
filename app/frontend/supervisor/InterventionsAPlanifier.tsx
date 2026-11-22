@@ -30,9 +30,9 @@ function importances(sombre: boolean): Record<Gravite, Importance> {
 }
 const IMPORTANCE_CLAIR = importances(false);
 const IMPORTANCE_SOMBRE = importances(true);
-/** Couleurs d'importance selon l'apparence (Sombre : fonds foncés, textes éclaircis). */
+/** Couleurs d'importance selon le thème (thème sombre : fonds foncés, textes éclaircis). */
 export function useImportance(): Record<Gravite, Importance> {
-  return useMarque().apparence === "sombre" ? IMPORTANCE_SOMBRE : IMPORTANCE_CLAIR;
+  return useMarque().sombre ? IMPORTANCE_SOMBRE : IMPORTANCE_CLAIR;
 }
 
 type Choix = { valeur: string | null; libelle: string };

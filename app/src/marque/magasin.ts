@@ -1,37 +1,52 @@
 import { CODE_PAR_DEFAUT, ORGANISATIONS_EMBARQUEES, organisationEmbarquee, type Organisation } from './organisations-embarquees';
 
-import { appliquerApparence, APPARENCES, completerCouleurs, jetonsDepuis, type Apparence, type Couleurs, type Jetons } from './jetons';
+import { completerCouleurs, couleursAvecLisibilite, estSombre, jetonsDepuis, LISIBILITE_PAR_DEFAUT, type Couleurs, type Jetons, type Lisibilite } from './jetons';
+import { estThemeId, PALETTES, THEME_ORGANISATION, type ThemeId } from './themes';
 
-/** État de la marque : l'organisation appliquée, l'apparence choisie et les jetons qui en découlent. Tous les écrans le lisent. */
+/** État de la marque : l'organisation appliquée, le thème et la lisibilité choisis, et les jetons qui en découlent. Tous les écrans le lisent. */
 export type EtatMarque = {
   organisation: Organisation;
-  apparence: Apparence;
+  /** Thème de couleurs choisi par la personne (« organisation » = la marque de l'organisation). */
+  theme: ThemeId;
+  lisibilite: Lisibilite;
   jetons: Jetons;
+  /** Vrai quand la palette finale est sombre (la carte suit). */
+  sombre: boolean;
   /** Vrai quand la marque vient du compte du personnel connecté (la marque du citoyen revient à la déconnexion). */
   duPersonnel: boolean;
 };
 
-const CLE_APPARENCE = 'priorix:apparence';
+const CLE_THEME = 'priorix:theme:';
+const CLE_APPARENCE_ANCIENNE = 'priorix:apparence';
 const CLE_LOCALES = 'priorix:marques-locales';
 
 const PAR_DEFAUT = ORGANISATIONS_EMBARQUEES.find((o) => o.code === CODE_PAR_DEFAUT) ?? ORGANISATIONS_EMBARQUEES[0];
 
-function calculer(organisation: Organisation, apparence: Apparence): Jetons {
-  const base = completerCouleurs(organisation.couleurs, PAR_DEFAUT.couleurs as Couleurs);
-  return jetonsDepuis(appliquerApparence(base, apparence, organisation.code));
+type Reglages = { theme: ThemeId; lisibilite: Lisibilite };
+const REGLAGES_PAR_DEFAUT: Reglages = { theme: THEME_ORGANISATION, lisibilite: LISIBILITE_PAR_DEFAUT };
+
+function palette(organisation: Organisation, { theme, lisibilite }: Reglages): Couleurs {
+  const base = theme === THEME_ORGANISATION ? completerCouleurs(organisation.couleurs, PAR_DEFAUT.couleurs as Couleurs) : PALETTES[theme as Exclude<ThemeId, 'organisation'>];
+  return couleursAvecLisibilite(base, lisibilite);
 }
 
-/** Quatre couleurs réelles d'une apparence, pour la pastille d'aperçu : en-tête, fond, surface, action. */
-export function apercuApparence(organisation: Organisation, apparence: Apparence): string[] {
-  const j = calculer(organisation, apparence);
-  return [j.header, j.background, j.surface, j.action];
+/** Les jetons d'un thème pour une organisation (aperçu fidèle dans le choix du thème). */
+export function jetonsDuTheme(organisation: Organisation, theme: ThemeId, lisibilite: Lisibilite = LISIBILITE_PAR_DEFAUT): Jetons {
+  return jetonsDepuis(palette(organisation, { theme, lisibilite }));
 }
 
-function creerEtat(organisation: Organisation, apparence: Apparence, duPersonnel: boolean): EtatMarque {
-  return { organisation, apparence, jetons: calculer(organisation, apparence), duPersonnel };
+function creerEtat(organisation: Organisation, reglages: Reglages, duPersonnel: boolean): EtatMarque {
+  const c = palette(organisation, reglages);
+  return { organisation, theme: reglages.theme, lisibilite: reglages.lisibilite, jetons: jetonsDepuis(c), sombre: estSombre(c), duPersonnel };
 }
 
-let etat: EtatMarque = creerEtat(PAR_DEFAUT, 'standard', false);
+function reglagesDe(e: EtatMarque): Reglages {
+  return { theme: e.theme, lisibilite: e.lisibilite };
+}
+
+let etat: EtatMarque = creerEtat(PAR_DEFAUT, REGLAGES_PAR_DEFAUT, false);
+// Personne dont les réglages de thème sont appliqués (« invite » sans compte) : le choix est gardé par personne.
+let cleUtilisateur = 'invite';
 // Marque du citoyen (choisie par lui, gardée au redémarrage) : celle qui revient quand un compte du personnel se déconnecte.
 let marqueCitoyen: Organisation = PAR_DEFAUT;
 const ecouteurs = new Set<() => void>();
@@ -76,22 +91,67 @@ async function garder(cle: string, valeur: string) {
 
 /** Après la connexion d'un compte du personnel : sa marque s'applique, la marque par défaut de l'app reste celle du citoyen (il ne choisit jamais la marque). */
 export function appliquerMarquePersonnel(organisation: Organisation): void {
-  etat = creerEtat(organisation, etat.apparence, true);
+  etat = creerEtat(organisation, reglagesDe(etat), true);
   notifier();
 }
 
 /** À la déconnexion : retour à la marque par défaut de l'app (Priorix aujourd'hui). */
 export function restaurerMarqueCitoyen(): void {
   if (!etat.duPersonnel && etat.organisation.code === marqueCitoyen.code) return;
-  etat = creerEtat(marqueCitoyen, etat.apparence, false);
+  etat = creerEtat(marqueCitoyen, reglagesDe(etat), false);
   notifier();
 }
 
-/** Apparence (Standard, Contraste élevé, Sombre) appliquée à la marque courante, gardée au redémarrage. */
-export function definirApparence(apparence: Apparence): void {
-  etat = creerEtat(etat.organisation, apparence, etat.duPersonnel);
+function garderReglages(): void {
+  void garder(CLE_THEME + cleUtilisateur, JSON.stringify(reglagesDe(etat)));
+}
+
+/** Thème de couleurs choisi (appliqué tout de suite, gardé pour cette personne). */
+export function definirTheme(theme: ThemeId): void {
+  etat = creerEtat(etat.organisation, { ...reglagesDe(etat), theme }, etat.duPersonnel);
   notifier();
-  void garder(CLE_APPARENCE, apparence);
+  garderReglages();
+}
+
+/** Contraste élevé et daltonisme : deux réglages séparés, appliqués par-dessus le thème choisi. */
+export function definirLisibilite(l: Partial<Lisibilite>): void {
+  etat = creerEtat(etat.organisation, { theme: etat.theme, lisibilite: { ...etat.lisibilite, ...l } }, etat.duPersonnel);
+  notifier();
+  garderReglages();
+}
+
+function lireReglages(brut: string | null): Reglages | null {
+  try {
+    const v = brut ? JSON.parse(brut) : null;
+    if (!v || typeof v !== 'object') return null;
+    return { theme: estThemeId(v.theme) ? v.theme : THEME_ORGANISATION, lisibilite: { contraste: v.lisibilite?.contraste === true, daltonisme: v.lisibilite?.daltonisme === true } };
+  } catch {
+    return null;
+  }
+}
+
+/** Réglages d'avant les thèmes : « sombre » devient le thème Nuit, « contraste » et « daltonisme » deviennent les réglages de lisibilité. */
+function reglagesAnciens(a: string | null): Reglages | null {
+  if (a === 'sombre') return { theme: 'nuit', lisibilite: LISIBILITE_PAR_DEFAUT };
+  if (a === 'contraste') return { theme: THEME_ORGANISATION, lisibilite: { contraste: true, daltonisme: false } };
+  if (a === 'daltonisme') return { theme: THEME_ORGANISATION, lisibilite: { contraste: false, daltonisme: true } };
+  return null;
+}
+
+/** Applique les réglages de thème gardés pour cette personne (« invite » sans compte) ; rien de gardé : thème de l'organisation. */
+export async function chargerReglagesTheme(cle: string = 'invite'): Promise<void> {
+  cleUtilisateur = cle;
+  try {
+    const st = stockage();
+    if (!st) return;
+    const brut = await st.getItem(CLE_THEME + cle);
+    const gardes = lireReglages(brut) ?? (cle === 'invite' ? reglagesAnciens(await st.getItem(CLE_APPARENCE_ANCIENNE)) : null) ?? REGLAGES_PAR_DEFAUT;
+    if (cle !== cleUtilisateur) return; // une autre personne s'est connectée entre-temps
+    etat = creerEtat(etat.organisation, gardes, etat.duPersonnel);
+    notifier();
+  } catch {
+    // Pas de stockage : thème de l'organisation.
+  }
 }
 
 function memeMarque(a: Organisation, b: Organisation): boolean {
@@ -127,30 +187,30 @@ export function mettreAJourOrganisation(organisation: Organisation): void {
   if (organisation.id && locales[organisation.code]) oublierMarqueLocale(organisation.code);
   if (marqueCitoyen.code === organisation.code) marqueCitoyen = organisation;
   if (etat.organisation.code === organisation.code && !memeMarque(etat.organisation, organisation)) {
-    etat = creerEtat(organisation, etat.apparence, etat.duPersonnel);
+    etat = creerEtat(organisation, reglagesDe(etat), etat.duPersonnel);
     notifier();
   }
 }
 
-/** Au démarrage : relit l'apparence et la marque du citoyen gardées sur le téléphone. */
+/** Au démarrage : relit les marques réglées localement (et le thème gardé pour l'invité). */
 export async function chargerMarqueLocale(organisations: Organisation[] = ORGANISATIONS_EMBARQUEES): Promise<void> {
   try {
     const st = stockage();
     if (!st) return;
-    const [apparence, brut] = await Promise.all([st.getItem(CLE_APPARENCE), st.getItem(CLE_LOCALES)]);
+    const brut = await st.getItem(CLE_LOCALES);
     try {
       const l = brut ? JSON.parse(brut) : {};
       if (l && typeof l === 'object') locales = l as Record<string, Organisation>;
     } catch {
       locales = {};
     }
-    const app = APPARENCES.find((a) => a === apparence) ?? etat.apparence;
     // Le citoyen ne choisit jamais la marque : même un ancien choix stocké est ignoré, c'est la marque par défaut de l'app.
     const base = organisations.find((o) => o.code === PAR_DEFAUT.code) ?? organisationEmbarquee(PAR_DEFAUT.code) ?? marqueCitoyen;
     const org = organisationAvecLocale(base);
     marqueCitoyen = org;
-    etat = creerEtat(etat.duPersonnel ? etat.organisation : org, app, etat.duPersonnel);
+    etat = creerEtat(etat.duPersonnel ? etat.organisation : org, reglagesDe(etat), etat.duPersonnel);
     notifier();
+    await chargerReglagesTheme(cleUtilisateur);
   } catch {
     // Pas de stockage : marque par défaut.
   }
@@ -160,6 +220,7 @@ export async function chargerMarqueLocale(organisations: Organisation[] = ORGANI
 export function reinitialiserMarque(): void {
   marqueCitoyen = PAR_DEFAUT;
   locales = {};
-  etat = creerEtat(PAR_DEFAUT, 'standard', false);
+  etat = creerEtat(PAR_DEFAUT, REGLAGES_PAR_DEFAUT, false);
+  cleUtilisateur = 'invite';
   notifier();
 }

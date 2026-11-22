@@ -170,7 +170,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   hero: { backgroundColor: P.header, paddingHorizontal: 20, paddingBottom: 24, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
   heroTitre: { color: P.onHeader, fontSize: 26, fontWeight: "700" },
-  heroSous: { color: P.bandeau, fontSize: 15, fontWeight: "500" },
+  heroSous: { color: P.onHeaderSoft, fontSize: 15, fontWeight: "500" },
   corps: { padding: 24, gap: 20, flexGrow: 1 },
   note: { flexDirection: "row", alignItems: "center", gap: 16, backgroundColor: P.bandeau, borderRadius: 22, padding: 16 },
   noteTexte: { flex: 1, fontSize: 14, fontWeight: "500", color: P.text, lineHeight: 20 },

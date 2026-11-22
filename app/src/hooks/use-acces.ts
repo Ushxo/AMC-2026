@@ -13,6 +13,8 @@ import { useSessionEmploye } from './use-session-employe';
 export function useAcces(): {
   ecran: EcranRole | null;
   nom: string | null;
+  /** Identifiant du compte connecté (null sans compte) : sert à garder le thème par personne. */
+  identifiant: string | null;
   citoyen: CitoyenConnecte | null;
   equipeId: string | null;
   demoHorsLigne: boolean;
@@ -44,5 +46,5 @@ export function useAcces(): {
     definirCitoyen(null);
     await deconnecterEmploye();
   }, [deconnecterEmploye]);
-  return { ecran, nom, citoyen, equipeId, demoHorsLigne: session.demoHorsLigne, pret, deconnecter };
+  return { ecran, nom, identifiant: session.employe?.user_id ?? citoyen?.user_id ?? null, citoyen, equipeId, demoHorsLigne: session.demoHorsLigne, pret, deconnecter };
 }

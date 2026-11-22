@@ -1,13 +1,15 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useTheme } from '@/hooks/use-theme';
 
 import { Bouton } from './bouton';
 
 export function Chargement({ texte = 'Chargement…' }: { texte?: string }) {
+  const theme = useTheme();
   return (
     <View style={styles.centre} accessibilityRole="progressbar" accessibilityLabel={texte}>
-      <ActivityIndicator size="large" />
+      <ActivityIndicator size="large" color={theme.primary} />
       <ThemedText themeColor="textSecondary">{texte}</ThemedText>
     </View>
   );

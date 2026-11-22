@@ -22,7 +22,7 @@ const ONGLETS: Onglet<Id>[] = [
   { id: "alertes", label: "Alertes", icon: "alert-circle-outline", iconActive: "alert-circle" },
   { id: "optimisation", label: "Calcul", nom: "Optimisation", icon: "git-compare-outline", iconActive: "git-compare" },
   { id: "equipes", label: "Équipes", icon: "people-outline", iconActive: "people" },
-  { id: "rapports", label: "Faits", nom: "Arrêts faits", icon: "checkmark-done-outline", iconActive: "checkmark-done" },
+  { id: "rapports", label: "Traités", nom: "Arrêts traités", icon: "checkmark-done-outline", iconActive: "checkmark-done" },
 ];
 
 const ENTETES: Record<Id, { titre: string; sous: string }> = {
@@ -30,7 +30,7 @@ const ENTETES: Record<Id, { titre: string; sous: string }> = {
   alertes: { titre: "Alertes", sous: "Signalements reçus des citoyens" },
   optimisation: { titre: "Optimisation", sous: "Options du calcul : quoi inclure, équipes, répartition" },
   equipes: { titre: "Équipes", sous: "Départ, arrivée et compte de chaque équipe" },
-  rapports: { titre: "Arrêts faits", sous: "Ce que les équipes ont réglé aujourd'hui" },
+  rapports: { titre: "Arrêts traités", sous: "Ce que les équipes ont fait, et ce qui reste à reprendre" },
 };
 
 // Espace superviseur : la page des interventions à planifier (avec le bouton de calcul), puis NOS écrans (alertes, optimisation, équipes, arrêts faits).

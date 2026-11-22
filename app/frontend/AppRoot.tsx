@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 
 import { abonnerOrganisations, lireMonOrganisation, lireOrganisations } from "@/lib/organisations";
-import { appliquerMarquePersonnel, chargerMarqueLocale, mettreAJourOrganisation, restaurerMarqueCitoyen } from "@/marque/magasin";
+import { appliquerMarquePersonnel, chargerMarqueLocale, chargerReglagesTheme, mettreAJourOrganisation, restaurerMarqueCitoyen } from "@/marque/magasin";
 import { BarreEtat } from "@/marque/barre-etat";
 import { useMarque } from "@/marque/utiliser";
 import { EcranOuverture } from "./components/EcranOuverture";
@@ -25,11 +25,16 @@ export default function AppRoot() {
 }
 
 function ContenuRacine() {
-  const { ecran, pret, citoyen, nom, demoHorsLigne, deconnecter } = useAcces();
+  const { ecran, pret, citoyen, nom, demoHorsLigne, deconnecter, identifiant } = useAcces();
   const [connexionPersonnel, setConnexionPersonnel] = useState(false);
   const logout = () => void deconnecter();
 
-  // La marque : relue au démarrage (choix du citoyen, apparence), rafraîchie depuis la base et suivie en direct (Realtime).
+  // Le thème de couleurs est gardé par personne : il se recharge à chaque changement de compte (« invite » sans compte).
+  useEffect(() => {
+    void chargerReglagesTheme(identifiant ?? 'invite');
+  }, [identifiant]);
+
+  // La marque : relue au démarrage, rafraîchie depuis la base et suivie en direct (Realtime).
   useEffect(() => {
     void chargerMarqueLocale();
     const rafraichir = () =>

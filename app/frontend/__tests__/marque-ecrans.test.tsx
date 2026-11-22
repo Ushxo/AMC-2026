@@ -28,7 +28,7 @@ beforeEach(() => {
   mockComptes.mockReset().mockResolvedValue(null);
 });
 
-describe('feuille du profil : apparence', () => {
+describe('feuille du profil : thème', () => {
   it('le citoyen ne peut pas changer de ville ni de marque', async () => {
     await render(<FeuilleProfil visible onFermer={jest.fn()} onConnexionPersonnel={jest.fn()} />);
     expect(screen.queryByText('Changer de ville')).toBeNull();
@@ -38,22 +38,35 @@ describe('feuille du profil : apparence', () => {
     expect(screen.queryByText('Tournées optimisées par Priorix')).toBeNull();
   });
 
-  it('apparence : quatre variantes avec aperçu, appliquées à la marque courante', async () => {
+  it('thème : six cartes avec aperçu, thème de l’organisation en premier, application immédiate', async () => {
     await render(<FeuilleProfil visible onFermer={jest.fn()} />);
-    expect(screen.getAllByRole('radio').length).toBe(4);
-    await fireEvent.press(screen.getByLabelText('Sombre'));
-    expect(lireMarque().apparence).toBe('sombre');
-    expect(lireMarque().jetons.background).toBe('#111A12');
-    await fireEvent.press(screen.getByLabelText('Contraste élevé'));
+    const radios = screen.getAllByRole('radio').map((r) => r.props.accessibilityLabel);
+    expect(radios).toEqual(["Thème de l'organisation", 'Océan', 'Ardoise', 'Terre cuite', 'Prune', 'Nuit']);
+    await fireEvent.press(screen.getByLabelText('Nuit'));
+    expect(lireMarque().theme).toBe('nuit');
+    expect(lireMarque().jetons.background).toBe('#0F141C');
+    await fireEvent.press(screen.getByLabelText('Océan'));
+    expect(lireMarque().jetons.primary).toBe('#0B4F7C');
+    await fireEvent.press(screen.getByLabelText("Thème de l'organisation"));
+    expect(lireMarque().theme).toBe('organisation');
+    expect(lireMarque().organisation.code).toBe('priorix'); // le thème ne change jamais l'organisation
+  });
+
+  it('lisibilité : deux interrupteurs séparés, par-dessus le thème choisi', async () => {
+    await render(<FeuilleProfil visible onFermer={jest.fn()} />);
+    await fireEvent.press(screen.getByLabelText('Prune'));
+    await fireEvent(screen.getByLabelText('Contraste élevé : désactivé'), 'valueChange', true);
+    expect(lireMarque().theme).toBe('prune');
+    expect(lireMarque().lisibilite).toEqual({ contraste: true, daltonisme: false });
     expect(lireMarque().jetons.background).toBe('#FFFFFF');
-    await fireEvent.press(screen.getByLabelText('Standard'));
-    expect(lireMarque().apparence).toBe('standard');
+    await fireEvent(screen.getByLabelText('Adapté au daltonisme : désactivé'), 'valueChange', true);
+    expect(lireMarque().lisibilite).toEqual({ contraste: true, daltonisme: true });
   });
 
   it('un compte du personnel ne change pas de ville ; il voit « Tournées optimisées par Priorix »', async () => {
     await render(<FeuilleProfil visible onFermer={jest.fn()} nom="Léa" role="Superviseur" onDeconnexion={jest.fn()} />);
     expect(screen.queryByText('Changer de ville')).toBeNull();
-    expect(screen.getByText('Apparence')).toBeTruthy();
+    expect(screen.getByText('Thème')).toBeTruthy();
     expect(screen.getByText('Tournées optimisées par Priorix')).toBeTruthy();
     expect(screen.getByText('Se déconnecter')).toBeTruthy();
   });
@@ -140,5 +153,15 @@ describe('administration : nombre de comptes par organisation', () => {
     await render(<MarqueOrganisation />);
     await screen.findByLabelText('Créer une organisation');
     expect(screen.queryByText(/compte/)).toBeNull();
+  });
+});
+
+describe('administration : thème par défaut de l’organisation', () => {
+  it('un thème de l’app donne sa palette complète aux couleurs de l’organisation', async () => {
+    await render(<MarqueOrganisation />);
+    await fireEvent.press(await screen.findByLabelText("Thème Prune comme couleurs de l'organisation"));
+    await fireEvent.press(screen.getByText("Enregistrer l'organisation"));
+    await waitFor(() => expect(mockEnregistrer).toHaveBeenCalled());
+    expect(mockEnregistrer.mock.calls[0][0].couleurs).toMatchObject({ primary: '#5B2A86', accent: '#D0348A', background: '#F8F3FB' });
   });
 });

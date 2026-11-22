@@ -71,7 +71,7 @@ const COULEURS_PRIORIX: Couleurs = {
   surface: '#FFFFFF',
   border: '#D8E0D2',
   borderForte: '#7F8A7B',
-  success: '#4F7A57',
+  success: '#497250',
   danger: '#B3261E',
 };
 

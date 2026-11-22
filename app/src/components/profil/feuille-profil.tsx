@@ -4,15 +4,14 @@ import { VOILE_FEUILLE, FEUILLE_BASE } from '@/components/ville/style';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ChoixTheme } from './choix-theme';
 import { LogoMarque } from '@/components/logo-marque';
 import { ThemedText } from '@/components/themed-text';
 import { Bouton } from '@/components/ville/bouton';
 import { Chip } from '@/components/ville/chip';
-import { Coche } from '@/components/ville/coche';
 import { useTheme } from '@/hooks/use-theme';
 import { lireOrganisations } from '@/lib/organisations';
-import { APPARENCES, LIBELLES_APPARENCE } from '@/marque/jetons';
-import { apercuApparence, appliquerMarquePersonnel, definirApparence, organisationAvecLocale } from '@/marque/magasin';
+import { appliquerMarquePersonnel, organisationAvecLocale } from '@/marque/magasin';
 import { ORGANISATIONS_EMBARQUEES, type Organisation } from '@/marque/organisations-embarquees';
 import { useMarque } from '@/marque/utiliser';
 
@@ -30,11 +29,11 @@ type Props = {
   onDeconnexion?: () => void;
 };
 
-/** Feuille du profil : apparence (Standard, Contraste élevé, Sombre), changement de ville (marque) et compte. Appliquée tout de suite. */
+/** Feuille du profil : thème de couleurs, lisibilité et compte. Appliquée tout de suite. Appliquée tout de suite. */
 export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = null, onAdministration, onConnexionPersonnel, onDeconnexion }: Props) {
   const { bottom } = useSafeAreaInsets();
   const theme = useTheme();
-  const { organisation, apparence } = useMarque();
+  const { organisation } = useMarque();
   const [organisations, setOrganisations] = useState<Organisation[]>(ORGANISATIONS_EMBARQUEES);
 
   useEffect(() => {
@@ -68,33 +67,7 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
             </View>
           </View>
 
-          <ThemedText type="smallBold" accessibilityRole="header">
-            Apparence
-          </ThemedText>
-          <View style={styles.liste}>
-            {APPARENCES.map((a) => {
-              const actif = apparence === a;
-              return (
-                <Pressable
-                  key={a}
-                  accessibilityRole="radio"
-                  accessibilityLabel={LIBELLES_APPARENCE[a]}
-                  accessibilityState={{ checked: actif, selected: actif }}
-                  onPress={() => definirApparence(a)}
-                  style={[styles.option, { backgroundColor: actif ? theme.backgroundSelected : theme.backgroundElement, borderColor: actif ? theme.primary : theme.border }]}>
-                  <View style={styles.pastille} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                    {apercuApparence(organisation, a).map((c, n) => (
-                      <View key={n} style={[styles.point, { backgroundColor: c, borderColor: theme.borderForte }]} />
-                    ))}
-                  </View>
-                  <ThemedText type={actif ? 'smallBold' : 'small'} style={{ flex: 1 }}>
-                    {LIBELLES_APPARENCE[a]}
-                  </ThemedText>
-                  {actif ? <Coche /> : null}
-                </Pressable>
-              );
-            })}
-          </View>
+          <ChoixTheme />
 
           {marqueChoisie === 'demo' ? (
             <>

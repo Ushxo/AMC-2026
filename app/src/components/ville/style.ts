@@ -131,7 +131,7 @@ export const COULEURS_IMPORTANCE = {
   faible: { fond: '#FAF0C4', plein: '#8A6200' },
 } as const;
 /**
- * Pour une apparence Sombre : fond teinté foncé de la même couleur (plus de rose pâle qui éblouit), pastille pleine inchangée,
+ * Pour un thème sombre (Nuit) : fond teinté foncé de la même couleur (plus de rose pâle qui éblouit), pastille pleine inchangée,
  * texte et icône éclaircis pour rester lisibles sur ce fond.
  */
 export const COULEURS_IMPORTANCE_SOMBRE = {

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ajusterContraste, contraste, melanger, texteSur } from '../couleurs';
-import { appliquerApparence, completerCouleurs, corrigerContraste, jetonsDepuis, paletteDepuisGraines, PREREGLAGES, problemesContraste } from '../jetons';
+import { completerCouleurs, corrigerContraste, jetonsDepuis, paletteDepuisGraines, PREREGLAGES, problemesContraste } from '../jetons';
 import {
   abonnerMarque,
   garderMarqueLocale,
@@ -9,7 +9,9 @@ import {
   organisationAvecLocale,
   appliquerMarquePersonnel,
   chargerMarqueLocale,
-  definirApparence,
+  chargerReglagesTheme,
+  definirLisibilite,
+  definirTheme,
   lireMarque,
   mettreAJourOrganisation,
   reinitialiserMarque,
@@ -49,79 +51,8 @@ describe('couleurs et contraste', () => {
   });
 });
 
-describe('apparences', () => {
-  const base = priorix.couleurs as Couleurs;
-  it('contraste élevé : tout se lit à 7 pour 1 au moins', () => {
-    const c = appliquerApparence(base, 'contraste');
-    expect(contraste(c.text, c.background)).toBeGreaterThanOrEqual(7);
-    expect(contraste(c.onPrimary, c.primary)).toBeGreaterThanOrEqual(7);
-    expect(contraste(c.onAction, c.action)).toBeGreaterThanOrEqual(4.5);
-    expect(c.background).toBe('#FFFFFF');
-  });
-  it('sombre : fond foncé teinté, texte clair lisible, couleurs vives lisibles', () => {
-    const c = appliquerApparence(base, 'sombre');
-    expect(contraste(c.background, '#000000')).toBeLessThan(2); // très foncé
-    expect(contraste(c.text, c.background)).toBeGreaterThanOrEqual(7);
-    expect(contraste(c.action, c.background)).toBeGreaterThanOrEqual(4.5);
-    expect(problemesContraste(c)).toEqual([]);
-  });
-  it('daltonisme : bleu et vermillon, lisibles, sans rouge ni vert pour dire bon ou mauvais', () => {
-    const c = appliquerApparence(base, 'daltonisme');
-    expect(c.success).not.toBe(base.success);
-    expect(contraste(c.success, c.surface)).toBeGreaterThanOrEqual(4.5);
-    expect(contraste(c.danger, c.surface)).toBeGreaterThanOrEqual(4.5);
-    expect(problemesContraste(c)).toEqual([]);
-  });
-  it('toute marque, toute apparence : tous les couples texte sur fond restent lisibles (4,5 pour 1)', () => {
-    for (const o of ORGANISATIONS_EMBARQUEES) {
-      for (const a of ['standard', 'contraste', 'sombre', 'daltonisme'] as const) {
-        const c = appliquerApparence(o.couleurs as Couleurs, a);
-        expect({ marque: o.code, apparence: a, problemes: problemesContraste(c) }).toEqual({ marque: o.code, apparence: a, problemes: [] });
-        // le bouton d'action et son texte, le plus visible de l'app
-        expect(contraste(c.onAction, c.action)).toBeGreaterThanOrEqual(4.5);
-      }
-    }
-  });
-  it('textes secondaires et bordures lisibles sur chaque fond, dans toutes les marques et apparences', () => {
-    const manques: string[] = [];
-    for (const o of ORGANISATIONS_EMBARQUEES) {
-      for (const a of ['standard', 'contraste', 'sombre', 'daltonisme'] as const) {
-        const c = appliquerApparence(o.couleurs as Couleurs, a);
-        for (const fond of ['background', 'surface', 'backgroundElement'] as const) {
-          if (contraste(c.textSecondary, c[fond]) < 4.5) manques.push(`${o.code}/${a}: textSecondary sur ${fond} ${contraste(c.textSecondary, c[fond]).toFixed(1)}`);
-          if (contraste(c.text, c[fond]) < 4.5) manques.push(`${o.code}/${a}: text sur ${fond}`);
-        }
-        // (palette d'origine : le texte secondaire ne se pose jamais sur le fond sélectionné ; on exige la règle pour les variantes calculées)
-        if (a !== 'standard' && a !== 'daltonisme' && contraste(c.textSecondary, c.backgroundSelected) < 4.5) manques.push(`${o.code}/${a}: textSecondary sur backgroundSelected ${contraste(c.textSecondary, c.backgroundSelected).toFixed(1)}`);
-        if (contraste(c.primary, c.backgroundSelected) < 4.5) manques.push(`${o.code}/${a}: primary sur backgroundSelected ${contraste(c.primary, c.backgroundSelected).toFixed(1)}`);
-        if (contraste(c.borderForte, c.background) < 3) manques.push(`${o.code}/${a}: borderForte sur background ${contraste(c.borderForte, c.background).toFixed(1)}`);
-      }
-    }
-    expect(manques).toEqual([]);
-  });
-  it('apparences réglées à la main : tous les couples lisibles, identité gardée', () => {
-    const manques: string[] = [];
-    for (const o of ORGANISATIONS_EMBARQUEES) {
-      for (const a of ['sombre', 'contraste', 'daltonisme'] as const) {
-        const c = appliquerApparence(o.couleurs as Couleurs, a, o.code);
-        manques.push(...problemesContraste(c).map((p) => `${o.code}/${a}: ${p.jeton} sur ${p.contre} ${p.rapport.toFixed(1)}`));
-        for (const fond of ['background', 'surface', 'backgroundElement', 'backgroundSelected'] as const) {
-          for (const t of ['primary', 'danger', 'success'] as const) {
-            if (contraste(c[t], c[fond]) < 4.5) manques.push(`${o.code}/${a}: ${t} sur ${fond} ${contraste(c[t], c[fond]).toFixed(1)}`);
-          }
-          if (contraste(c.accent, c[fond]) < 3) manques.push(`${o.code}/${a}: accent sur ${fond} ${contraste(c.accent, c[fond]).toFixed(1)}`);
-        }
-        if (contraste(c.onAction, c.action) < 4.5 || contraste(c.onPrimary, c.primary) < 4.5) manques.push(`${o.code}/${a}: texte sur bouton`);
-      }
-      // la marque se reconnaît : l'en-tête garde sa teinte en daltonisme, le rouge de Montréal reste rouge en contraste élevé
-      expect(appliquerApparence(o.couleurs as Couleurs, 'daltonisme', o.code).header).toBe(o.couleurs.header);
-    }
-    expect(manques).toEqual([]);
-  });
-  it('s’applique à toute marque (Montréal en sombre)', () => {
-    expect(problemesContraste(appliquerApparence(montreal.couleurs as Couleurs, 'sombre'))).toEqual([]);
-    expect(problemesContraste(appliquerApparence(montreal.couleurs as Couleurs, 'contraste'))).toEqual([]);
-  });
+describe('palettes de couleurs', () => {
+  const base = ORGANISATIONS_EMBARQUEES[0].couleurs as Couleurs;
   it('complète une palette partielle avec celle de repli, et dérive les jetons', () => {
     const c = completerCouleurs({ primary: '#112233', action: 'pas une couleur' }, base);
     expect(c.primary).toBe('#112233');
@@ -136,7 +67,8 @@ describe('marque courante', () => {
   it('par défaut : Priorix, apparence standard, jetons de Priorix', () => {
     const e = lireMarque();
     expect(e.organisation.code).toBe('priorix');
-    expect(e.apparence).toBe('standard');
+    expect(e.theme).toBe('organisation');
+    expect(e.lisibilite).toEqual({ contraste: false, daltonisme: false });
     expect(e.jetons.action).toBe('#B84A0B');
     expect(e.jetons.primary).toBe('#1D3A1B');
   });
@@ -151,15 +83,29 @@ describe('marque courante', () => {
     arret();
   });
 
-  it('seule l’apparence est gardée au redémarrage : le citoyen ne choisit jamais la marque, même avec un ancien choix stocké', async () => {
+  it('le thème et la lisibilité sont gardés par personne au redémarrage ; le citoyen ne choisit jamais la marque', async () => {
     await AsyncStorage.setItem('priorix:marque-citoyen', 'montreal'); // reste d'une ancienne version
-    definirApparence('sombre');
+    definirTheme('ocean');
+    definirLisibilite({ daltonisme: true });
     await new Promise((r) => setTimeout(r, 10));
-    expect(await AsyncStorage.getItem('priorix:apparence')).toBe('sombre');
+    expect(JSON.parse((await AsyncStorage.getItem('priorix:theme:invite')) ?? '{}')).toEqual({ theme: 'ocean', lisibilite: { contraste: false, daltonisme: true } });
     reinitialiserMarque();
     await chargerMarqueLocale(ORGANISATIONS_EMBARQUEES);
     expect(lireMarque().organisation.code).toBe('priorix');
-    expect(lireMarque().apparence).toBe('sombre');
+    expect(lireMarque().theme).toBe('ocean');
+    expect(lireMarque().lisibilite.daltonisme).toBe(true);
+    // une autre personne a ses propres réglages
+    await chargerReglagesTheme('autre-personne');
+    expect(lireMarque().theme).toBe('organisation');
+    await chargerReglagesTheme('invite');
+    expect(lireMarque().theme).toBe('ocean');
+  });
+
+  it('un ancien réglage « sombre » devient le thème Nuit', async () => {
+    await AsyncStorage.setItem('priorix:apparence', 'sombre');
+    await chargerReglagesTheme('invite');
+    expect(lireMarque().theme).toBe('nuit');
+    expect(lireMarque().sombre).toBe(true);
   });
 
   it('un compte du personnel prend sa marque, et la marque par défaut de l’app revient à la déconnexion', () => {
@@ -180,11 +126,16 @@ describe('marque courante', () => {
     expect(lireMarque().organisation.nom_app).toBe('Priorix 2');
   });
 
-  it('l’apparence s’applique à la marque courante', () => {
+  it('le thème choisi change toute la palette mais pas l’organisation (logo et nom)', () => {
     appliquerMarquePersonnel(montreal);
-    definirApparence('contraste');
-    expect(lireMarque().jetons.background).toBe('#FFFFFF');
+    definirTheme('prune');
     expect(lireMarque().organisation.code).toBe('montreal');
+    expect(lireMarque().organisation.nom_app).toBe('Ville de Montréal');
+    expect(lireMarque().jetons.primary).toBe('#5B2A86');
+    definirTheme('organisation');
+    expect(lireMarque().jetons.primary).toBe('#B5121B');
+    definirLisibilite({ contraste: true });
+    expect(lireMarque().jetons.background).toBe('#FFFFFF');
   });
 
   it('une marque réglée sans la base est gardée au redémarrage, puis remplacée quand la base la donne', async () => {

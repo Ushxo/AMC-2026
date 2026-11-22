@@ -48,7 +48,7 @@ export function Bouton({
         },
       ]}>
       <View style={styles.contenu}>
-        {occupe ? <ActivityIndicator size="small" color={plein ? theme.onPrimary : undefined} /> : null}
+        {occupe ? <ActivityIndicator size="small" color={plein ? theme.onPrimary : theme.primary} /> : null}
         {selectionne ? <Coche couleur={plein ? theme.onPrimary : theme.primary} /> : null}
         <ThemedText type="smallBold" style={plein ? { color: theme.onPrimary } : undefined}>
           {titre}

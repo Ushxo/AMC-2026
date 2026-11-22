@@ -1,6 +1,7 @@
 import { StyleSheet, Text, TextInput, type TextInputProps, type TextProps, type TextStyle } from 'react-native';
 
 import { famillePolice } from '@/constants/theme';
+import { useMarque } from '@/marque/utiliser';
 
 let policesChargees = false;
 
@@ -25,5 +26,7 @@ export function Texte({ style, ...rest }: TextProps) {
 
 /** Champ de saisie dans la police de l'interface. */
 export function ChampTexte({ style, ...rest }: TextInputProps) {
-  return <TextInput style={avecPolice(style)} {...rest} />;
+  const { sombre, jetons } = useMarque();
+  // Clavier, couleur du curseur et texte d'aide suivent le thème (un thème sombre a un clavier sombre).
+  return <TextInput style={avecPolice(style)} keyboardAppearance={sombre ? 'dark' : 'light'} selectionColor={jetons.primary} placeholderTextColor={jetons.textSecondary} {...rest} />;
 }

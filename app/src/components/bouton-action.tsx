@@ -2,6 +2,7 @@ import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } f
 
 import { Appuyable } from '@/components/appuyable';
 import { ThemedText } from '@/components/themed-text';
+import { useTheme } from '@/hooks/use-theme';
 import { useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
 
@@ -25,6 +26,7 @@ export function BoutonAction({
   style?: StyleProp<ViewStyle>;
 }) {
   const styles = useStyles(creerStyles);
+  const P = useTheme();
   const desactive = !actif || occupe;
   return (
     <Appuyable
@@ -35,7 +37,7 @@ export function BoutonAction({
       onPress={onPress}
       style={[styles.bouton, desactive && { opacity: 0.5 }, style]}>
       <View style={styles.contenu}>
-        {occupe ? <ActivityIndicator color={undefined} /> : null}
+        {occupe ? <ActivityIndicator color={P.onAction} /> : null}
         <ThemedText style={styles.texte} maxFontSizeMultiplier={1.2}>
           {titre}
         </ThemedText>

@@ -18,6 +18,7 @@ import {
   type Graines,
 } from "@/marque/jetons";
 import { NUANCES } from "@/marque/nuances";
+import { LIBELLES_THEME_APP, PALETTES, THEMES_IDS } from "@/marque/themes";
 import { garderMarqueLocale, mettreAJourOrganisation, oublierMarqueLocale, organisationAvecLocale } from "@/marque/magasin";
 import { imageLogo, LIBELLES_LOGO } from "@/marque/logos";
 import { formaterNombre } from "@/lib/format";
@@ -271,6 +272,26 @@ export default function MarqueOrganisation() {
             <Text style={styles.chipTexte}>{p.nom}</Text>
           </Pressable>
         ))}
+      </View>
+
+      <Text style={styles.titre} accessibilityRole="header">
+        Thème par défaut de l&apos;organisation
+      </Text>
+      <Text style={styles.note}>Partez d&apos;un des thèmes de l&apos;app (palette complète), puis réglez les couleurs plus bas si vous voulez.</Text>
+      <View style={styles.rangee}>
+        {THEMES_IDS.filter((t) => t !== "organisation").map((t) => {
+          const pal = PALETTES[t as keyof typeof PALETTES];
+          return (
+            <Pressable key={t} accessibilityRole="button" accessibilityLabel={`Thème ${LIBELLES_THEME_APP[t]} comme couleurs de l'organisation`} onPress={() => { setCouleurs(pal); setSaisies({}); setMessage(null); }} style={styles.chip}>
+              <View style={styles.points}>
+                <View style={[styles.point, { backgroundColor: pal.header }]} />
+                <View style={[styles.point, { backgroundColor: pal.action }]} />
+                <View style={[styles.point, { backgroundColor: pal.background, borderWidth: 1, borderColor: P.borderForte }]} />
+              </View>
+              <Text style={styles.chipTexte}>{LIBELLES_THEME_APP[t]}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <Text style={styles.titre} accessibilityRole="header">

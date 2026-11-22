@@ -524,7 +524,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   enteteVert: { backgroundColor: P.header, paddingHorizontal: 20, paddingBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   enteteTitre: { color: P.onHeader, fontSize: 26, lineHeight: 34, fontWeight: '700' },
-  enteteSous: { color: P.bandeau, fontSize: 15, fontWeight: '500' },
+  enteteSous: { color: P.onHeaderSoft, fontSize: 15, fontWeight: '500' },
   resume: { backgroundColor: P.surface, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16 },
   vignette: { width: 64, height: 64, borderRadius: 16, backgroundColor: P.bandeau, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   vignetteImage: { width: 64, height: 64 },

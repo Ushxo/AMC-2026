@@ -1,8 +1,6 @@
 import { CLES_COULEURS, type Couleurs, type CleCouleur } from './organisations-embarquees';
 
-import { APPARENCES_MAIN } from './apparences-main';
-import { ORGANISATIONS_EMBARQUEES } from './organisations-embarquees';
-import { ajusterContraste, assombrir, contraste, eclaircir, estCouleurHex, melanger, texteSur } from './couleurs';
+import { ajusterContraste, assombrir, contraste, eclaircir, estCouleurHex, luminance, melanger, texteSur } from './couleurs';
 
 export type { Couleurs, CleCouleur };
 
@@ -18,15 +16,6 @@ export type Jetons = Couleurs & {
   actionDoux: string;
   /** Texte sur le fond doux de l'action. */
   onActionDoux: string;
-};
-
-export type Apparence = 'standard' | 'contraste' | 'sombre' | 'daltonisme';
-export const APPARENCES: Apparence[] = ['standard', 'contraste', 'sombre', 'daltonisme'];
-export const LIBELLES_APPARENCE: Record<Apparence, string> = {
-  standard: 'Standard',
-  contraste: 'Contraste élevé',
-  sombre: 'Sombre',
-  daltonisme: 'Adapté au daltonisme',
 };
 
 /** Complète une palette partielle avec celle de repli, jeton par jeton. */
@@ -53,64 +42,55 @@ export function jetonsDepuis(c: Couleurs): Jetons {
   };
 }
 
-/** Variante d'apparence appliquée à la palette de la marque. */
-export function appliquerApparence(base: Couleurs, apparence: Apparence, code?: string): Couleurs {
-  if (apparence === 'standard') return base;
+/** Vrai pour une palette à fond sombre (thème Nuit, ou une marque sombre). */
+export function estSombre(c: Couleurs): boolean {
+  return luminance(c.background) < 0.2;
+}
 
-  // Marque embarquée non modifiée : variante réglée à la main. Sinon (marque d'une autre organisation, ou couleurs retouchées) : calcul.
-  const main = code ? APPARENCES_MAIN[code]?.[apparence] : undefined;
-  const origine = ORGANISATIONS_EMBARQUEES.find((o) => o.code === code);
-  if (main && origine && origine.couleurs.primary?.toUpperCase() === base.primary.toUpperCase()) return { ...base, ...main };
+/** Les deux réglages de lisibilité, par-dessus n'importe quel thème. */
+export type Lisibilite = { contraste: boolean; daltonisme: boolean };
+export const LISIBILITE_PAR_DEFAUT: Lisibilite = { contraste: false, daltonisme: false };
 
-  if (apparence === 'daltonisme') {
-    // Sans rouge ni vert pour dire « bon » ou « mauvais » : bleu et vermillon (palette sûre pour le daltonisme). Les mots restent écrits partout.
-    const c: Couleurs = { ...base };
-    c.success = ajusterContraste('#0072B2', base.surface, 4.5);
-    c.danger = ajusterContraste('#B34100', base.surface, 4.5);
-    c.accent = ajusterContraste('#D55E00', base.background, 3);
-    return c;
-  }
-
-  if (apparence === 'contraste') {
-    const fond = '#FFFFFF';
-    const c: Couleurs = { ...base, background: fond, surface: fond, text: '#000000' };
-    c.textSecondary = ajusterContraste(base.textSecondary, fond, 7);
-    c.primary = ajusterContraste(base.primary, fond, 7);
-    c.onPrimary = texteSur(c.primary);
-    c.action = ajusterContraste(base.action, fond, 7);
-    c.onAction = texteSur(c.action);
-    c.accent = ajusterContraste(base.accent, fond, 4.5);
-    c.accentDoux = ajusterContraste(base.accentDoux, fond, 3);
-    c.header = ajusterContraste(base.header, fond, 7);
-    c.onHeader = texteSur(c.header);
-    c.backgroundElement = melanger(fond, c.primary, 0.08);
-    c.backgroundSelected = melanger(fond, c.primary, 0.22);
-    c.border = '#3A3A3A';
-    c.borderForte = '#000000';
-    c.success = ajusterContraste(base.success, fond, 7);
-    c.danger = ajusterContraste(base.danger, fond, 7);
-    return c;
-  }
-
-  // Sombre : fonds très foncés teintés par la couleur principale de la marque, couleurs vives éclaircies pour rester lisibles.
-  const fond = melanger(base.primary, '#000000', 0.9);
-  const surface = melanger(base.primary, '#000000', 0.8);
-  const c: Couleurs = { ...base, background: fond, surface, text: '#F5F3ED' };
-  c.backgroundElement = melanger(base.primary, '#000000', 0.74);
-  c.backgroundSelected = melanger(base.primary, '#000000', 0.55);
-  c.textSecondary = ajusterContraste(melanger('#F5F3ED', fond, 0.3), fond, 4.5);
-  c.primary = ajusterContraste(ajusterContraste(eclaircir(base.primary, 0.3), surface, 4.5), c.backgroundSelected, 4.5);
+/** Contraste élevé : fond noir ou blanc pur, textes et contours renforcés ; l'accent du thème est gardé (assombri ou éclairci au besoin). */
+export function renforcerContraste(base: Couleurs): Couleurs {
+  const sombre = estSombre(base);
+  const fond = sombre ? '#000000' : '#FFFFFF';
+  const c: Couleurs = { ...base, background: fond, surface: sombre ? '#0A0A0A' : '#FFFFFF', text: sombre ? '#FFFFFF' : '#000000' };
+  c.backgroundElement = melanger(fond, base.primary, sombre ? 0.14 : 0.08);
+  c.backgroundSelected = melanger(fond, base.primary, sombre ? 0.34 : 0.22);
+  c.textSecondary = ajusterContraste(ajusterContraste(base.textSecondary, c.backgroundSelected, 7), fond, 7);
+  c.primary = ajusterContraste(ajusterContraste(base.primary, c.backgroundSelected, 7), fond, 7);
   c.onPrimary = texteSur(c.primary);
-  c.action = ajusterContraste(eclaircir(base.action, 0.15), fond, 4.5);
+  c.action = sombre ? base.action : ajusterContraste(base.action, fond, 7);
   c.onAction = texteSur(c.action);
-  c.accent = ajusterContraste(eclaircir(base.accent, 0.2), fond, 4.5);
-  c.accentDoux = eclaircir(base.accentDoux, 0.1);
-  c.header = melanger(base.header, '#000000', 0.55);
+  c.accent = ajusterContraste(ajusterContraste(base.accent, c.backgroundSelected, 4.5), fond, 4.5);
+  c.accentDoux = ajusterContraste(base.accentDoux, fond, 3);
+  c.header = sombre ? '#000000' : ajusterContraste(base.header, fond, 7);
   c.onHeader = texteSur(c.header);
-  c.border = melanger(base.primary, '#000000', 0.55);
-  c.borderForte = ajusterContraste(melanger('#F5F3ED', fond, 0.45), fond, 3);
-  c.success = ajusterContraste(eclaircir(base.success, 0.35), fond, 4.5);
-  c.danger = ajusterContraste(eclaircir(base.danger, 0.4), fond, 4.5);
+  c.border = sombre ? '#BDBDBD' : '#3A3A3A';
+  c.borderForte = c.text;
+  c.success = ajusterContraste(ajusterContraste(base.success, c.backgroundSelected, 7), fond, 7);
+  c.danger = ajusterContraste(ajusterContraste(base.danger, c.backgroundSelected, 7), fond, 7);
+  return c;
+}
+
+/** Adapté au daltonisme : le succès et le danger ne reposent plus sur le vert et le rouge (bleu et vermillon). Les mots restent écrits partout. */
+export function adapterDaltonisme(base: Couleurs): Couleurs {
+  const sombre = estSombre(base);
+  const c: Couleurs = { ...base };
+  const sur = [base.background, base.surface, base.backgroundElement, base.backgroundSelected];
+  const regler = (couleur: string, min: number) => sur.reduce((acc, f) => ajusterContraste(acc, f, min), couleur);
+  c.success = regler(sombre ? '#56B4E9' : '#0072B2', 4.5);
+  c.danger = regler(sombre ? '#FF9A5C' : '#B34100', 4.5);
+  c.accent = regler(sombre ? '#E69F00' : '#9C5700', 3);
+  return c;
+}
+
+/** Palette finale : la base du thème, puis le contraste élevé, puis le daltonisme s'ils sont activés. */
+export function couleursAvecLisibilite(base: Couleurs, l: Lisibilite): Couleurs {
+  let c = base;
+  if (l.contraste) c = renforcerContraste(c);
+  if (l.daltonisme) c = adapterDaltonisme(c);
   return c;
 }
 

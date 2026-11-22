@@ -135,7 +135,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   entete: { backgroundColor: P.header, paddingHorizontal: 20, paddingBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   titre: { color: P.onHeader, fontSize: 26, fontWeight: '700' },
-  sousTitre: { color: P.bandeau, fontSize: 15, fontWeight: '500' },
+  sousTitre: { color: P.onHeaderSoft, fontSize: 15, fontWeight: '500' },
   contenu: { padding: 20, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
   carteCadre: { height: 150, borderRadius: 22, overflow: 'hidden', backgroundColor: P.bandeau },
   carte: { flex: 1 },
