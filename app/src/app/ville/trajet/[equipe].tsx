@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
@@ -15,6 +15,7 @@ import {
   type SessionNavigation,
 } from '@/components/carte/navigation-google';
 import { BarreNavigation } from '@/components/ville/barre-navigation';
+import { etatArretNavigation, libelleProblemeEtLieu, libelleProchainArret } from '@/lib/libelles-navigation';
 import { ChoixResultatArret, type ChoixResultat } from '@/components/ville/choix-resultat-arret';
 import { FeuilleResultatArret } from '@/components/ville/feuille-resultat-arret';
 import { FeuilleArrets } from '@/components/ville/feuille-arrets';
@@ -87,14 +88,31 @@ const INCLINAISON_SUIVI = 55;
 /** Route classique : l'équipe vient de l'adresse. */
 export default function Trajet() {
   const { equipe } = useLocalSearchParams<{ equipe: string }>();
-  return <EcranTrajet equipe={equipe} />;
+  // Pendant la navigation, la carte prend tout l'écran : l'en-tête de la route (titre et « Retour ») disparaît, le retour passe par le panneau.
+  const [pleinEcran, setPleinEcran] = useState(false);
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: !pleinEcran }} />
+      <EcranTrajet equipe={equipe} onPleinEcran={setPleinEcran} />
+    </>
+  );
+}
+
+/** Monté en même temps que le panneau de navigation : dit à la route de passer en plein écran, et de revenir à son démontage. */
+function SignalerPleinEcran({ onChange }: { onChange?: (b: boolean) => void }) {
+  useEffect(() => {
+    onChange?.(true);
+    return () => onChange?.(false);
+  }, [onChange]);
+  return null;
 }
 
 /** Le trajet d'une équipe (aperçu, navigation, « Arrêt fait »...) : utilisable aussi dans la coquille de l'employé (« Ma carte »). */
-export function EcranTrajet({ equipe }: { equipe?: string }) {
+export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPleinEcran?: (b: boolean) => void }) {
   const P = useTheme();
   const styles = useStyles(creerStyles);
-  const { bottom } = useSafeAreaInsets();
+  const { bottom, top } = useSafeAreaInsets();
+  const [hauteurPanneau, setHauteurPanneau] = useState(0);
   const { etat } = useSource();
   const { demoHorsLigne, peutGerer } = useSessionEmploye();
   const { lancer: lancerCalcul, enCours: calculEnCours, demande: demandeCalcul } = useOptimisation();
@@ -296,7 +314,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
         cle: idArret(a),
         numero: a.rang,
         position: a.position,
-        etat: estFait(a) ? ('fait' as const) : courant && idArret(a) === idArret(courant) ? ('prochain' as const) : ('normal' as const),
+        etat: etatArretNavigation(a, arrets, courant, estFait),
       })),
     [arrets, estFait, courant],
   );
@@ -347,24 +365,32 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
   const lieuCourant = courant ? lieuDeEndroit(courant.position, adressesLieu) : '';
   const pastille = finie ? 'Tournée terminée' : courant ? `Arrêt ${rangCourant + 1} sur ${total}` : '';
 
-  // Barre d'actions fixe pendant la navigation : « Arrêt fait » (principal à l'arrivée), « Arrêter », liste des arrêts.
-  function barre(arreter: () => void) {
+  // Panneau du bas pendant la navigation : un seul ensemble (temps et distance, progression, problème et adresse), une action principale
+  // (« Arrêt fait ? ») et des boutons d'icône (retour, liste des arrêts, arrêter).
+  const distanceProchain = pos.position && cible ? distanceM(pos.position, cible) : null;
+  function barre(arreter: () => void, restant?: { secondes: number; metres: number } | null) {
+    const principal = libelleProchainArret(restant ?? (distanceProchain !== null ? { secondes: Number.NaN, metres: distanceProchain } : null));
     return (
-      <BarreNavigation
-        pastille={pastille}
-        etiquette={demoHorsLigne ? ETIQUETTE_DEMONSTRATION : null}
-        arrivee={messageArriveeEcran}
-        reste={reste}
-        info={infoDepart}
-        suggestion={suggestion}
-        titreAction={arriveeFin ? 'Terminer' : 'Arrêt fait ?'}
-        occupe={occupe}
-        actionActive={arriveeFin || (peutMarquer && !!courant)}
-        onAction={() => (arriveeFin ? arreter() : courant ? setResultatCible({ arret: courant, choix: choixDe(courant) }) : undefined)}
-        onArreter={arreter}
-        onListe={() => setListe(true)}
-        message={messageAffiche ?? (peutMarquer ? null : MESSAGE_SEUL_SUPERVISEUR_OU_EQUIPE)}
-      />
+      <>
+        <SignalerPleinEcran onChange={onPleinEcran} />
+        <BarreNavigation
+          principal={principal}
+          progression={[pastille, reste].filter(Boolean).join(' · ')}
+          lieu={libelleProblemeEtLieu(titreCourant, lieuCourant)}
+          etiquette={demoHorsLigne ? ETIQUETTE_DEMONSTRATION : null}
+          arrivee={messageArriveeEcran}
+          info={infoDepart}
+          suggestion={suggestion}
+          titreAction={arriveeFin ? 'Terminer' : 'Arrêt fait ?'}
+          occupe={occupe}
+          actionActive={arriveeFin || (peutMarquer && !!courant)}
+          onAction={() => (arriveeFin ? arreter() : courant ? setResultatCible({ arret: courant, choix: choixDe(courant) }) : undefined)}
+          onArreter={arreter}
+          onListe={() => setListe(true)}
+          onRetour={onPleinEcran ? () => routeur.back() : undefined}
+          message={messageAffiche ?? (peutMarquer ? null : MESSAGE_SEUL_SUPERVISEUR_OU_EQUIPE)}
+        />
+      </>
     );
   }
 
@@ -646,7 +672,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
             key={idArret(a)}
             coordinate={a.position}
             couleur={fait ? COULEUR_ARRET_FAIT : couleurEquipe(0)}
-            etat={fait ? 'fait' : actuel ? 'prochain' : 'normal'}
+            etat={etatArretNavigation(a, arrets, courant, estFait)}
             numero={a.rang}
             title={`Arrêt ${a.rang}${fait ? ' (fait)' : actuel ? ' (prochain)' : ''}`}
             description={`Passage prévu à ${formaterHeure(a.arrivee_prevue)}`}
@@ -697,7 +723,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                 id={`arret-${idArret(a)}`}
                 position={a.position}
                 couleur={estFait(a) ? COULEUR_ARRET_FAIT : couleurEquipe(0)}
-                etat={estFait(a) ? 'fait' : courant && idArret(a) === idArret(courant) ? 'prochain' : 'normal'}
+                etat={etatArretNavigation(a, arrets, courant, estFait)}
                 numero={a.rang}
                 titre={`Arrêt ${a.rang}`}
                 accessibilityLabel={`Arrêt ${a.rang}${estFait(a) ? ', fait' : ''}`}
@@ -705,7 +731,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
             ))}
             {pos.position ? <VehiculeCommun id="vehicule-secours" position={pos.position} cap={pos.cap} titre="Votre véhicule" /> : null}
           </CarteGoogleOuMaps>
-          <View style={styles.superposition} pointerEvents="box-none">
+          <View style={[styles.superposition, { top: top + 8 }]} pointerEvents="box-none">
             <ThemedText accessibilityRole="alert" style={styles.avisSecours}>
               {navEchec} Guidage simplifié : direction à vol d&apos;oiseau.
             </ThemedText>
@@ -717,7 +743,9 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
             ) : null}
           </View>
         </View>
-        {barre(() => routeur.back())}
+        <View style={styles.panneauBas} onLayout={(e) => setHauteurPanneau(Math.round(e.nativeEvent.layout.height))}>
+          {barre(() => routeur.back())}
+        </View>
         {feuille}
       </ThemedView>
     );
@@ -733,10 +761,12 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
           onIndisponible={setNavEchec}
           reperes={reperesNav}
           apercu={(session) => apercu(session)}
-          barre={(session) => barre(() => {
-            setSuiviActif(false);
-            session.arreter();
-          })}
+          barre={(session) =>
+            barre(() => {
+              setSuiviActif(false);
+              session.arreter();
+            }, session.restant)
+          }
         />
         {feuille}
       </ThemedView>
@@ -757,19 +787,21 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
             {contenuCarte}
           </CarteCommune>
           {guidage && titreBandeau ? (
-            <View style={styles.superposition} pointerEvents="box-none">
+            <View style={[styles.superposition, { top: top + 8 }]} pointerEvents="box-none">
               <BandeauGuidage guidage={guidage} resume={titreBandeau} />
             </View>
           ) : null}
-          <View style={styles.commandesCarte} pointerEvents="box-none">
+          <View style={[styles.commandesCarte, { bottom: hauteurPanneau + 8 }]} pointerEvents="box-none">
             {libre ? <Bouton titre="Recentrer" onPress={() => setLibre(false)} /> : null}
             <Bouton titre="Vue d'ensemble" variante="discret" onPress={vueEnsemble} />
           </View>
         </View>
-        {barre(() => {
-          setSuiviActif(false);
-          setEnSuivi(false);
-        })}
+        <View style={styles.panneauBas} onLayout={(e) => setHauteurPanneau(Math.round(e.nativeEvent.layout.height))}>
+          {barre(() => {
+            setSuiviActif(false);
+            setEnSuivi(false);
+          })}
+        </View>
         {feuille}
       </ThemedView>
     );
@@ -811,4 +843,5 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   avisSecours: { padding: 12, borderRadius: 12, backgroundColor: P.surface, color: P.text },
   superposition: { position: 'absolute', top: 8, left: 8, right: 8 },
   commandesCarte: { position: 'absolute', right: 8, bottom: 8, gap: 8, alignItems: 'flex-end' },
+  panneauBas: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 });

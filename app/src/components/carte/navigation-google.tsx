@@ -1,10 +1,13 @@
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type * as Nav from '@googlemaps/react-native-navigation-sdk';
 
+import { useJetonsNavigation } from '@/hooks/use-jetons-navigation';
 import { useThemeCarte } from '@/hooks/use-theme-carte';
+import { assombrir } from '@/marque/couleurs';
 import { essayerLancer, type EtatLancement } from '@/lib/lancer-navigation';
 import { choisirIdCarte, envCarte } from '@/lib/carte-reglages';
 import { nomImageRepere } from '@/lib/images-reperes';
@@ -29,7 +32,7 @@ export type CibleNavigation = {
 };
 
 /** Repère d'arrêt dessiné sur la vue de navigation (numéro, état). */
-export type RepereNavigation = { cle: string; numero: number; position: Coordonnees; etat: 'normal' | 'prochain' | 'fait' };
+export type RepereNavigation = { cle: string; numero: number; position: Coordonnees; etat: 'normal' | 'prochain' | 'fait' | 'attenue' };
 
 const COULEUR_ARRETS = '#0072B2';
 
@@ -53,6 +56,8 @@ export type SessionNavigation = {
   message: string | null;
   occupe: boolean;
   enGuidage: boolean;
+  /** Temps et distance restants jusqu'au prochain arrêt, donnés par Google pendant le guidage (null avant la première mesure). */
+  restant: { secondes: number; metres: number } | null;
   /** Demande l'itinéraire vers la destination et lance le guidage (une destination demandée). */
   demarrer: () => void;
   arreter: () => void;
@@ -78,7 +83,11 @@ const MESSAGES_SESSION: Record<string, string> = {
 function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, barre }: Props) {
   const nav = biblio();
   const theme = useThemeCarte();
-  const { navigationController, removeAllListeners, setOnArrival, setOnLocationChanged } = nav.useNavigation();
+  const { navigationController, removeAllListeners, setOnArrival, setOnLocationChanged, setOnRemainingTimeOrDistanceChanged } = nav.useNavigation();
+  const J = useJetonsNavigation();
+  const { top } = useSafeAreaInsets();
+  const [restant, setRestant] = useState<{ secondes: number; metres: number } | null>(null);
+  const [hauteurPanneau, setHauteurPanneau] = useState(0);
   const [etat, setEtat] = useState<Etat>('init');
   const [message, setMessage] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
@@ -113,8 +122,10 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
       const c = cibleRef.current;
       if (c) onArriveeRef.current(c.cle);
     });
+    // Temps et distance jusqu'au prochain arrêt : c'est notre panneau qui les affiche (le pied de Google est masqué).
+    setOnRemainingTimeOrDistanceChanged((t) => setRestant({ secondes: t.seconds, metres: t.meters }));
     return () => removeAllListeners();
-  }, [setOnArrival, setOnLocationChanged, removeAllListeners]);
+  }, [setOnArrival, setOnLocationChanged, setOnRemainingTimeOrDistanceChanged, removeAllListeners]);
 
   // Initialisation : position, conditions d'utilisation de Google, session, voix coupée.
   useEffect(() => {
@@ -216,6 +227,8 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
   // « Arrêt fait » change la destination : on passe tout de suite à la suivante, ou on arrête à la fin.
   const cleCible = cible?.cle ?? null;
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRestant(null); // la mesure du nouvel arrêt arrive avec le nouvel itinéraire
     if (!enNavigation.current) return;
     const c = cibleRef.current;
     const t = setTimeout(() => {
@@ -268,13 +281,29 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
     message,
     occupe,
     enGuidage: etat === 'guidage',
+    restant,
     demarrer: () => {
       if (cible) void lancer(cible);
     },
     arreter,
   };
+  // Le bandeau de manœuvre de Google prend les couleurs du thème : le bord haut (zone de l'heure) a la même couleur, sans barre de titre.
+  const entete = J.header;
+  const stylage = {
+    navigationHeaderPrimaryBackgroundColor: J.header,
+    navigationHeaderSecondaryBackgroundColor: assombrir(J.header, 0.2),
+    navigationHeaderPrimaryBackgroundColorNightMode: J.header,
+    navigationHeaderSecondaryBackgroundColorNightMode: assombrir(J.header, 0.2),
+    navigationHeaderLargeManeuverIconColor: J.onHeader,
+    navigationHeaderSmallManeuverIconColor: J.onHeader,
+    navigationHeaderGuidanceRecommendedLaneColor: J.onHeader,
+    navigationHeaderNextStepTextColor: J.onHeaderSoft,
+    navigationHeaderDistanceValueTextColor: J.onHeader,
+    navigationHeaderDistanceUnitsTextColor: J.onHeaderSoft,
+    navigationHeaderInstructionsTextColor: J.onHeader,
+  };
   return (
-    <View style={styles.racine}>
+    <View style={[styles.racine, etat === 'guidage' ? { backgroundColor: entete, paddingTop: top } : null]}>
       {/* La carte est toujours montée (la session de Google survit au changement d'écran) : plein cadre, sous l'aperçu. */}
       <View style={styles.vue}>
         <View_
@@ -282,6 +311,18 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
           mapId={mapId}
           mapColorScheme={theme === 'dark' ? nav.MapColorScheme.DARK : nav.MapColorScheme.LIGHT}
           navigationNightMode={theme === 'dark' ? nav.NavigationNightMode.FORCE_NIGHT : nav.NavigationNightMode.FORCE_DAY}
+          iOSStylingOptions={stylage}
+          // Notre panneau remplace le pied de Google (la carte noire « 4 min ») et sa barre de progression ; pas de boussole, de limite de
+          // vitesse, de compteur ni de messages de circulation par-dessus les nôtres ; le bouton de recentrage reste, au-dessus du panneau.
+          footerEnabled={false}
+          tripProgressBarEnabled={false}
+          compassEnabled={false}
+          speedometerEnabled={false}
+          speedLimitIconEnabled={false}
+          trafficPromptsEnabled={false}
+          trafficIncidentCardsEnabled={false}
+          recenterButtonEnabled
+          mapPadding={{ top: 0, left: 0, right: 0, bottom: etat === 'guidage' ? hauteurPanneau : 0 }}
           // Pas de signalement d'incident de la circulation par Google : l'équipe signale par notre app.
           reportIncidentButtonEnabled={false}
           onMapViewControllerCreated={setCarte}
@@ -289,9 +330,16 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
           onNavigationViewControllerCreated={() => {}}
         />
       </View>
+      {/* Notre panneau se pose PAR-DESSUS le bas de la carte (coins arrondis sur la carte) ; la carte réserve sa hauteur pour que le logo
+          et le recentrage de Google restent visibles au-dessus. */}
       {/* Les fonctions d'écran passées en propriété ne lisent aucune référence pendant le rendu. */}
       {/* eslint-disable-next-line react-hooks/refs */}
-      {session.enGuidage ? barre(session) : null}
+      {session.enGuidage ? (
+        <View style={styles.panneau} onLayout={(e: LayoutChangeEvent) => setHauteurPanneau(Math.round(e.nativeEvent.layout.height))}>
+          {/* eslint-disable-next-line react-hooks/refs */}
+          {barre(session)}
+        </View>
+      ) : null}
       {/* eslint-disable-next-line react-hooks/refs */}
       {!session.enGuidage ? <View style={StyleSheet.absoluteFill}>{apercu(session)}</View> : null}
     </View>
@@ -314,4 +362,5 @@ export function NavigationGoogle(props: Props) {
 const styles = StyleSheet.create({
   racine: { flex: 1 },
   vue: { flex: 1 },
+  panneau: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 });
