@@ -14,6 +14,7 @@ import { choisirIdCarte, envCarte } from '@/lib/carte-reglages';
 import { nomImageRepere } from '@/lib/images-reperes';
 import type { Coordonnees } from '@/types';
 
+import { appeler } from './appel-controleur';
 import { NAVIGATION_GOOGLE } from './reglage';
 
 export { NAVIGATION_GOOGLE };
@@ -259,16 +260,16 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
     for (const r of reperes) {
       const id = `a:${r.cle}`;
       voulus.add(id);
-      void carte
-        .addMarker({
+      appeler('addMarker', () =>
+        carte.addMarker({
           id,
           position: { lat: r.position.latitude, lng: r.position.longitude },
           imgPath: nomImageRepere(COULEUR_ARRETS, r.etat, r.numero),
           anchor: { u: 0.5, v: 75 / 84 },
-        })
-        .catch(() => {});
+        }),
+      );
     }
-    for (const id of posees.current) if (!voulus.has(id)) carte.removeMarker(id);
+    for (const id of posees.current) if (!voulus.has(id)) appeler('removeMarker', () => carte.removeMarker(id));
     posees.current = voulus;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carte, cartePrete, signature]);
@@ -294,7 +295,7 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
     },
     arreter,
     recentrer: () => {
-      void vueNavigation.current?.setFollowingPerspective(nav.CameraPerspective.TILTED)?.catch?.(() => {});
+      appeler('setFollowingPerspective', () => vueNavigation.current?.setFollowingPerspective(nav.CameraPerspective.TILTED));
     },
   };
   // Le bandeau de manœuvre de Google prend les couleurs du thème : le bord haut (zone de l'heure) a la même couleur, sans barre de titre.

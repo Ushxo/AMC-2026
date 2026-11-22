@@ -10,6 +10,7 @@ import { choisirIdCarte, envCarte } from '@/lib/carte-reglages';
 import { NOM_IMAGE_VEHICULE, nomImageGroupe, nomImageGroupeInfo, nomImageInfo, nomImageRepere } from '@/lib/images-reperes';
 import type { Coordonnees } from '@/types';
 
+import { appeler, lire } from './appel-controleur';
 import type { CarteProps, CercleProps, RepereGroupeProps, RepereInfoProps, RepereProps, TraceProps, VehiculeProps, ZoneProps } from './types';
 
 /** Chargement tardif : la bibliothèque n'existe que dans une build faite avec NAVIGATION_GOOGLE=1. */
@@ -85,8 +86,26 @@ export function Carte({ commandes, children, regionInitiale, onPress, onRegionCh
   const declencher = () => {
     finGeste.current = Date.now();
   };
-  // Cadrage demandé avant que la carte soit prête : appliqué dès qu'elle l'est.
-  const [enAttente, setEnAttente] = useState<{ position: Coordonnees; rayonM: number } | null>(null);
+  // Un ordre de caméra donné avant l'événement « carte prête » (ou pendant que la vue est recréée) est gardé : seul le DERNIER est rejoué,
+  // une fois, dès que la carte est prête (c'est ce qui centre la carte sur la position à l'ouverture). Après le démontage, plus aucun appel.
+  const vivant = useRef(true);
+  const ordreEnAttente = useRef<((c: Nav.MapViewController) => void) | null>(null);
+  useEffect(() => {
+    vivant.current = true;
+    return () => {
+      vivant.current = false;
+      ordreEnAttente.current = null;
+    };
+  }, []);
+  /** Exécute l'ordre tout de suite si la carte est prête, sinon le garde (le dernier remplace le précédent). */
+  const ordre = (f: (c: Nav.MapViewController) => void) => {
+    if (!vivant.current) return;
+    if (!controleur) {
+      ordreEnAttente.current = f;
+      return;
+    }
+    f(controleur);
+  };
 
   useEffect(() => {
     surRegion.current = onRegionChangeComplete;
@@ -100,71 +119,61 @@ export function Carte({ commandes, children, regionInitiale, onPress, onRegionCh
   const contexte = useMemo(() => ({ controleur, inscrire }), [controleur, inscrire]);
 
   useImperativeHandle(commandes, () => ({
-    surPosition: (position, rayonM) => {
-      if (!controleur) {
-        setEnAttente({ position, rayonM });
-        return;
-      }
-      const d = deltasPourRayon(position, rayonM);
-      const { zoom } = cadrerPoints(
-        [
-          { latitude: position.latitude - d.latitudeDelta / 2, longitude: position.longitude },
-          { latitude: position.latitude + d.latitudeDelta / 2, longitude: position.longitude },
-          { latitude: position.latitude, longitude: position.longitude - d.longitudeDelta / 2 },
-          { latitude: position.latitude, longitude: position.longitude + d.longitudeDelta / 2 },
-        ],
-        taille.current.largeur,
-        taille.current.hauteur,
-        19,
-      );
-      controleur.moveCamera({ target: ll(position), zoom, tilt: 0, bearing: 0 });
-      declencher();
-    },
+    surPosition: (position, rayonM) =>
+      ordre((c) => {
+        const d = deltasPourRayon(position, rayonM);
+        const { zoom } = cadrerPoints(
+          [
+            { latitude: position.latitude - d.latitudeDelta / 2, longitude: position.longitude },
+            { latitude: position.latitude + d.latitudeDelta / 2, longitude: position.longitude },
+            { latitude: position.latitude, longitude: position.longitude - d.longitudeDelta / 2 },
+            { latitude: position.latitude, longitude: position.longitude + d.longitudeDelta / 2 },
+          ],
+          taille.current.largeur,
+          taille.current.hauteur,
+          19,
+        );
+        appeler('moveCamera', () => c.moveCamera({ target: ll(position), zoom, tilt: 0, bearing: 0 }));
+        declencher();
+      }),
     cadrer: (points) => {
-      if (!controleur || points.length === 0) return;
-      const { centre, zoom } = cadrerPoints(points, taille.current.largeur, taille.current.hauteur);
-      controleur.moveCamera({ target: ll(centre), zoom, tilt: 0, bearing: 0 });
-      declencher();
+      if (points.length === 0) return;
+      ordre((c) => {
+        const { centre, zoom } = cadrerPoints(points, taille.current.largeur, taille.current.hauteur);
+        appeler('moveCamera', () => c.moveCamera({ target: ll(centre), zoom, tilt: 0, bearing: 0 }));
+        declencher();
+      });
     },
     zoomer: (points) => {
-      if (!controleur || points.length === 0) return;
-      const { centre, zoom } = cadrerPoints(points, taille.current.largeur, taille.current.hauteur, 19);
-      controleur.moveCamera({ target: ll(centre), zoom: Math.max(2, zoom - 0.6), tilt: 0, bearing: 0 });
-      declencher();
+      if (points.length === 0) return;
+      ordre((c) => {
+        const { centre, zoom } = cadrerPoints(points, taille.current.largeur, taille.current.hauteur, 19);
+        appeler('moveCamera', () => c.moveCamera({ target: ll(centre), zoom: Math.max(2, zoom - 0.6), tilt: 0, bearing: 0 }));
+        declencher();
+      });
     },
-    centrer: (position) => {
-      if (!controleur) return;
-      void controleur
-        .getCameraPosition()
-        .then((c) => {
-          controleur.moveCamera({ target: ll(position), zoom: c.zoom, tilt: c.tilt, bearing: c.bearing });
+    centrer: (position) =>
+      ordre((c) => {
+        void lire('getCameraPosition', () => c.getCameraPosition()).then((cam) => {
+          if (!cam || !vivant.current) return;
+          appeler('moveCamera', () => c.moveCamera({ target: ll(position), zoom: cam.zoom, tilt: cam.tilt, bearing: cam.bearing }));
           declencher();
-        })
-        .catch(() => {});
-    },
-    suivre: (position, cap) => {
-      controleur?.moveCamera({ target: ll(position), zoom: ZOOM_SUIVI, tilt: INCLINAISON_SUIVI, bearing: cap ?? 0 });
-      declencher();
-    },
+        });
+      }),
+    suivre: (position, cap) =>
+      ordre((c) => {
+        appeler('moveCamera', () => c.moveCamera({ target: ll(position), zoom: ZOOM_SUIVI, tilt: INCLINAISON_SUIVI, bearing: cap ?? 0 }));
+        declencher();
+      }),
   }));
 
+  // La carte vient d'être prête : on rejoue le dernier ordre gardé, une seule fois.
   useEffect(() => {
-    if (!controleur || !enAttente) return;
-    const d = deltasPourRayon(enAttente.position, enAttente.rayonM);
-    const { zoom } = cadrerPoints(
-      [
-        { latitude: enAttente.position.latitude - d.latitudeDelta / 2, longitude: enAttente.position.longitude - d.longitudeDelta / 2 },
-        { latitude: enAttente.position.latitude + d.latitudeDelta / 2, longitude: enAttente.position.longitude + d.longitudeDelta / 2 },
-      ],
-      taille.current.largeur,
-      taille.current.hauteur,
-      19,
-    );
-    controleur.moveCamera({ target: ll(enAttente.position), zoom, tilt: 0, bearing: 0 });
-    finGeste.current = Date.now();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnAttente(null);
-  }, [controleur, enAttente]);
+    if (!controleur || !ordreEnAttente.current) return;
+    const f = ordreEnAttente.current;
+    ordreEnAttente.current = null;
+    f(controleur);
+  }, [controleur]);
 
   // La bibliothèque n'a pas d'événement de caméra : on relit la caméra par rafales courtes pendant un geste (toutes les
   // 100 ms) et 1 s après sa fin, puis très rarement au repos (filet de sécurité, pour un déplacement qui ne passe pas par un toucher).
@@ -172,27 +181,22 @@ export function Carte({ commandes, children, regionInitiale, onPress, onRegionCh
   useEffect(() => {
     if (!controleur) return;
     const minuteur = setInterval(() => {
-      if (!ongletActif.current()) return; // onglet caché : aucune lecture native
+      if (!vivant.current || !ongletActif.current()) return; // démontée ou onglet caché : aucune lecture native
       if (!surRegion.current || lectureEnVol.current) return;
       const maintenant = Date.now();
       const rafale = touche.current || maintenant - finGeste.current < RAFALE_APRES_GESTE_MS;
       if (!rafale && maintenant - derniereLecture.current < PERIODE_REPOS_MS) return;
       derniereLecture.current = maintenant;
       lectureEnVol.current = true;
-      void controleur
-        .getCameraPosition()
-        .then((c) => {
-          if (!ongletActif.current()) return; // le résultat arrive alors que l'onglet est caché : ignoré
-          const r = regionDepuisCamera({ latitude: c.target.lat, longitude: c.target.lng }, c.zoom ?? 12, taille.current.largeur, taille.current.hauteur);
-          const cle = `${r.latitude.toFixed(5)}|${r.longitude.toFixed(5)}|${r.longitudeDelta.toFixed(5)}`;
-          if (cle === derniereRegion.current) return; // caméra inchangée : ni regroupement ni mise à jour des repères
-          derniereRegion.current = cle;
-          surRegion.current?.(r);
-        })
-        .catch(() => {})
-        .finally(() => {
-          lectureEnVol.current = false;
-        });
+      void lire('getCameraPosition', () => controleur.getCameraPosition()).then((c) => {
+        lectureEnVol.current = false;
+        if (!c || !vivant.current || !ongletActif.current()) return; // échec, démontage ou onglet caché : ignoré
+        const r = regionDepuisCamera({ latitude: c.target.lat, longitude: c.target.lng }, c.zoom ?? 12, taille.current.largeur, taille.current.hauteur);
+        const cle = `${r.latitude.toFixed(5)}|${r.longitude.toFixed(5)}|${r.longitudeDelta.toFixed(5)}`;
+        if (cle === derniereRegion.current) return; // caméra inchangée : ni regroupement ni mise à jour des repères
+        derniereRegion.current = cle;
+        surRegion.current?.(r);
+      });
     }, PERIODE_RAFALE_MS);
     return () => clearInterval(minuteur);
   }, [controleur, ongletActif]);
@@ -293,7 +297,7 @@ export function Repere({ id, position, couleur, etat, numero, titre, description
         anchor: { u: 0.5, v: 75 / 84 }, // la pointe du dessin tombe sur la position
       });
     },
-    (c) => c.removeMarker(cle),
+    (c) => appeler('removeMarker', () => c.removeMarker(cle)),
     [position.latitude, position.longitude, couleur, etat, numero, titre, description],
   );
   useEffect(() => {
@@ -318,7 +322,7 @@ export function RepereGroupe({ id, position, couleur, nombre, pointEleve, marque
         anchor: { u: 0.5, v: 75 / 84 },
       });
     },
-    (c) => c.removeMarker(cle),
+    (c) => appeler('removeMarker', () => c.removeMarker(cle)),
     [position.latitude, position.longitude, couleur, nombre, pointEleve, marque, information],
   );
   useEffect(() => {
@@ -344,7 +348,7 @@ export function Vehicule({ id, position, cap, titre, description }: VehiculeProp
         anchor: { u: 0.5, v: 0.5 },
       });
     },
-    (c) => c.removeMarker(cle),
+    (c) => appeler('removeMarker', () => c.removeMarker(cle)),
     [position.latitude, position.longitude, cap, titre, description],
   );
   return null;
@@ -358,7 +362,7 @@ export function Trace({ id, points, couleur, epaisseur, onPress }: TraceProps) {
     (c) => {
       sansErreur(c.addPolyline({ id: cle, points: points.map(ll), color: couleur, width: epaisseur, clickable: !!onPress }));
     },
-    (c) => c.removePolyline(cle),
+    (c) => appeler('removePolyline', () => c.removePolyline(cle)),
     [points, couleur, epaisseur, !!onPress],
   );
   useEffect(() => {
@@ -377,7 +381,7 @@ export function RepereInfo({ id, position, genre, onPress }: RepereInfoProps) {
     (c) => {
       poserRepere(c, { id: cle, position: ll(position), imgPath: nomImageInfo(genre), anchor: { u: 0.5, v: 75 / 84 } });
     },
-    (c) => c.removeMarker(cle),
+    (c) => appeler('removeMarker', () => c.removeMarker(cle)),
     [position.latitude, position.longitude, genre],
   );
   useEffect(() => {
@@ -403,7 +407,7 @@ export function Zone({ id, exterieur, trous, fond, contour, epaisseur, onPress }
         clickable: !!onPress,
       }));
     },
-    (c) => c.removePolygon(cle),
+    (c) => appeler('removePolygon', () => c.removePolygon(cle)),
     [exterieur, trous, fond, contour, epaisseur],
   );
   useEffect(() => {
@@ -421,7 +425,7 @@ export function Cercle({ id, centre, rayonM, fond, contour, epaisseur, onPress }
     (c) => {
       sansErreur(c.addCircle({ id: cle, center: ll(centre), radius: rayonM, fillColor: fond, strokeColor: contour, strokeWidth: epaisseur, clickable: !!onPress }));
     },
-    (c) => c.removeCircle(cle),
+    (c) => appeler('removeCircle', () => c.removeCircle(cle)),
     [centre.latitude, centre.longitude, rayonM, fond, contour, epaisseur, !!onPress],
   );
   useEffect(() => {
