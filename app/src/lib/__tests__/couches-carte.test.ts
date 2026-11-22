@@ -1,5 +1,5 @@
 import type { AvisEau, CoucheAvisEau, CoucheChantiers } from '../../types';
-import { avisVisibles, basculerCouche, chantierEn, COUCHES_PAR_DEFAUT, ficheAvis, ficheChantier, verifierAvis } from '../couches-carte';
+import { aireM2, avisVisibles, basculerCouche, chantierEn, COUCHES_PAR_DEFAUT, elementTouche, ficheAvis, ficheChantier, toleranceToucherM, verifierAvis } from '../couches-carte';
 
 jest.mock('@react-native-async-storage/async-storage', () => jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 
@@ -49,5 +49,33 @@ describe('fiche d’un élément', () => {
     expect(f).not.toBeNull();
     expect(ficheChantier(f!).lignes.find((l) => l.etiquette === 'Entreprise')?.valeur).toBe('ACME');
     expect(chantierEn(chantiers, { latitude: 45.51, longitude: -73.57 })).toBeNull();
+  });
+});
+
+describe('toucher de la carte : n’importe où dans le tracé', () => {
+  const grand = avis('grand', 'coupure', -73.57);
+  const petit = { ...avis('petit', 'ebullition', -73.57), geometry: { type: 'Polygon', coordinates: [carre(-73.57, 45.5, 0.0005)] } } as AvisEau;
+  const vide = { avis: [], chantiers: null, zones: null };
+
+  it('un toucher près du bord ouvre la fiche, pas seulement au centre', () => {
+    const bord = { latitude: 45.5 + 0.0019, longitude: -73.57 + 0.0019 }; // tout près d'un coin
+    expect(elementTouche(bord, { ...vide, avis: [grand] }, 5)?.id).toBe('avis-grand');
+    expect(elementTouche({ latitude: 45.5, longitude: -73.57 }, { ...vide, avis: [grand] }, 5)?.id).toBe('avis-grand');
+  });
+  it('quand deux se chevauchent, le plus petit gagne', () => {
+    expect(elementTouche({ latitude: 45.5, longitude: -73.57 }, { ...vide, avis: [grand, petit] }, 5)?.id).toBe('avis-petit');
+    expect(elementTouche({ latitude: 45.5 + 0.0015, longitude: -73.57 }, { ...vide, avis: [grand, petit] }, 5)?.id).toBe('avis-grand');
+  });
+  it('tolère quelques points autour d’un tracé, mais pas au loin ; hors de tout élément : rien', () => {
+    const juste = { latitude: 45.5, longitude: -73.57 + 0.002 + 8 / (111320 * Math.cos((45.5 * Math.PI) / 180)) }; // 8 m hors du bord
+    expect(elementTouche(juste, { ...vide, avis: [grand] }, 4)).toBeNull();
+    expect(elementTouche(juste, { ...vide, avis: [grand] }, 12)?.id).toBe('avis-grand');
+    expect(elementTouche({ latitude: 45.6, longitude: -73.4 }, { ...vide, avis: [grand] }, 12)).toBeNull();
+  });
+  it('aire et tolérance : valeurs raisonnables', () => {
+    expect(aireM2(petit.geometry)).toBeLessThan(aireM2(grand.geometry));
+    expect(toleranceToucherM(undefined)).toBe(15);
+    expect(toleranceToucherM(0.0001)).toBe(4);
+    expect(toleranceToucherM(10)).toBe(80);
   });
 });

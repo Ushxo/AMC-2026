@@ -122,7 +122,7 @@ export function Zone({ exterieur, trous, fond, contour, epaisseur, onPress }: Zo
       strokeColor={contour}
       strokeWidth={epaisseur}
       zIndex={0}
-      tappable
+      tappable={!!onPress}
       onPress={onPress}
     />
   );

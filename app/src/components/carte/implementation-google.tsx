@@ -349,7 +349,7 @@ export function Zone({ id, exterieur, trous, fond, contour, epaisseur, onPress }
         fillColor: fond,
         strokeColor: contour,
         strokeWidth: epaisseur,
-        clickable: true,
+        clickable: !!onPress,
       });
     },
     (c) => c.removePolygon(cle),

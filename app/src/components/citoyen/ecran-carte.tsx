@@ -32,20 +32,17 @@ import { libelleBande } from '@/lib/inondation';
 import {
   avisVisibles,
   basculerCouche,
-  chantierEn,
   COUCHES_CARTE,
   COUCHES_PAR_DEFAUT,
   ficheAvis,
-  ficheChantier,
-  ficheZoneInondable,
   LIBELLES_COUCHE,
   verifierAvis,
-  zoneInondableEn,
+  elementTouche,
+  toleranceToucherM,
   type ElementCarte,
   type EtatCouches,
   type VerificationAvis,
 } from '@/lib/couches-carte';
-import { pointDansGeometrie } from '@/lib/geo';
 import { dansQuartier, messagePositionCarte, RAYON_CITOYEN_M } from '@/lib/position-citoyen';
 import { LIBELLES_GRAVITE, type Categorie, type Endroit, type ResultatRecherche } from '@/types';
 import { FeuilleProbleme } from './feuille-probleme';
@@ -74,6 +71,7 @@ export default function CarteCitoyen({ coquille }: Props) {
   const { couches } = useCouches();
   const { endroits, signalements, chargement, erreur, rafraichir } = useEndroits();
   const bandes = useBandesInondation(signalements);
+  const deltaRegion = useRef<number | undefined>(undefined);
   const [options, setOptions] = useState(false);
   const [feuille, setFeuille] = useState<{ point: { latitude: number; longitude: number } | null } | null>(null);
   const [choixProbleme, setChoixProbleme] = useState<Categorie | null>(null);
@@ -118,14 +116,19 @@ export default function CarteCitoyen({ coquille }: Props) {
     setResultats(await chercher(texte));
   }
 
-  // Toucher la carte : un élément officiel (avis, chantier, zone inondable) ouvre sa fiche ; sinon on signale à cet endroit.
+  // Toucher la carte : un élément officiel (avis, chantier, zone inondable) touché N'IMPORTE OÙ dans son tracé (ou tout près) ouvre sa fiche,
+  // le plus petit gagnant quand ils se chevauchent ; sinon on signale à cet endroit. Le test se fait ici, pas sur le polygone de la carte.
   function toucherCarte(c: { latitude: number; longitude: number }) {
-    const a = avis.find((f) => pointDansGeometrie(c, f.geometry));
-    if (a) return setFiche({ element: ficheAvis(a), point: c });
-    const ch = coucheVisible.chantiers ? chantierEn(couches.chantiers, c) : null;
-    if (ch) return setFiche({ element: ficheChantier(ch), point: c });
-    const z = coucheVisible.zonesInondables ? zoneInondableEn(couches.zonesInondables, c) : null;
-    if (z) return setFiche({ element: ficheZoneInondable(z), point: c });
+    const element = elementTouche(
+      c,
+      {
+        avis,
+        chantiers: coucheVisible.chantiers ? couches.chantiers : null,
+        zones: coucheVisible.zonesInondables ? couches.zonesInondables : null,
+      },
+      toleranceToucherM(deltaRegion.current),
+    );
+    if (element) return setFiche({ element, point: c });
     signalerIci(c);
   }
 
@@ -164,12 +167,13 @@ export default function CarteCitoyen({ coquille }: Props) {
           positionUtilisateur={statutPosition === 'ok'}
           onTaille={surTaille}
           onRegionChangeComplete={(r) => {
+            deltaRegion.current = r.latitudeDelta;
             surRegion(r);
             surRegionGroupes(r);
           }}
           onPress={toucherCarte}
           accessibilityLabel="Carte des signalements et des avis d'eau. Touchez la carte pour signaler un problème à cet endroit, ou un avis pour voir sa fiche.">
-          <AvisEau avis={avis} onChoisir={(a) => setFiche({ element: ficheAvis(a), point: null })} />
+          <AvisEau avis={avis} />
           {coucheVisible.zonesInondables
             ? couches.zonesInondables.features.flatMap((f) => {
                 const anneaux = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
@@ -181,7 +185,6 @@ export default function CarteCitoyen({ coquille }: Props) {
                     fond={STYLE_ZONE_INONDABLE.fond}
                     contour={STYLE_ZONE_INONDABLE.contour}
                     epaisseur={STYLE_ZONE_INONDABLE.epaisseur}
-                    onPress={() => setFiche({ element: ficheZoneInondable(f), point: null })}
                   />
                 ));
               })

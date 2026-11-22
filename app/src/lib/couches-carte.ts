@@ -85,13 +85,13 @@ export function ficheAvis(a: AvisEau): ElementCarte {
 const RAYON_CHANTIER_M = 40;
 
 /** Chantier touché sur la carte (à moins de 40 m), le plus proche. */
-export function chantierEn(chantiers: CoucheChantiers, p: Coordonnees): CoucheChantiers['features'][number] | null {
+export function chantierEn(chantiers: CoucheChantiers, p: Coordonnees, toleranceM = 0): CoucheChantiers['features'][number] | null {
   let meilleur: { d: number; f: CoucheChantiers['features'][number] } | null = null;
   for (const f of chantiers.features) {
     if (!f.geometry) continue;
     const [longitude, latitude] = f.geometry.coordinates;
     const d = distanceM(p, { latitude, longitude });
-    if (d <= RAYON_CHANTIER_M && (!meilleur || d < meilleur.d)) meilleur = { d, f };
+    if (d <= RAYON_CHANTIER_M + toleranceM && (!meilleur || d < meilleur.d)) meilleur = { d, f };
   }
   return meilleur?.f ?? null;
 }
@@ -129,3 +129,99 @@ export function ficheZoneInondable(f: CoucheZonesInondables['features'][number])
     ],
   };
 }
+
+// --- Toucher de la carte : l'élément officiel touché, n'importe où dans son tracé ---
+
+type Geom = AvisEau['geometry'];
+type PolygoneCoords = number[][][];
+
+function polygonesDe(g: Geom | CoucheZonesInondables['features'][number]['geometry']): PolygoneCoords[] {
+  if (!g) return [];
+  if (g.type === 'Polygon') return [g.coordinates as PolygoneCoords];
+  if (g.type === 'MultiPolygon') return g.coordinates as PolygoneCoords[];
+  return [];
+}
+
+/** Aire approximative d'un polygone en m² (plan local autour de son premier point), pour choisir le plus petit quand ils se chevauchent. */
+export function aireM2(g: Geom | CoucheZonesInondables['features'][number]['geometry']): number {
+  let total = 0;
+  for (const poly of polygonesDe(g)) {
+    const [ext, ...trous] = poly;
+    if (!ext || ext.length < 3) continue;
+    const [lng0, lat0] = ext[0];
+    const kx = 111320 * Math.cos((lat0 * Math.PI) / 180);
+    const aire = (anneau: number[][]) => {
+      let a = 0;
+      for (let i = 0, j = anneau.length - 1; i < anneau.length; j = i++) {
+        a += ((anneau[j][0] - lng0) * kx) * ((anneau[i][1] - lat0) * 110540) - ((anneau[i][0] - lng0) * kx) * ((anneau[j][1] - lat0) * 110540);
+      }
+      return Math.abs(a) / 2;
+    };
+    total += aire(ext) - trous.reduce((t, h) => t + aire(h), 0);
+  }
+  return total;
+}
+
+/** Distance en mètres du point au contour le plus proche du polygone (0 s'il est dedans). */
+export function distanceAuTracerM(p: Coordonnees, g: Geom | CoucheZonesInondables['features'][number]['geometry']): number {
+  if (pointDansGeometrie(p, g as never)) return 0;
+  const kx = 111320 * Math.cos((p.latitude * Math.PI) / 180);
+  let meilleure = Infinity;
+  for (const poly of polygonesDe(g)) {
+    for (const anneau of poly) {
+      for (let i = 0; i < anneau.length - 1; i++) {
+        const ax = (anneau[i][0] - p.longitude) * kx;
+        const ay = (anneau[i][1] - p.latitude) * 110540;
+        const bx = (anneau[i + 1][0] - p.longitude) * kx;
+        const by = (anneau[i + 1][1] - p.latitude) * 110540;
+        const dx = bx - ax;
+        const dy = by - ay;
+        const l2 = dx * dx + dy * dy;
+        const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2));
+        meilleure = Math.min(meilleure, Math.hypot(ax + t * dx, ay + t * dy));
+      }
+    }
+  }
+  return meilleure;
+}
+
+/** Tolérance de toucher en mètres : environ 14 points d'écran, selon le zoom de la carte (au moins 4 m, au plus 80 m). */
+export function toleranceToucherM(latitudeDelta: number | undefined): number {
+  if (!latitudeDelta || !Number.isFinite(latitudeDelta)) return 15;
+  return Math.max(4, Math.min(80, (latitudeDelta * 110540 * 14) / 800));
+}
+
+export type ElementTouche = { element: ElementCarte; aire: number };
+
+/**
+ * L'élément officiel touché : un avis, une zone inondable (si leur couche est visible) ou un chantier.
+ * Touche valable dans le tracé ou à moins de `toleranceM` du contour ; quand plusieurs se chevauchent, le plus petit gagne.
+ */
+export function elementTouche(
+  p: Coordonnees,
+  contenu: { avis: AvisEau[]; chantiers: CoucheChantiers | null; zones: CoucheZonesInondables | null },
+  toleranceM: number,
+): ElementCarte | null {
+  const candidats: { aire: number; fiche: () => ElementCarte }[] = [];
+  for (const a of contenu.avis) {
+    if (a.geometry?.type === 'Point') {
+      const [longitude, latitude] = a.geometry.coordinates;
+      if (distanceM(p, { latitude, longitude }) <= RAYON_AVIS_TOUCHE_M + toleranceM) candidats.push({ aire: Math.PI * RAYON_AVIS_TOUCHE_M ** 2, fiche: () => ficheAvis(a) });
+    } else if (a.geometry && distanceAuTracerM(p, a.geometry) <= toleranceM) {
+      candidats.push({ aire: aireM2(a.geometry), fiche: () => ficheAvis(a) });
+    }
+  }
+  if (contenu.chantiers) {
+    const ch = chantierEn(contenu.chantiers, p, toleranceM);
+    if (ch) candidats.push({ aire: 0, fiche: () => ficheChantier(ch) });
+  }
+  if (contenu.zones) {
+    for (const z of contenu.zones.features) {
+      if (distanceAuTracerM(p, z.geometry) <= toleranceM) candidats.push({ aire: aireM2(z.geometry), fiche: () => ficheZoneInondable(z) });
+    }
+  }
+  if (candidats.length === 0) return null;
+  return candidats.sort((a, b) => a.aire - b.aire)[0].fiche();
+}
+
+const RAYON_AVIS_TOUCHE_M = 150;
