@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useImperativeHandle,
 import { View, type LayoutChangeEvent } from 'react-native';
 import type * as Nav from '@googlemaps/react-native-navigation-sdk';
 
+import { useOngletActif } from '@/components/mouvement/onglets-gardes';
 import { useThemeCarte } from '@/hooks/use-theme-carte';
 import { deltasPourRayon } from '@/lib/position-citoyen';
 import { cadrerPoints, regionDepuisCamera, zoomDepuisDelta } from '@/lib/camera';
@@ -62,6 +63,8 @@ function ll(c: Coordonnees): Nav.LatLng {
 export function Carte({ commandes, children, regionInitiale, onPress, onRegionChangeComplete, onTaille, style, accessibilityLabel, positionUtilisateur }: CarteProps) {
   const nav = biblio();
   const theme = useThemeCarte();
+  // Carte cachée par une coquille à onglets : on arrête de relire la caméra (10 fois par seconde) ; au retour, relecture immédiate.
+  const onglet = useOngletActif();
   const mapId = choisirIdCarte(envCarte(), theme);
   const cleVue = `google-${theme}-${mapId ?? 'defaut'}`;
   // Chaque vue native (recréée quand le style change) a son propre contrôleur et son propre « prête » : l'état d'une ancienne vue ne compte jamais.
@@ -164,7 +167,8 @@ export function Carte({ commandes, children, regionInitiale, onPress, onRegionCh
   // La bibliothèque n'a pas d'événement de caméra : on relit la caméra par rafales courtes pendant un geste (toutes les
   // 100 ms) et 1 s après sa fin, puis très rarement au repos (filet de sécurité, pour un déplacement qui ne passe pas par un toucher).
   useEffect(() => {
-    if (!controleur) return;
+    if (!controleur || !onglet) return;
+    derniereLecture.current = 0; // au (re)démarrage : une relecture tout de suite (le regroupement se recale)
     let occupe = false;
     const minuteur = setInterval(() => {
       if (!surRegion.current || occupe) return;
@@ -188,7 +192,7 @@ export function Carte({ commandes, children, regionInitiale, onPress, onRegionCh
         });
     }, PERIODE_RAFALE_MS);
     return () => clearInterval(minuteur);
-  }, [controleur]);
+  }, [controleur, onglet]);
 
   const Vue = nav.MapView;
   return (
