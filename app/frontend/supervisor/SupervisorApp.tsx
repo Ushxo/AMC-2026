@@ -5,7 +5,6 @@ import { useAcces } from "@/hooks/use-acces";
 import { EcranEquipes } from "@/app/ville/equipes";
 import { EcranTournees } from "@/app/ville/tournees";
 import { OngletsGardes } from "@/components/mouvement/onglets-gardes";
-import { ListeAlertes } from "@/components/ville/liste-alertes";
 import { BarreOnglets, type Onglet } from "../components/BarreOnglets";
 import { BoutonProfil } from "../components/BoutonProfil";
 import { EnteteVert } from "../components/EnteteVert";
@@ -16,25 +15,23 @@ import TrajetOptimal from "./TrajetOptimal";
 import { useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
 
-type Id = "interventions" | "alertes" | "optimisation" | "equipes" | "rapports";
+type Id = "interventions" | "optimisation" | "equipes" | "rapports";
 
 const ONGLETS: Onglet<Id>[] = [
   { id: "interventions", label: "Planifier", nom: "Interventions à planifier", icon: "list-outline", iconActive: "list" },
-  { id: "alertes", label: "Alertes", icon: "alert-circle-outline", iconActive: "alert-circle" },
   { id: "optimisation", label: "Calcul", nom: "Optimisation", icon: "git-compare-outline", iconActive: "git-compare" },
   { id: "equipes", label: "Équipes", icon: "people-outline", iconActive: "people" },
   { id: "rapports", label: "Traités", nom: "Arrêts traités", icon: "checkmark-done-outline", iconActive: "checkmark-done" },
 ];
 
 const ENTETES: Record<Id, { titre: string; sous: string }> = {
-  interventions: { titre: "Interventions", sous: "Triées par importance" },
-  alertes: { titre: "Alertes", sous: "Signalements reçus des citoyens" },
+  interventions: { titre: "Interventions", sous: "Les endroits signalés, par état et par importance" },
   optimisation: { titre: "Optimisation", sous: "Options du calcul : quoi inclure, équipes, répartition" },
   equipes: { titre: "Équipes", sous: "Départ, arrivée et compte de chaque équipe" },
   rapports: { titre: "Arrêts traités", sous: "Ce que les équipes ont fait, et ce qui reste à reprendre" },
 };
 
-// Espace superviseur : la page des interventions à planifier (avec le bouton de calcul), puis NOS écrans (alertes, optimisation, équipes, arrêts faits).
+// Espace superviseur : la page des interventions à planifier (avec le bouton de calcul), puis NOS écrans (optimisation, équipes, arrêts traités).
 export default function SupervisorApp({ onLogout, onAdministration }: { onLogout: () => void; onAdministration?: () => void }) {
   const styles = useStyles(creerStyles);
   const { nom, demoHorsLigne } = useAcces();
@@ -78,7 +75,6 @@ export default function SupervisorApp({ onLogout, onAdministration }: { onLogout
                   />
                 ),
             },
-            { id: "alertes", rendu: () => <ListeAlertes avecResume={false} /> },
             {
               id: "optimisation",
               deps: [demande, details],

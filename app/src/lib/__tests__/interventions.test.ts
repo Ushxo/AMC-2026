@@ -1,5 +1,5 @@
 import type { Endroit, Signalement } from '../../types';
-import { AUCUN_FILTRE, clesDesInterventions, formaterDuree, interventionsAPlanifier } from '../interventions';
+import { AUCUN_FILTRE, clesDesInterventions, filtreCalculable, formaterDuree, interventionsAPlanifier } from '../interventions';
 import type { Zone } from '../zones';
 
 function sig(id: string, categorie: Signalement['categorie'], cree_le: string, etat: Signalement['etat'] = 'nouveau'): Signalement {
@@ -38,6 +38,42 @@ describe('interventions à planifier', () => {
   it('filtre par secteur (zone)', () => {
     const zone = { id: 'z1', signalement_ids: ['1', '2'] } as unknown as Zone;
     expect(clesDesInterventions(interventionsAPlanifier(endroits, [zone], { ...AUCUN_FILTRE, zoneId: 'z1' }))).toEqual(['b', 'a']);
+  });
+});
+
+describe('liste du superviseur : filtre d’état et filtres combinés', () => {
+  const mixtes = [
+    endroit('n', 'moyenne', [sig('10', 'grille_bouchee', '2026-11-20T10:00:00Z', 'nouveau')]),
+    endroit('p', 'elevee', [sig('11', 'eau_accumulee', '2026-11-20T11:00:00Z', 'pris_en_charge'), sig('12', 'eau_accumulee', '2026-11-20T12:00:00Z', 'regle')]),
+    endroit('r', 'faible', [sig('13', 'affaissement', '2026-11-19T10:00:00Z', 'regle')]),
+    endroit('x', 'faible', [sig('14', 'autre', '2026-11-18T10:00:00Z', 'rejete')]),
+  ];
+  const cles = (f: Partial<typeof AUCUN_FILTRE>) => clesDesInterventions(interventionsAPlanifier(mixtes, [], { ...AUCUN_FILTRE, ...f }));
+
+  it('par défaut : à traiter (nouveau et pris en charge), comme avant', () => {
+    expect(AUCUN_FILTRE.etat).toBe('a_traiter');
+    expect(cles({})).toEqual(['p', 'n']);
+  });
+  it('un état précis, réglés, rejetés, tous', () => {
+    expect(cles({ etat: 'nouveau' })).toEqual(['n']);
+    expect(cles({ etat: 'pris_en_charge' })).toEqual(['p']);
+    expect(cles({ etat: 'regle' })).toEqual(['p', 'r']);
+    expect(cles({ etat: 'rejete' })).toEqual(['x']);
+    expect(cles({ etat: 'tous' })).toEqual(['p', 'n', 'x', 'r']); // importance, puis le plus ancien d'abord
+  });
+  it('le nombre de signalements compte ceux qui correspondent aux filtres', () => {
+    const p = (etat: 'a_traiter' | 'regle' | 'tous') => interventionsAPlanifier(mixtes, [], { ...AUCUN_FILTRE, etat }).find((i) => i.endroit.cle === 'p')?.nombre;
+    expect([p('a_traiter'), p('regle'), p('tous')]).toEqual([1, 1, 2]);
+  });
+  it('filtres combinés : état, type de problème et importance', () => {
+    expect(cles({ etat: 'regle', categorie: 'affaissement' })).toEqual(['r']);
+    expect(cles({ etat: 'tous', gravite: 'faible' })).toEqual(['x', 'r']);
+    expect(cles({ etat: 'a_traiter', categorie: 'eau_accumulee', gravite: 'elevee' })).toEqual(['p']);
+    expect(cles({ etat: 'rejete', categorie: 'grille_bouchee' })).toEqual([]);
+  });
+  it('le calcul ne porte que sur des endroits à traiter', () => {
+    expect(['a_traiter', 'nouveau', 'pris_en_charge'].every((e) => filtreCalculable(e as never))).toBe(true);
+    expect(['regle', 'rejete', 'tous'].some((e) => filtreCalculable(e as never))).toBe(false);
   });
 });
 
