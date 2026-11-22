@@ -5,13 +5,13 @@ import { Montserrat_600SemiBold } from '@expo-google-fonts/montserrat/600SemiBol
 import { Montserrat_700Bold } from '@expo-google-fonts/montserrat/700Bold';
 import { Montserrat_800ExtraBold } from '@expo-google-fonts/montserrat/800ExtraBold';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { definirPolicesChargees } from '@/components/texte';
 import { installerGestionnaires } from '@/lib/trace';
+import { useJetons } from '@/marque/utiliser';
 
 // L'écran de démarrage reste affiché le temps de charger les polices. Un refus ne doit rien casser.
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -23,7 +23,20 @@ export { ErrorBoundary } from '@/components/ville/erreur-ecran';
 installerGestionnaires();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  // Le fond et les couleurs de la navigation viennent du thème de l'app, jamais du mode clair ou sombre
+  // du téléphone : sinon un iPhone en mode sombre met un fond noir sous des écrans au thème clair.
+  const jetons = useJetons();
+  const themeNavigation = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: jetons.background,
+      card: jetons.surface,
+      text: jetons.text,
+      border: jetons.border,
+      primary: jetons.primary,
+    },
+  };
   // Les polices sont chargées ici pour tous les écrans, même ouverts par un lien direct.
   // Si le chargement échoue, l'app garde la police du système.
   const [polices, erreurPolices] = useFonts({
@@ -36,7 +49,7 @@ export default function RootLayout() {
   definirPolicesChargees(polices && !erreurPolices);
   if (!polices && !erreurPolices) return null;
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={themeNavigation}>
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(citoyen)" />

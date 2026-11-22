@@ -49,7 +49,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
               ...config.ios?.infoPlist,
               UIBackgroundModes: ['location', 'audio'],
               // Sans langue déclarée, les textes de la navigation Google restent en anglais.
-              CFBundleLocalizations: ['fr', 'en'],
+              // Français seulement : la navigation Google suit la langue de l'app, pas celle du téléphone.
+              CFBundleLocalizations: ['fr'],
               CFBundleDevelopmentRegion: 'fr',
               NSLocationAlwaysAndWhenInUseUsageDescription:
                 "Votre position sert à guider l'équipe vers ses arrêts pendant le trajet.",
