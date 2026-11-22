@@ -25,8 +25,7 @@ import { erreursSignalement } from '@/lib/champs';
 import { jugerPhoto } from '@/lib/ml';
 import { analyseDisponible, graviteSuggeree, MESSAGE_ANALYSE_INDISPONIBLE, MESSAGE_PHOTO_PAS_EGOUT } from '@/lib/suggestion-gravite';
 import PhotoStep from '../../../frontend/citizen/PhotoStep';
-import { ProblemIllustration } from '../../../frontend/components/ProblemIllustration';
-import type { AlertKind } from '../../../frontend/types/models';
+import { ILLUSTRATION_PAR_CATEGORIE as ILLUSTRATION, ProblemIllustration } from '../../../frontend/components/ProblemIllustration';
 import { chargerRegion } from '@/lib/officiel';
 import {
   MESSAGE_ECHEC_ENVOI,
@@ -49,13 +48,6 @@ import {
 const CATEGORIES: Categorie[] = CATEGORIES_PROPOSEES;
 const GRAVITES: Gravite[] = ['faible', 'moyenne', 'elevee'];
 
-/** Illustration de chaque problème proposé (les dessins sont rangés sous les anciens noms de la maquette). */
-const ILLUSTRATION: Partial<Record<Categorie, AlertKind>> = {
-  grille_bouchee: 'Égout bouché',
-  eau_accumulee: 'Eau accumulée',
-  affaissement: 'Feuilles',
-  grille_endommagee: 'Autre',
-};
 const TITRE_CARTE: Partial<Record<Categorie, string>> = {
   grille_bouchee: 'Égout bouché',
   eau_accumulee: "Accumulation d'eau ou inondation",

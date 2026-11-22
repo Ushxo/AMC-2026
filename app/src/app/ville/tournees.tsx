@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -64,7 +64,17 @@ export default function Tournees() {
 }
 
 /** L'écran des tournées ; dans la coquille de l'app (barre d'onglets dessous), la marge du bas est déjà prise par la barre. */
-export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean }) {
+export function EcranTournees({
+  dansCoquille = false,
+  clesInitiales,
+  lancerAuto = false,
+}: {
+  dansCoquille?: boolean;
+  /** Sélection de départ (venue de « Interventions à planifier »). */
+  clesInitiales?: string[];
+  /** Lance le calcul dès que les endroits sont chargés (bouton « Calculer le trajet optimal »). */
+  lancerAuto?: boolean;
+}) {
   const { bottom: bas } = useSafeAreaInsets();
   const bottom = dansCoquille ? 0 : bas;
   const router = useRouter();
@@ -79,7 +89,7 @@ export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean
   const { endroits, signalements } = useEndroits();
   const zones = useZonesSignalements(signalements);
   const ouverts = useMemo(() => endroitsOuverts(endroits), [endroits]);
-  const selection = useSelectionEndroits(ouverts);
+  const selection = useSelectionEndroits(ouverts, clesInitiales);
   const [point, setPoint] = useState<{ latitude: number; longitude: number } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [equipeActive, setEquipeActive] = useState<string | null>(null);
@@ -117,6 +127,14 @@ export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean
     }
     setMessage(await lancer(parametresCalcul()));
   }
+
+  // Calcul demandé depuis la liste des interventions : une seule fois, quand les endroits sont là et que le rôle le permet.
+  const autoFait = useRef(false);
+  useEffect(() => {
+    if (!lancerAuto || autoFait.current || !peutGerer || ouverts.length === 0) return;
+    autoFait.current = true;
+    void optimiser();
+  });
 
   async function ajouterIncident() {
     if (!repli && !point) {
