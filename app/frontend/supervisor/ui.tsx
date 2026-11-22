@@ -21,24 +21,56 @@ export const S = {
 };
 
 // Couleurs et icône de chaque degré d'importance.
+// Accents : rouge (le plus grave), orange, vert — posés sur la palette crème / vert forêt.
 export const IMPORTANCE_STYLE: Record<
   Importance,
-  { bg: string; pill: string; text: string; soft: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }
+  {
+    bg: string;
+    pill: string;
+    text: string;
+    soft: string;
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
+    level: number; // 3 = le plus grave
+    caption: string;
+  }
 > = {
-  Urgent: { bg: "#FBD9D6", pill: "#C8221B", text: "#C8221B", soft: "#FBE1DE", icon: "alarm-light-outline" },
-  Élevée: { bg: "#FCDDC6", pill: "#EE6A1F", text: "#E2601A", soft: "#FCE5D2", icon: "chevron-double-up" },
-  Moyenne: { bg: "#FBEFC6", pill: "#D99A0B", text: "#C98A05", soft: "#FBF0CE", icon: "minus" },
+  Urgent: {
+    bg: "#F9DCD7",
+    pill: "#C4302B",
+    text: "#A8251F",
+    soft: "#FCEBE8",
+    icon: "alarm-light",
+    level: 3,
+    caption: "Priorité 1",
+  },
+  Élevée: {
+    bg: "#FBE2CC",
+    pill: "#E2671A",
+    text: "#B94F0E",
+    soft: "#FDF0E3",
+    icon: "alert",
+    level: 2,
+    caption: "Priorité 2",
+  },
+  Moyenne: {
+    bg: "#DDEBD5",
+    pill: "#3F7A3A",
+    text: "#2D5F29",
+    soft: "#EDF5E8",
+    icon: "shield-check",
+    level: 1,
+    caption: "Priorité 3",
+  },
 };
 
+// Code de priorité discret : une fine barre de couleur sur le bord gauche de la carte.
 export function ImportanceTile({ importance }: { importance: Importance }) {
   const st = IMPORTANCE_STYLE[importance];
   return (
-    <View style={[styles.tile, { backgroundColor: st.bg }]}>
-      <MaterialCommunityIcons name={st.icon} size={30} color={st.pill} />
-      <View style={[styles.tilePill, { backgroundColor: st.pill }]}>
-        <Text style={styles.tilePillText}>{importance}</Text>
-      </View>
-    </View>
+    <View
+      style={[styles.tile, { backgroundColor: st.pill }]}
+      accessibilityLabel={`Importance ${importance}, ${st.caption.toLowerCase()}`}
+    />
   );
 }
 
@@ -116,19 +148,10 @@ export function FilterChip({ icon, label, value, options, onChange }: FilterProp
 
 const styles = StyleSheet.create({
   tile: {
-    width: 74,
-    height: 72,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
-  tilePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    minWidth: 62,
-    alignItems: "center",
+    width: 5,
+    alignSelf: "stretch",
+    borderRadius: 3,
+    marginVertical: 4,
   },
   tilePillText: {
     color: S.white,

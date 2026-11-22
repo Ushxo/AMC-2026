@@ -9,7 +9,7 @@ import { SEWERS } from "../data/mockData";
 import { formatDate, KIND_TITLES } from "../format";
 import { AlertKind } from "../types/models";
 import { buildInterventions, Importance, IMPORTANCE_ORDER, Intervention } from "./planning";
-import { FilterChip, ImportanceTile, S, SmallIllustration } from "./ui";
+import { FilterChip, IMPORTANCE_STYLE, ImportanceTile, S, SmallIllustration } from "./ui";
 
 type Props = {
   reportsToValidate: number;
@@ -24,9 +24,8 @@ const SECTORS = Array.from(new Set(SEWERS.map((s) => s.territory)));
 const KINDS = Object.keys(KIND_TITLES) as AlertKind[];
 
 // Tableau de bord superviseur : interventions à planifier, triées par importance.
+// Les rapports à valider restent accessibles depuis le menu du compte.
 export default function PlanningScreen({
-  reportsToValidate,
-  onOpenReports,
   onOpenProfile,
   onComputeRoute,
   notice,
@@ -56,14 +55,6 @@ export default function PlanningScreen({
           <Text style={styles.headerTitle}>Superviseur</Text>
           <Text style={styles.headerSub}>Tableau de bord des interventions</Text>
         </View>
-        <Pressable
-          onPress={onOpenReports}
-          hitSlop={8}
-          accessibilityLabel={`Rapports à valider : ${reportsToValidate}`}
-        >
-          <Ionicons name="notifications-outline" size={32} color={S.cream} />
-          {reportsToValidate > 0 && <View style={styles.bellDot} />}
-        </Pressable>
         <Pressable onPress={onOpenProfile} hitSlop={8} accessibilityLabel="Mon compte">
           <Ionicons name="person-circle-outline" size={44} color={S.cream} />
         </Pressable>
@@ -106,7 +97,13 @@ export default function PlanningScreen({
 
         <View style={styles.list}>
           {list.map((item) => (
-            <View key={item.sewer.id} style={styles.card}>
+            <View
+              key={item.sewer.id}
+              style={[
+                styles.card,
+                { borderColor: IMPORTANCE_STYLE[item.importance].pill + (item.importance === "Urgent" ? "59" : "26") },
+              ]}
+            >
               <ImportanceTile importance={item.importance as Importance} />
               <SmallIllustration kind={item.kind} scale={0.62} />
               <View style={{ flex: 1 }}>
@@ -177,17 +174,6 @@ const styles = StyleSheet.create({
     color: "#E3E1D5",
     fontSize: 14,
     marginTop: 2,
-  },
-  bellDot: {
-    position: "absolute",
-    top: 0,
-    right: 1,
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: S.orange,
-    borderWidth: 1.5,
-    borderColor: S.green,
   },
   sheet: {
     flex: 1,
@@ -263,6 +249,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: S.card,
     borderRadius: 22,
+    borderWidth: 1,
     padding: 10,
     minHeight: 92,
     shadowColor: "#1A261A",
