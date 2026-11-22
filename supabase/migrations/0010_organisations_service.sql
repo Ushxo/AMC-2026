@@ -14,6 +14,11 @@ set service = 'Égouts et avis d''eau',
     textes = '{"titreCarte": "Carte des égouts", "rechercheAdresse": "Rechercher une adresse à Montréal"}'::jsonb
 where code in ('priorix', 'montreal') and service is null;
 
+-- Priorix montre tous les signalements, pas seulement les égouts.
+update organisations
+set textes = textes || '{"titreCarte": "Carte des signalements"}'::jsonb
+where code = 'priorix' and textes ->> 'titreCarte' = 'Carte des égouts';
+
 -- Un admin crée une organisation (avant : seulement la modifier).
 drop policy if exists organisations_creation on organisations;
 create policy organisations_creation on organisations for insert
