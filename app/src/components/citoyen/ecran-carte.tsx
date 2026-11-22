@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { VOILE_FEUILLE, FEUILLE_BASE, COULEUR_REPERE, STYLE_AVIS, STYLE_CHANTIER, STYLE_ZONE_INONDABLE, COULEUR_OMBRE } from '@/components/ville/style';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, View, Switch } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View, Switch } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { ChampTexte as TextInput } from '@/components/texte';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -52,6 +52,9 @@ import {
 import { dansQuartier, decisionCentrage, messagePositionCarte, RAYON_CITOYEN_M, regionDeDepart } from '@/lib/position-citoyen';
 import { LIBELLES_GRAVITE, type Categorie, type Coordonnees, type Endroit, type ResultatRecherche } from '@/types';
 import { LogoMarque } from '@/components/logo-marque';
+import { BulleAide } from '@/components/mouvement/bulle-aide';
+import { ModaleAnimee } from '@/components/mouvement/modale-animee';
+import { useAideUneFois } from '@/components/mouvement/use-aide-une-fois';
 import { LegendeGravite } from './legende-gravite';
 import { FeuilleProbleme } from './feuille-probleme';
 import { textesDe } from '@/marque/organisations-embarquees';
@@ -88,6 +91,8 @@ export default function CarteCitoyen({ coquille }: Props) {
   const deltaRegion = useRef<number | undefined>(undefined);
   const [options, setOptions] = useState(false);
   const [garde] = useState(() => creerGardeToucher(300));
+  // Aide montrée une seule fois, à la première ouverture : elle disparaît au premier toucher (ou après 12 s).
+  const aide = useAideUneFois('signaler');
   const [hauteurEntete, setHauteurEntete] = useState(200);
   // Retour depuis la photo : la feuille « Quel problème ? » se rouvre sur la carte, avec le problème et le lieu déjà choisis.
   const [feuille, setFeuille] = useState<{ point: { latitude: number; longitude: number } | null } | null>(() => (lireBrouillon().feuilleOuverte ? { point: lireBrouillon().lieu } : null));
@@ -218,7 +223,7 @@ export default function CarteCitoyen({ coquille }: Props) {
   }
 
   return (
-    <View style={styles.fond}>
+    <View style={styles.fond} onTouchStart={aide.fermer}>
       {!regionDepart ? (
         <View style={styles.centre}>
           <Chargement texte="Ouverture de la carte…" />
@@ -427,6 +432,11 @@ export default function CarteCitoyen({ coquille }: Props) {
         <LegendeGravite />
       </View>
 
+      {/* Bulle d'aide (une seule fois) : au-dessus du bouton « Signaler un problème », sans prendre aucun toucher. */}
+      <View pointerEvents="none" style={[styles.aideCadre, { bottom: HAUTEUR_BARRE * (coquille ? 1 : 0) + bottom + 16 + 56 + 14 }]}>
+        <BulleAide visible={aide.visible} texte="Touchez ici, ou touchez la carte à l'endroit du problème" pointe="bas" />
+      </View>
+
       {/* Boutons flottants : options de la carte, recentrage, signalement. */}
       <View pointerEvents="box-none" style={[styles.flottants, { bottom: HAUTEUR_BARRE * (coquille ? 1 : 0) + bottom + 16 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Options de la carte et liste des endroits" onPress={() => setOptions(true)} style={[styles.rond, { backgroundColor: theme.background }]}>
@@ -462,8 +472,7 @@ export default function CarteCitoyen({ coquille }: Props) {
         />
       ) : null}
 
-      <Modal visible={fiche !== null} transparent animationType="slide" onRequestClose={() => setFiche(null)}>
-        <Pressable retour={false} style={styles.voile} onPress={() => setFiche(null)} accessibilityRole="button" accessibilityLabel="Fermer la fiche" />
+      <ModaleAnimee visible={fiche !== null} onFermer={() => setFiche(null)} libelleFermer="Fermer la fiche">
         <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
           <ScrollView contentContainerStyle={styles.contenuFeuille}>
             <ThemedText type="subtitle" accessibilityRole="header" style={{ fontSize: 20, lineHeight: 28 }}>
@@ -492,11 +501,10 @@ export default function CarteCitoyen({ coquille }: Props) {
             <Bouton titre="Fermer" variante="discret" pleineLargeur onPress={() => setFiche(null)} />
           </ScrollView>
         </View>
-      </Modal>
+      </ModaleAnimee>
 
       {/* Options : style de la carte, liste équivalente des endroits, explications. */}
-      <Modal visible={options} transparent animationType="slide" onRequestClose={() => setOptions(false)}>
-        <Pressable retour={false} style={styles.voile} onPress={() => setOptions(false)} accessibilityRole="button" accessibilityLabel="Fermer les options de la carte" />
+      <ModaleAnimee visible={options} onFermer={() => setOptions(false)} libelleFermer="Fermer les options de la carte">
         <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
           <ScrollView contentContainerStyle={styles.contenuFeuille}>
             <ThemedText type="subtitle" accessibilityRole="header">
@@ -563,7 +571,7 @@ export default function CarteCitoyen({ coquille }: Props) {
             <Bouton titre="Fermer" variante="discret" pleineLargeur onPress={() => setOptions(false)} />
           </ScrollView>
         </View>
-      </Modal>
+      </ModaleAnimee>
     </View>
   );
 }
@@ -576,6 +584,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   ligneTitre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   marqueTitre: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   titre: { fontSize: 22, lineHeight: 28, fontWeight: '800' },
+  aideCadre: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   etatDonnees: { position: 'absolute', right: 16, maxWidth: '70%', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1 },
   reessayer: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
   compte: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },

@@ -14,6 +14,7 @@ import {
   type CibleNavigation,
   type SessionNavigation,
 } from '@/components/carte/navigation-google';
+import { ChiffreGlissant } from '@/components/mouvement/chiffre-glissant';
 import { BarreNavigation } from '@/components/ville/barre-navigation';
 import { etatArretNavigation, libelleProblemeEtLieu, libelleProchainArret } from '@/lib/libelles-navigation';
 import { ChoixResultatArret, type ChoixResultat } from '@/components/ville/choix-resultat-arret';
@@ -424,9 +425,9 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
                   </View>
                 </View>
                 {tournee && !finie ? (
-                  <ThemedText style={styles.dureePastille} accessibilityLabel={`Temps restant estimé ${formaterDuree(resteEstime(tournee, estTraite).duree_s)}`}>
-                    {formaterDuree(resteEstime(tournee, estTraite).duree_s)}
-                  </ThemedText>
+                  <View style={styles.dureeCadre} accessibilityLabel={`Temps restant estimé ${formaterDuree(resteEstime(tournee, estTraite).duree_s)}`}>
+                    <ChiffreGlissant valeur={formaterDuree(resteEstime(tournee, estTraite).duree_s)} style={styles.dureePastille} />
+                  </View>
                 ) : null}
               </View>
 
@@ -823,7 +824,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   remplissage: { height: 8, borderRadius: 4 },
   progression: { backgroundColor: P.bandeau, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   progressionTitre: { fontSize: 15, lineHeight: 22, fontWeight: '700', color: P.primary },
-  dureePastille: { backgroundColor: P.surface, color: P.primary, fontSize: 14, fontWeight: '700', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
+  dureeCadre: { backgroundColor: P.surface, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
+  dureePastille: { color: P.primary, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   carteArretBlanche: { backgroundColor: P.surface, borderRadius: 22, padding: 16, gap: 12 },
   arretLigne: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   arretNum: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

@@ -278,6 +278,13 @@ export default function Signaler() {
   }
 
   const termine = envoyeId !== null;
+  // Après un envoi réussi, la coche de réussite reste une demi-seconde sur le bouton avant que les deux boutons de suite le remplacent.
+  const [coche, setCoche] = useState(false);
+  useEffect(() => {
+    if (!termine) return;
+    const t = setTimeout(() => setCoche(true), 700);
+    return () => clearTimeout(t);
+  }, [termine]);
 
   // Brouillon : la photo reprise est de nouveau analysée ; chaque changement est gardé pour le retour vers la carte.
   const fini = useRef(false); // envoyé ou abandonné : le brouillon est vidé, rien à rouvrir
@@ -520,7 +527,7 @@ export default function Signaler() {
       </ScrollView>
 
       <View style={[styles.pied, { paddingBottom: bottom + 16 }]}>
-        {termine ? (
+        {termine && coche ? (
           <View style={{ gap: 8 }}>
             <Bouton pleineLargeur titre="Suivre mon signalement" onPress={() => router.replace({ pathname: '/suivi/[id]', params: { id: envoyeId } })} />
             <Bouton pleineLargeur titre="Retour à la carte" variante="discret" onPress={() => router.replace('/')} />
@@ -530,6 +537,7 @@ export default function Signaler() {
             titre={attenteAnalyse ? 'Vérification de la photo…' : envoiEnCours ? 'Envoi…' : 'Envoyer le signalement'}
             onPress={() => sansBruit(valider, 'envoi')}
             occupe={envoiEnCours || attenteAnalyse}
+            succes={termine}
           />
         )}
       </View>

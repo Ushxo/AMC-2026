@@ -32,6 +32,7 @@ import { dateProchainQuart } from "@/lib/temps";
 import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { IllustrationProbleme } from "@/components/illustration-probleme";
 import { useImportance } from "./InterventionsAPlanifier";
+import { ChiffreGlissant } from "@/components/mouvement/chiffre-glissant";
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
@@ -150,7 +151,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
               </View>
               <View style={styles.duree} accessibilityLabel={`Durée estimée ${formaterDuree(actif.duree_s)}`}>
                 <Ionicons name="time-outline" size={20} color={P.text} />
-                <Text style={styles.dureeTexte}>{formaterDuree(actif.duree_s)}</Text>
+                <ChiffreGlissant valeur={formaterDuree(actif.duree_s)} style={styles.dureeTexte} />
               </View>
             </View>
             {basculeSurPrecalcule ? (

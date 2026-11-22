@@ -21,7 +21,7 @@ beforeEach(() => reinitialiserMarque());
 describe('panneau du bas de la navigation', () => {
   it('trois lignes : temps et distance, progression, problème et adresse ; UNE action principale', async () => {
     await render(<BarreNavigation {...base} />);
-    expect(screen.getByText('4 min · 1,2 km')).toBeTruthy();
+    expect(screen.getByLabelText('4 min · 1,2 km')).toBeTruthy();
     expect(screen.getByText('Arrêt 1 sur 39 · reste 6 h 14')).toBeTruthy();
     expect(screen.getByText('Égout bouché · Près de 900 place Jean-Paul-Riopelle')).toBeTruthy();
     expect(screen.getByLabelText('Arrêt fait ?')).toBeTruthy();
@@ -54,7 +54,7 @@ describe('panneau du bas de la navigation', () => {
 
   it('sans mesure de Google, la ligne principale est omise (pas de ligne vide)', async () => {
     await render(<BarreNavigation {...base} principal={null} />);
-    expect(screen.queryByText('4 min · 1,2 km')).toBeNull();
+    expect(screen.queryByLabelText('4 min · 1,2 km')).toBeNull();
     expect(screen.getByText('Arrêt 1 sur 39 · reste 6 h 14')).toBeTruthy();
   });
 
@@ -65,7 +65,7 @@ describe('panneau du bas de la navigation', () => {
     const style = Array.isArray(panneau.props.style) ? Object.assign({}, ...panneau.props.style.flat(3).filter(Boolean)) : panneau.props.style;
     expect(style.backgroundColor).toBe('#161D28');
     expect(style.borderTopLeftRadius).toBe(30);
-    expect(within(panneau).getByText('4 min · 1,2 km')).toBeTruthy();
+    expect(within(panneau).getByLabelText('4 min · 1,2 km')).toBeTruthy();
   });
 
   it.each(COMBINAISONS_THEMES)('lisible sous le thème %s %j', async (theme, lis) => {

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Appuyable } from '@/components/appuyable';
 import { BoutonAction } from '@/components/bouton-action';
+import { ChiffreGlissant } from '@/components/mouvement/chiffre-glissant';
 import { ThemedText } from '@/components/themed-text';
 import { useJetonsNavigation } from '@/hooks/use-jetons-navigation';
 
@@ -48,9 +49,7 @@ export function BarreNavigation({ principal, progression, lieu, etiquette, arriv
     <View testID="panneau-navigation" style={[styles.panneau, FEUILLE_BASE, { backgroundColor: P.surface, paddingBottom: 12 + bottom }]}>
       <View style={styles.textes} accessibilityLiveRegion="polite">
         {principal ? (
-          <ThemedText style={[styles.principal, { color: P.text }]} maxFontSizeMultiplier={1.2} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-            {principal}
-          </ThemedText>
+          <ChiffreGlissant valeur={principal} style={[styles.principal, { color: P.text }]} />
         ) : null}
         <ThemedText style={[styles.progression, { color: P.textSecondary }]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
           {progression}

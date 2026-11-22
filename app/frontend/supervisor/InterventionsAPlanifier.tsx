@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { FlatList, Modal, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { VOILE_FEUILLE, FEUILLE_BASE, COULEUR_OMBRE, COULEURS_IMPORTANCE, COULEURS_IMPORTANCE_SOMBRE, BLANC_FIXE } from '@/components/ville/style';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
+import { ChiffreGlissant } from "@/components/mouvement/chiffre-glissant";
+import { ModaleAnimee } from "@/components/mouvement/modale-animee";
 import { hrefEndroit } from "@/components/ville/href-endroit";
 import { Chargement, Erreur, Vide } from "@/components/ville/etat-ecran";
 import { useEndroits } from "@/hooks/use-endroits";
@@ -58,8 +60,7 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: ke
         </Text>
         <Ionicons name="chevron-down" size={18} color={P.text} />
       </Pressable>
-      <Modal visible={ouvert} transparent animationType="fade" onRequestClose={() => setOuvert(false)}>
-        <Pressable retour={false} style={styles.voile} onPress={() => setOuvert(false)} accessibilityRole="button" accessibilityLabel="Fermer la liste" />
+      <ModaleAnimee visible={ouvert} onFermer={() => setOuvert(false)} libelleFermer="Fermer la liste">
         <View style={styles.feuille}>
           <Text style={styles.feuilleTitre} accessibilityRole="header">
             {titre}
@@ -82,7 +83,7 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: ke
             ))}
           </ScrollView>
         </View>
-      </Modal>
+      </ModaleAnimee>
     </>
   );
 }
@@ -160,9 +161,9 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
               <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
                 À planifier
               </Text>
-              <Text style={styles.compteur} accessibilityLabel={`${liste.length} à traiter`}>
-                {liste.length} à traiter
-              </Text>
+              <View style={styles.compteurCadre} accessibilityLabel={`${liste.length} à traiter`}>
+                <ChiffreGlissant valeur={`${liste.length} à traiter`} style={styles.compteur} />
+              </View>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtres} accessibilityLabel="Filtres">
               <ListeDeroulante icone="location-outline" titre="Secteur" choix={secteurs} valeur={filtres.zoneId} onChoisir={(v) => setFiltres({ ...filtres, zoneId: v })} />
@@ -226,7 +227,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   page: { padding: 20, gap: 12, maxWidth: 800, width: "100%", alignSelf: "center" },
   titreRangee: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
   titre: { fontSize: 22, fontWeight: "800", color: P.text, flexShrink: 1 },
-  compteur: { backgroundColor: P.backgroundSelected, color: P.primary, fontWeight: "800", fontSize: 16, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
+  compteurCadre: { backgroundColor: P.backgroundSelected, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
+  compteur: { color: P.primary, fontWeight: "800", fontSize: 16, lineHeight: 22 },
   sous: { color: P.textSecondary, fontSize: 15 },
   filtresTitre: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
   filtresMot: { fontSize: 20, fontWeight: "800", color: P.text },

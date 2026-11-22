@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { VOILE_FEUILLE, FEUILLE_BASE } from '@/components/ville/style';
-import { Appuyable as Pressable } from '@/components/appuyable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChoixTheme } from './choix-theme';
+import { ModaleAnimee } from '@/components/mouvement/modale-animee';
 import { LogoMarque } from '@/components/logo-marque';
 import { ThemedText } from '@/components/themed-text';
 import { Bouton } from '@/components/ville/bouton';
@@ -46,8 +46,7 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
   }, [visible, marqueChoisie]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onFermer}>
-      <Pressable retour={false} style={styles.voile} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer le profil" />
+    <ModaleAnimee visible={visible} onFermer={onFermer} libelleFermer="Fermer le profil">
       <View style={[styles.feuille, { backgroundColor: theme.background }]}>
         <ScrollView style={styles.defile} contentContainerStyle={styles.contenu}>
           <View style={styles.entete}>
@@ -100,7 +99,7 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
           <Bouton titre="Fermer" variante="discret" pleineLargeur onPress={onFermer} />
         </View>
       </View>
-    </Modal>
+    </ModaleAnimee>
   );
 }
 

@@ -1,4 +1,5 @@
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { ModaleAnimee } from '@/components/mouvement/modale-animee';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { FEUILLE_BASE, VOILE_FEUILLE, CIBLE_MIN, STYLE_ZONE } from '@/components/ville/style';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,8 +26,7 @@ export function FicheZone({ zone, signalements, onFermer, onOuvrir }: Props) {
   const { bottom } = useSafeAreaInsets();
   const membres = zone ? signalements.filter((s) => zone.signalement_ids.includes(s.id)) : [];
   return (
-    <Modal visible={!!zone} transparent animationType="slide" onRequestClose={onFermer}>
-      <Pressable retour={false} style={styles.fond} onPress={onFermer} accessibilityLabel="Fermer la fiche" accessibilityRole="button" />
+    <ModaleAnimee visible={!!zone} onFermer={onFermer} libelleFermer="Fermer la fiche">
       {zone ? (
         <View style={[styles.feuille, { backgroundColor: theme.background, paddingBottom: bottom + 16 }]}>
           <ScrollView contentContainerStyle={styles.contenu}>
@@ -61,7 +61,7 @@ export function FicheZone({ zone, signalements, onFermer, onOuvrir }: Props) {
           </ScrollView>
         </View>
       ) : null}
-    </Modal>
+    </ModaleAnimee>
   );
 }
 

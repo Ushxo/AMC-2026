@@ -68,7 +68,7 @@ describe('trajet optimal', () => {
     expect(mockLancer.mock.calls[0][0]).toMatchObject({ cles_endroits: ['a'] });
     expect(screen.getByText('Trajet généré')).toBeTruthy();
     expect(screen.getByText('Itinéraire optimisé pour 1 intervention')).toBeTruthy();
-    expect(screen.getByText('18 min')).toBeTruthy();
+    expect(screen.getByLabelText('Durée estimée 18 min')).toBeTruthy();
     expect(screen.getByText('Interventions du trajet (1)')).toBeTruthy();
     expect(screen.getByText("Grille d'égout endommagée")).toBeTruthy();
     expect(screen.getByText('Élevée')).toBeTruthy();

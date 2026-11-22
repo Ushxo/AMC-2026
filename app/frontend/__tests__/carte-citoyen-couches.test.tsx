@@ -85,7 +85,7 @@ describe('carte citoyen : avis d’eau et couches', () => {
     await fireEvent(screen.getByLabelText("Avis d'ébullition : masquée"), 'valueChange', true);
     await fireEvent.press(screen.getByLabelText(/Avis d'ébullition : Avis 1\. Ouvrir la fiche/));
     expect(screen.getByText('Officiel (Ville de Montréal)')).toBeTruthy();
-    expect(screen.getByText(/Données ouvertes de la Ville de Montréal, CC BY 4.0/)).toBeTruthy();
+    expect(screen.getAllByText(/Données ouvertes de la Ville de Montréal, CC BY 4.0/).length).toBeGreaterThan(0); // la feuille des options finit de se refermer pendant que la fiche s'ouvre
   });
 
   it('l’adresse cherchée dit si elle est sous avis', async () => {
