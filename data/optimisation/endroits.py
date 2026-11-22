@@ -11,6 +11,24 @@ SEUIL_MOYENNE = 20
 SEUIL_ELEVEE = 50
 ORDRE = {"faible": 0, "moyenne": 1, "elevee": 2}
 OUVERTS = ("nouveau", "pris_en_charge")
+# Seuil d'apparition d'un endroit (même règle que app/src/lib/config.ts) : sans photo vérifiée, il faut
+# au moins SEUIL_SANS_PHOTO signalements ouverts ; avec au moins un signalement à photo vérifiée, un seul suffit.
+SEUIL_SANS_PHOTO = 3
+SEUIL_AVEC_PHOTO = 1
+
+
+def photo_verifiee(s: dict[str, Any]) -> bool:
+    """Champ absent ou nul = vérifié (ancien signalement, données de démo, base sans la colonne)."""
+    return s.get("photo_verifiee") is not False
+
+
+def endroit_apparait(ouverts: list[dict[str, Any]], seuil: int = 1) -> bool:
+    """Un endroit entre dans le calcul si, parmi ses signalements ouverts, au moins `SEUIL_AVEC_PHOTO` a une
+    photo vérifiée ou au moins `SEUIL_SANS_PHOTO` au total ; `seuil` est un plancher supplémentaire."""
+    if len(ouverts) < seuil:
+        return False
+    avec_photo = sum(1 for x in ouverts if photo_verifiee(x))
+    return avec_photo >= SEUIL_AVEC_PHOTO or len(ouverts) >= SEUIL_SANS_PHOTO
 
 
 def _arrondir(v: float) -> str:
@@ -45,7 +63,7 @@ def regrouper_ouverts(signalements: list[dict[str, Any]], seuil: int = 1) -> lis
             groupes.setdefault(cle_endroit(s), []).append(s)
     endroits = []
     for cle, liste in groupes.items():
-        if len(liste) < seuil:
+        if not endroit_apparait(liste, seuil):
             continue
         choisie = max((x["gravite"] for x in liste), key=lambda g: ORDRE[g])
         par_nombre = gravite_par_nombre(len(liste))

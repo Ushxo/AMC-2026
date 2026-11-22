@@ -51,9 +51,14 @@ def lire_env(chemin: Path = ENV) -> dict[str, str]:
     return valeurs
 
 
-def lignes_signalements(signalements: list[dict]) -> list[dict]:
-    """Garde seulement les colonnes de la table (ni `origine` ni `en_attente`)."""
-    return [{c: s[c] for c in COLONNES_SIGNALEMENT} for s in signalements]
+def lignes_signalements(signalements: list[dict], avec_photo_verifiee: bool = False) -> list[dict]:
+    """Garde seulement les colonnes de la table (ni `origine` ni `en_attente`). Avec `avec_photo_verifiee`
+    (colonne de la migration 0011 présente), les signalements de démo sont marqués « photo vérifiée »."""
+    lignes = [{c: s[c] for c in COLONNES_SIGNALEMENT} for s in signalements]
+    if avec_photo_verifiee:
+        for ligne in lignes:
+            ligne["photo_verifiee"] = True
+    return lignes
 
 
 def lignes_equipes(donnees: dict) -> list[dict]:
@@ -113,6 +118,13 @@ class Charge:
         )
         self._verifier(reponse, f"effacement dans {table}")
 
+    def colonne_existe(self, table: str, colonne: str) -> bool:
+        """Vrai si la colonne existe (une lecture vide, sans effet) : le chargement marche avec ou sans une migration."""
+        reponse = self.client.get(
+            self.base + table, params={"select": colonne, "limit": "0"}, headers=self.entetes
+        )
+        return reponse.status_code < 300
+
     def compter_exemples(self, table: str) -> int:
         reponse = self.client.get(
             self.base + table,
@@ -129,7 +141,8 @@ def charger(charge: Charge, signalements: list[dict], equipes: dict, reinitialis
         charge.effacer_exemples("signalements")
         charge.effacer_exemples("equipes")
     charge.inserer("equipes", lignes_equipes(equipes))
-    charge.inserer("signalements", lignes_signalements(signalements))
+    avec_photo = charge.colonne_existe("signalements", "photo_verifiee")
+    charge.inserer("signalements", lignes_signalements(signalements, avec_photo))
     return {
         "signalements": charge.compter_exemples("signalements"),
         "equipes": charge.compter_exemples("equipes"),

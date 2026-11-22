@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from optimisation.endroits import endroit_apparait
 from optimisation.modeles import Arret, Equipe, Lieu, Parametres, Probleme
 
 OUT = Path(__file__).resolve().parent.parent / "out"
@@ -35,7 +36,7 @@ def arrets_depuis_signalements(
     rang = {g: i for i, g in enumerate(sorted(plus_ancien, key=lambda k: (plus_ancien[k], k)))}
     arrets = []
     for g, liste in groupes.items():
-        if len(liste) < seuil or (ids_connus is not None and g not in ids_connus):
+        if not endroit_apparait(liste, seuil) or (ids_connus is not None and g not in ids_connus):
             continue
         gravite = max((x["gravite"] for x in liste), key=lambda v: ORDRE_GRAVITE[v])
         arrets.append(Arret(id=g, gravite=gravite, nombre=len(liste), ordre_arrivee=rang[g]))
