@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 import { FeuilleArrets } from '../../src/components/ville/feuille-arrets';
 import { FeuilleResultatArret } from '../../src/components/ville/feuille-resultat-arret';
 import type { Arret } from '../../src/types';
@@ -106,5 +108,27 @@ describe('liste des arrêts de la tournée', () => {
     expect(screen.getByText('« Grille brisée, à réparer »')).toBeTruthy();
     await fireEvent.press(screen.getByLabelText(/^Arrêt 2, .*non fait, commentaire : Grille brisée, à réparer\. Donner ou corriger/));
     expect(onChoisir).toHaveBeenCalledWith(expect.objectContaining({ rang: 2 }));
+  });
+});
+
+describe('lisibilité sous chaque thème : feuille de résultat et liste des arrêts', () => {
+  beforeEach(() => reinitialiserMarque());
+  const arret = (rang: number): Arret => ({
+    id: `A${rang}`, rang, cle_endroit: `c${rang}`, signalement_ids: ['s'], position: { latitude: 45.5, longitude: -73.57 },
+    arrivee_prevue: '2026-11-22T12:00:00Z', depart_prevu: '2026-11-22T12:10:00Z',
+  });
+  it.each(COMBINAISONS_THEMES)('feuille « Arrêt fait ? », thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await feuille();
+    await fireEvent.press(screen.getByLabelText("Non, l'arrêt n'est pas fait"));
+    expect(textesIllisibles()).toEqual([]);
+  });
+  it.each(COMBINAISONS_THEMES)('liste des arrêts, thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    const statuts: Record<number, 'fait' | 'non_fait' | null> = { 1: 'fait', 2: 'non_fait', 3: null };
+    await render(
+      <FeuilleArrets visible arrets={[arret(1), arret(2), arret(3)]} statutDe={(a) => statuts[a.rang]} commentaireDe={(a) => (a.rang === 2 ? 'Grille brisée, à réparer' : null)} onChoisir={jest.fn()} onFermer={jest.fn()} />,
+    );
+    expect(textesIllisibles()).toEqual([]);
   });
 });

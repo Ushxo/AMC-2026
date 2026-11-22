@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
 import { FeuilleProfil } from '../../src/components/profil/feuille-profil';
 import { lireMarque, reinitialiserMarque } from '../../src/marque/magasin';
 import { organisationEmbarquee } from '../../src/marque/organisations-embarquees';
@@ -188,5 +189,17 @@ describe('feuille du profil : actions dans le pied fixe', () => {
     await render(<FeuilleProfil visible onFermer={jest.fn()} />);
     expect(screen.getByText('Organisation')).toBeTruthy();
     expect(screen.getByLabelText("Thème de l'organisation")).toBeTruthy();
+  });
+});
+
+describe('lisibilité sous chaque thème : administration des organisations', () => {
+  it.each(COMBINAISONS_THEMES)('liste et création d’une organisation, thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<MarqueOrganisation />);
+    await fireEvent.press(await screen.findByLabelText('Créer une organisation'));
+    await fireEvent.changeText(screen.getByLabelText("Nom de l'organisation"), 'Déneigement Nord');
+    await fireEvent.press(screen.getByLabelText('Service : Déneigement'));
+    expect(screen.getByText("Créer l'organisation")).toBeTruthy();
+    expect(textesIllisibles()).toEqual([]);
   });
 });

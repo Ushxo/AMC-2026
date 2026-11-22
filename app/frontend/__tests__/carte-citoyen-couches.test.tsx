@@ -1,4 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { appliquerThemeEtLisibilite, COMBINAISONS_THEMES, textesIllisibles } from '../aide-tests/lisibilite';
+import { reinitialiserMarque } from '../../src/marque/magasin';
 
 import type { Couches } from '../../src/types';
 import CarteCitoyen from '../../src/components/citoyen/ecran-carte';
@@ -115,5 +117,23 @@ describe('carte citoyen : repères d’information touchables', () => {
     await act(async () => mockCartePress.f?.({ latitude: 45.9, longitude: -73.1 })); // la carte répond aussi, loin de tout avis
     expect(screen.queryByText('Quel problème avez-vous observé ?')).toBeNull();
     expect(screen.queryAllByText("Avis d'ébullition").length).toBe(apresPremier); // une seule fiche, rien d'autre ne s'est ouvert
+  });
+});
+
+describe('lisibilité sous chaque thème : options de la carte et fiche d’un avis', () => {
+  beforeEach(() => reinitialiserMarque());
+  it.each(COMBINAISONS_THEMES)('options de la carte, thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<CarteCitoyen coquille={{ espaceBas: 0, onOpenProfile: jest.fn() }} />);
+    await fireEvent.press(screen.getByLabelText('Options de la carte et liste des endroits'));
+    expect(screen.getAllByText(/Avis officiels/).length).toBeGreaterThan(0); // la feuille est bien dans le rendu contrôlé
+    expect(textesIllisibles()).toEqual([]);
+  });
+  it.each(COMBINAISONS_THEMES)('fiche d’un avis d’eau, thème %s %j', async (theme, lis) => {
+    appliquerThemeEtLisibilite(theme, lis);
+    await render(<CarteCitoyen coquille={{ espaceBas: 0, onOpenProfile: jest.fn() }} />);
+    await fireEvent.press(await screen.findByTestId('info-avis-1'));
+    expect(screen.getAllByText("Avis d'ébullition").length).toBeGreaterThan(0);
+    expect(textesIllisibles()).toEqual([]);
   });
 });

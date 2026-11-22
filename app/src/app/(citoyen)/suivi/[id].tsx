@@ -19,6 +19,7 @@ import { MESSAGE_RESULTAT_PRECALCULE } from '@/lib/messages';
 import { chargerAdresses } from '@/lib/officiel';
 import { etatsDesEtapes, type EtatEtape } from '@/lib/suivi-etapes';
 import { LIBELLES_CATEGORIE, LIBELLES_SUIVI } from '@/types';
+import { texteSur } from '@/marque/couleurs';
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
@@ -30,7 +31,7 @@ function Point({ etat }: { etat: EtatEtape }) {
   if (etat === 'avenir') return <View style={styles.pointVide} />;
   return (
     <View style={[styles.point, { backgroundColor: etat === 'fait' ? P.success : P.action }]}>
-      <Ionicons name="checkmark" size={16} color={P.onHeader} />
+      <Ionicons name="checkmark" size={16} color={texteSur(etat === 'fait' ? P.success : P.action)} />
     </View>
   );
 }
