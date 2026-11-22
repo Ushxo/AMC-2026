@@ -12,14 +12,13 @@ import { MESSAGE_RECHERCHE_INDISPONIBLE, useRechercheAdresse } from '@/hooks/use
 import { Carte, Repere, type CarteCommandes } from '@/components/carte';
 import { AvisEau } from '@/components/ville/avis-eau';
 import { ReperesEndroits } from '@/components/ville/reperes-endroits';
-import { FicheZone } from '@/components/ville/fiche-zone';
 import { Chargement, Erreur } from '@/components/ville/etat-ecran';
 import { ListeEndroits } from '@/components/ville/liste-endroits';
-import { ZonesSignalements } from '@/components/ville/zones-signalements';
+import { BandesInondation } from '@/components/ville/bandes-inondation';
 import { SelecteurCarte } from '@/components/ville/selecteur-carte';
 import { COULEUR_REPERE } from '@/components/ville/style';
 import { useCouches } from '@/hooks/use-couches';
-import { useZonesSignalements } from '@/hooks/use-zones-signalements';
+import { useBandesInondation } from '@/hooks/use-bandes-inondation';
 import { useBouchesExistantes } from '@/hooks/use-bouches-existantes';
 import { useRegroupement } from '@/hooks/use-regroupement';
 import { useEndroits } from '@/hooks/use-endroits';
@@ -28,9 +27,8 @@ import { useSource } from '@/hooks/use-source';
 import { useTheme } from '@/hooks/use-theme';
 import { formaterNombre } from '@/lib/format';
 import { chargerRegion } from '@/lib/officiel';
-import { zoneEn, type Zone } from '@/lib/zones';
+import { libelleBande } from '@/lib/inondation';
 import { dansQuartier, messagePositionCarte, RAYON_CITOYEN_M } from '@/lib/position-citoyen';
-import { MESSAGE_ZONE_ESTIMEE } from '@/lib/messages';
 import { LIBELLES_GRAVITE, type Endroit, type ResultatRecherche } from '@/types';
 
 function premierSignalement(e: Endroit): string {
@@ -54,8 +52,7 @@ export default function CarteCitoyen({ coquille }: Props) {
   const { etat } = useSource();
   const { couches } = useCouches();
   const { endroits, signalements, chargement, erreur, rafraichir } = useEndroits();
-  const zones = useZonesSignalements(signalements);
-  const [zoneChoisie, setZoneChoisie] = useState<Zone | null>(null);
+  const bandes = useBandesInondation(signalements);
   const [options, setOptions] = useState(false);
   const [texte, setTexte] = useState('');
   const [resultats, setResultats] = useState<ResultatRecherche[] | null>(null);
@@ -113,14 +110,10 @@ export default function CarteCitoyen({ coquille }: Props) {
             surRegion(r);
             surRegionGroupes(r);
           }}
-          onPress={(c) => {
-            const z = zoneEn(zones, c);
-            if (z) setZoneChoisie(z);
-            else signalerIci(c);
-          }}
+          onPress={signalerIci}
           accessibilityLabel="Carte des signalements et des avis d'eau. Touchez la carte pour signaler un problème à cet endroit.">
           <AvisEau avis={avis} />
-          <ZonesSignalements zones={zones} onChoisir={setZoneChoisie} />
+          <BandesInondation bandes={bandes} />
           {bouches.map((b) => (
             <Repere
               key={`b-${b.id}`}
@@ -234,16 +227,6 @@ export default function CarteCitoyen({ coquille }: Props) {
         </View>
       ) : null}
 
-      <FicheZone
-        zone={zoneChoisie}
-        signalements={signalements}
-        onFermer={() => setZoneChoisie(null)}
-        onOuvrir={(id) => {
-          setZoneChoisie(null);
-          router.push({ pathname: '/suivi/[id]', params: { id } });
-        }}
-      />
-
       {/* Options : style de la carte, liste équivalente des endroits, explications. */}
       <Modal visible={options} transparent animationType="slide" onRequestClose={() => setOptions(false)}>
         <Pressable style={styles.voile} onPress={() => setOptions(false)} accessibilityRole="button" accessibilityLabel="Fermer les options de la carte" />
@@ -257,13 +240,18 @@ export default function CarteCitoyen({ coquille }: Props) {
             <ListeEndroits endroits={visibles} onOuvrir={(e) => { setOptions(false); router.push({ pathname: '/suivi/[id]', params: { id: premierSignalement(e) } }); }} />
             <ThemedText type="small" themeColor="textSecondary">
               Les repères montrent les endroits signalés, avec leur gravité. Touchez un repère, puis sa bulle, pour suivre un signalement.
-              Touchez la carte ou un regard gris pour signaler un problème à cet endroit. Les zones bleues sont des avis d&apos;eau (
+              Touchez la carte ou un regard gris pour signaler un problème à cet endroit. Les zones bleues claires sont des avis d&apos;eau officiels, les bandes bleues sur une rue de l&apos;eau accumulée signalée (
               {formaterNombre(avis.length, 'avis', 'avis')}).
             </ThemedText>
-            {zones.length > 0 ? (
-              <ThemedText type="small" themeColor="textSecondary">
-                {MESSAGE_ZONE_ESTIMEE}. Touchez une zone pour voir ses signalements.
-              </ThemedText>
+            {bandes.length > 0 ? (
+              <View accessible accessibilityLabel={`Rues touchées par de l'eau accumulée : ${bandes.map(libelleBande).join(', ')}`}>
+                <ThemedText type="smallBold">Eau accumulée (bande bleue sur la rue)</ThemedText>
+                {bandes.map((b) => (
+                  <ThemedText key={b.id} type="small">
+                    {libelleBande(b)}
+                  </ThemedText>
+                ))}
+              </View>
             ) : null}
             <ThemedText type="small" themeColor="textSecondary">
               Regards d&apos;égout : Données ouvertes de la Ville de Montréal, CC BY 4.0.

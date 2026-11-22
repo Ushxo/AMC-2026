@@ -15,7 +15,7 @@ import { chargerAdresses } from "@/lib/officiel";
 import { AUCUN_FILTRE, clesDesInterventions, interventionsAPlanifier, lieuDeEndroit, type FiltresInterventions, type Intervention } from "@/lib/interventions";
 import { clesDeZone } from "@/lib/selection";
 import { CATEGORIES_PROPOSEES, LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
-import { ILLUSTRATION_PAR_CATEGORIE, ProblemIllustration } from "../components/ProblemIllustration";
+import { IllustrationProbleme } from "@/components/illustration-probleme";
 
 // Couleurs d'importance de la maquette : rouge, orange, jaune. Le texte et la pastille pleine restent contrastés.
 export const IMPORTANCE: Record<Gravite, { fond: string; plein: string; icone: keyof typeof Ionicons.glyphMap }> = {
@@ -75,7 +75,6 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: ke
 
 function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir: () => void }) {
   const c = IMPORTANCE[i.gravite];
-  const kind = ILLUSTRATION_PAR_CATEGORIE[i.categorie];
   const titre = LIBELLES_CATEGORIE[i.categorie];
   return (
     <Pressable
@@ -91,13 +90,7 @@ function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir:
         </Text>
       </View>
       <View style={styles.dessin}>
-        {kind ? (
-          <View style={{ transform: [{ scale: 0.5 }] }}>
-            <ProblemIllustration kind={kind} />
-          </View>
-        ) : (
-          <Ionicons name="warning-outline" size={30} color={Palette.accent} />
-        )}
+        <IllustrationProbleme categorie={i.categorie} taille={56} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.ligneTitre} maxFontSizeMultiplier={1.3}>

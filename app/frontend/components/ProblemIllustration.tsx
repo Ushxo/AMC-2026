@@ -2,16 +2,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
-import type { Categorie } from "@/types";
 import { AlertKind } from "../types/models";
-
-// Dessin de chaque problème proposé (les dessins sont rangés sous les anciens noms de la maquette).
-export const ILLUSTRATION_PAR_CATEGORIE: Partial<Record<Categorie, AlertKind>> = {
-  grille_bouchee: "Égout bouché",
-  eau_accumulee: "Eau accumulée",
-  affaissement: "Feuilles",
-  grille_endommagee: "Autre",
-};
 
 // Illustrations des 4 problèmes, dessinées avec des vues et des icônes.
 const INK = "#2E3A2C";

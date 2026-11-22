@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,22 +8,20 @@ import { ThemedView } from '@/components/themed-view';
 import { BandeauSource } from '@/components/ville/bandeau-source';
 import { Bouton } from '@/components/ville/bouton';
 import { Carte, Repere, type CarteCommandes } from '@/components/carte';
-import { FicheZone } from '@/components/ville/fiche-zone';
 import { ReperesEndroits } from '@/components/ville/reperes-endroits';
-import { ZonesSignalements } from '@/components/ville/zones-signalements';
+import { BandesInondation } from '@/components/ville/bandes-inondation';
 import { Chargement, Erreur, Vide } from '@/components/ville/etat-ecran';
 import { hrefEndroit } from '@/components/ville/href-endroit';
 import { COULEUR_REPERE } from '@/components/ville/style';
 import { useBouchesExistantes } from '@/hooks/use-bouches-existantes';
 import { useRegroupement } from '@/hooks/use-regroupement';
 import { useEndroits } from '@/hooks/use-endroits';
-import { useZonesSignalements } from '@/hooks/use-zones-signalements';
+import { useBandesInondation } from '@/hooks/use-bandes-inondation';
 import { useSessionEmploye } from '@/hooks/use-session-employe';
 import { useSource } from '@/hooks/use-source';
 import { chargerRegion } from '@/lib/officiel';
 import { formaterNombre } from '@/lib/format';
-import { MESSAGE_ZONE_ESTIMEE } from '@/lib/messages';
-import { zoneEn, type Zone } from '@/lib/zones';
+import { libelleBande } from '@/lib/inondation';
 import { LIBELLES_GRAVITE } from '@/types';
 
 export default function CarteVille() {
@@ -32,8 +30,7 @@ export default function CarteVille() {
   const { etat } = useSource();
   const { demoHorsLigne: simule } = useSessionEmploye();
   const { endroits, signalements, chargement, erreur, rafraichir } = useEndroits();
-  const zones = useZonesSignalements(signalements);
-  const [zoneChoisie, setZoneChoisie] = useState<Zone | null>(null);
+  const bandes = useBandesInondation(signalements);
   const region = useMemo(() => chargerRegion(), []);
   const actifs = useMemo(() => endroits.filter((e) => e.nombre > 0), [endroits]);
   const { bouches, surRegion } = useBouchesExistantes(endroits);
@@ -62,12 +59,8 @@ export default function CarteVille() {
               surRegion(r);
               surRegionGroupes(r);
             }}
-            onPress={(c) => {
-              const z = zoneEn(zones, c);
-              if (z) setZoneChoisie(z);
-            }}
             accessibilityLabel="Carte des endroits signalés">
-            <ZonesSignalements zones={zones} onChoisir={setZoneChoisie} />
+            <BandesInondation bandes={bandes} />
             {bouches.map((b) => (
               <Repere
                 key={`b-${b.id}`}
@@ -99,19 +92,15 @@ export default function CarteVille() {
         )}
         <View style={[styles.bas, { paddingBottom: 16 + bottom }]}>
           <ThemedText type="small" themeColor="textSecondary">
-            Touchez un repère pour ouvrir ses signalements.{zones.length > 0 ? ` ${MESSAGE_ZONE_ESTIMEE}.` : ''}
+            Touchez un repère pour ouvrir ses signalements. Une bande bleue sur une rue montre de l&apos;eau accumulée.
           </ThemedText>
+          {bandes.length > 0 ? (
+            <ThemedText type="small" accessibilityLabel={bandes.map(libelleBande).join(', ')}>
+              {bandes.map(libelleBande).join(' · ')}
+            </ThemedText>
+          ) : null}
           <Bouton titre="Retour à la liste" variante="discret" onPress={() => router.back()} />
         </View>
-        <FicheZone
-          zone={zoneChoisie}
-          signalements={signalements}
-          onFermer={() => setZoneChoisie(null)}
-          onOuvrir={(id) => {
-            setZoneChoisie(null);
-            router.push({ pathname: '/ville/signalement/[id]', params: { id } });
-          }}
-        />
       </SafeAreaView>
     </ThemedView>
   );

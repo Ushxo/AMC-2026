@@ -25,7 +25,7 @@ import { erreursSignalement } from '@/lib/champs';
 import { jugerPhoto } from '@/lib/ml';
 import { analyseDisponible, graviteSuggeree, MESSAGE_ANALYSE_INDISPONIBLE, MESSAGE_PHOTO_PAS_EGOUT } from '@/lib/suggestion-gravite';
 import PhotoStep from '../../../frontend/citizen/PhotoStep';
-import { ILLUSTRATION_PAR_CATEGORIE as ILLUSTRATION, ProblemIllustration } from '../../../frontend/components/ProblemIllustration';
+import { IllustrationProbleme } from '@/components/illustration-probleme';
 import { chargerRegion } from '@/lib/officiel';
 import {
   MESSAGE_ECHEC_ENVOI,
@@ -197,7 +197,7 @@ export default function Signaler() {
                     { backgroundColor: choisi ? theme.accentDoux : theme.surface, borderColor: choisi ? theme.accent : theme.border, borderWidth: choisi ? 3 : 1 },
                   ]}>
                   <View style={styles.dessin}>
-                    <View style={{ transform: [{ scale: 0.8 }] }}>{ILLUSTRATION[c] ? <ProblemIllustration kind={ILLUSTRATION[c]!} /> : null}</View>
+                    <IllustrationProbleme categorie={c} taille={84} />
                   </View>
                   <ThemedText type="smallBold" style={styles.texteProbleme} maxFontSizeMultiplier={1.3}>
                     {TITRE_CARTE[c] ?? LIBELLES_CATEGORIE[c]}

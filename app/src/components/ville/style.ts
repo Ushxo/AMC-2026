@@ -71,6 +71,10 @@ export const COULEUR_REPERE: Record<Gravite | 'existant', string> = {
 export const COULEUR_TRACE_ATTENUE = 'rgba(31, 95, 191, 0.35)';
 export const COULEUR_VEHICULE = COULEUR_ACCENT;
 
+/** Bande d'eau sur la rue : bleu eau translucide (lisible sur les fonds de carte clair et sombre). */
+export const COULEUR_BANDE_EAU = 'rgba(30, 136, 229, 0.5)';
+export const EPAISSEUR_BANDE_EAU = 16;
+
 /** « #RRGGBB » vers « rgba(r, g, b, a) ». */
 export function avecOpacite(hex: string, alpha: number): string {
   const n = parseInt(hex.slice(1), 16);

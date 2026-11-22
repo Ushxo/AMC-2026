@@ -25,7 +25,7 @@ import { OPTIONS_PAR_DEFAUT, parametresDesOptions } from "@/lib/options-calcul";
 import { endroitsOuverts, selectionAEnvoyer } from "@/lib/selection";
 import { dateProchainQuart } from "@/lib/temps";
 import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
-import { ILLUSTRATION_PAR_CATEGORIE, ProblemIllustration } from "../components/ProblemIllustration";
+import { IllustrationProbleme } from "@/components/illustration-probleme";
 import { IMPORTANCE } from "./InterventionsAPlanifier";
 
 /**
@@ -144,7 +144,6 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
                 const i = e ? interventionDe(e) : null;
                 const gravite: Gravite = e?.gravite_affichee ?? "moyenne";
                 const c = IMPORTANCE[gravite];
-                const kind = i ? ILLUSTRATION_PAR_CATEGORIE[i.categorie] : undefined;
                 const titre = i ? LIBELLES_CATEGORIE[i.categorie] : "Intervention";
                 const lieu = lieuDeEndroit(a.position, adresses);
                 return (
@@ -156,13 +155,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
                       </View>
                     </View>
                     <View style={styles.dessin}>
-                      {kind ? (
-                        <View style={{ transform: [{ scale: 0.5 }] }}>
-                          <ProblemIllustration kind={kind} />
-                        </View>
-                      ) : (
-                        <Ionicons name="warning-outline" size={28} color={Palette.accent} />
-                      )}
+                      <IllustrationProbleme categorie={i?.categorie ?? "autre"} taille={52} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.ligneTitre} maxFontSizeMultiplier={1.3}>

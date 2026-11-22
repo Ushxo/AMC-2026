@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { IllustrationProbleme } from '@/components/illustration-probleme';
 import { Palette } from '@/constants/theme';
 import { useMesSignalements } from '@/hooks/use-mes-signalements';
 import { formaterDate } from '@/lib/format';
@@ -31,15 +32,15 @@ const STEPS = ['Soumis', 'Pris en\ncharge', 'Terminé'];
 // Position du remplissage de la ligne de progression selon l'étape.
 const FILL = ['22%', '58%', '100%'] as const;
 
-// Icône et teinte de chaque catégorie de signalement.
-const KINDS: Record<Categorie, { tile: string; color: string; icon?: keyof typeof Ionicons.glyphMap }> = {
-  grille_bouchee: { tile: C.orangeSoft, color: C.orange },
-  eau_accumulee: { tile: C.sage, color: C.green, icon: 'water-outline' },
-  affaissement: { tile: '#FCE6C9', color: C.orange, icon: 'trending-down-outline' },
-  grille_endommagee: { tile: '#FCE6C9', color: C.orange, icon: 'warning-outline' },
-  eau_douteuse: { tile: '#FCE6C9', color: C.orange, icon: 'flask-outline' },
-  absence_eau: { tile: '#FCE6C9', color: C.orange, icon: 'close-circle-outline' },
-  autre: { tile: '#FCE6C9', color: C.orange, icon: 'warning-outline' },
+// Teinte de la pastille de chaque catégorie (l'illustration vient des images fournies).
+const TEINTE_PASTILLE: Record<Categorie, string> = {
+  grille_bouchee: C.orangeSoft,
+  eau_accumulee: C.sage,
+  affaissement: '#FCE6C9',
+  grille_endommagee: '#FCE6C9',
+  eau_douteuse: '#FCE6C9',
+  absence_eau: '#FCE6C9',
+  autre: '#FCE6C9',
 };
 
 /** Étape de la ligne de progression : 0 = soumis, 1 = pris en charge, 2 = terminé (réglé ou rejeté). */
@@ -60,17 +61,6 @@ const BADGES = [
   { label: 'Pris en charge', color: C.green, bg: C.orangeSoft },
   { label: 'Terminé', color: C.greenDone, bg: C.sage },
 ];
-
-// Grille d'égout dessinée (cercle avec barreaux).
-function GrateIcon({ color }: { color: string }) {
-  return (
-    <View style={[styles.grate, { borderColor: color }]}>
-      {[18, 24, 24, 18].map((w, i) => (
-        <View key={i} style={[styles.grateBar, { width: w, backgroundColor: color }]} />
-      ))}
-    </View>
-  );
-}
 
 function Progress({ step }: { step: number }) {
   const done = step === 2;
@@ -142,7 +132,6 @@ export default function MyAlerts() {
         ) : null}
         {mes.map(a => {
           const step = etapeDeLEtat(a.etat);
-          const kind = KINDS[a.categorie];
           const titre = LIBELLES_CATEGORIE[a.categorie];
           const badge = badgeDe(a.etat, step);
 
@@ -155,12 +144,8 @@ export default function MyAlerts() {
               accessibilityLabel={`${titre}, ${badge.label}. Ouvrir le suivi et l’heure de passage.`}
             >
               <View style={styles.cardTop}>
-                <View style={[styles.iconBox, { backgroundColor: kind.tile }]}>
-                  {kind.icon ? (
-                    <Ionicons name={kind.icon} size={34} color={kind.color} />
-                  ) : (
-                    <GrateIcon color={kind.color} />
-                  )}
+                <View style={[styles.iconBox, { backgroundColor: TEINTE_PASTILLE[a.categorie] }]}>
+                  <IllustrationProbleme categorie={a.categorie} taille={46} />
                 </View>
 
                 <View style={{ flex: 1 }}>
