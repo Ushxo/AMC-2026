@@ -145,7 +145,8 @@ export default function CarteCitoyen({ coquille }: Props) {
   }, []);
   const attentePosition = statutPosition === 'attente' && !delaiEcoule;
   const [depart, setDepart] = useState<{ region: Region; cadree: Coordonnees | null } | null>(null);
-  if (!depart && !chargement && !erreur && !attentePosition) {
+  // La carte s'affiche tout de suite (région de départ, fond, position) : les repères arrivent quand les signalements sont lus.
+  if (!depart && !attentePosition) {
     setDepart({ region: regionDeDepart(maPosition, region), cadree: maPosition && dansQuartier(maPosition, region) ? maPosition : null });
   }
   const regionDepart = depart?.region ?? null;
@@ -218,15 +219,7 @@ export default function CarteCitoyen({ coquille }: Props) {
 
   return (
     <View style={styles.fond}>
-      {chargement ? (
-        <View style={styles.centre}>
-          <Chargement texte="Chargement de la carte…" />
-        </View>
-      ) : erreur ? (
-        <View style={styles.centre}>
-          <Erreur message={erreur} onReessayer={() => void rafraichir()} />
-        </View>
-      ) : !regionDepart ? (
+      {!regionDepart ? (
         <View style={styles.centre}>
           <Chargement texte="Ouverture de la carte…" />
         </View>
@@ -330,7 +323,7 @@ export default function CarteCitoyen({ coquille }: Props) {
               <ThemedText style={{ color: theme.onHeaderSoft, fontSize: 14, lineHeight: 18, fontWeight: '600' }} maxFontSizeMultiplier={1.3} numberOfLines={1}>
                 {organisation.nom_app}
               </ThemedText>
-              <ThemedText type="subtitle" accessibilityRole="header" style={[styles.titre, { color: theme.onHeader }]} maxFontSizeMultiplier={1.3}>
+              <ThemedText type="subtitle" accessibilityRole="header" style={[styles.titre, { color: theme.onHeader }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} maxFontSizeMultiplier={1.3}>
                 {textes.titreCarte}
               </ThemedText>
             </View>
@@ -403,6 +396,26 @@ export default function CarteCitoyen({ coquille }: Props) {
               </Pressable>
             ))
           )}
+        </View>
+      ) : null}
+
+      {/* Lecture des signalements : indicateur discret par-dessus la carte, jamais un écran d'attente à sa place. */}
+      {chargement && regionDepart ? (
+        <View style={[styles.etatDonnees, { top: hauteurEntete + 10, backgroundColor: theme.background, borderColor: theme.border }]} accessibilityRole="progressbar" accessibilityLabel="Chargement des signalements" pointerEvents="none">
+          <ActivityIndicator size="small" color={theme.primary} />
+          <ThemedText type="small">Chargement des signalements…</ThemedText>
+        </View>
+      ) : null}
+      {erreur && !chargement && regionDepart ? (
+        <View style={[styles.etatDonnees, { top: hauteurEntete + 10, backgroundColor: theme.background, borderColor: theme.border }]} accessibilityRole="alert">
+          <ThemedText type="small" style={{ flexShrink: 1 }}>
+            {erreur}
+          </ThemedText>
+          <Pressable accessibilityRole="button" accessibilityLabel="Réessayer" onPress={() => void rafraichir()} style={styles.reessayer}>
+            <ThemedText type="smallBold" style={{ color: theme.primary }}>
+              Réessayer
+            </ThemedText>
+          </Pressable>
         </View>
       ) : null}
 
@@ -559,7 +572,9 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   entete: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: 20, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, gap: 12 },
   ligneTitre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   marqueTitre: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titre: { fontSize: 24, lineHeight: 30, fontWeight: '800' },
+  titre: { fontSize: 22, lineHeight: 28, fontWeight: '800' },
+  etatDonnees: { position: 'absolute', right: 16, maxWidth: '70%', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1 },
+  reessayer: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
   compte: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   recherche: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 30, paddingHorizontal: 16, minHeight: 52 },
   champ: { flex: 1, fontSize: 15, minHeight: 48 },

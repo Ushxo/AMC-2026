@@ -67,7 +67,7 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }}>
-          <Text style={styles.heroTitre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
+          <Text style={styles.heroTitre} accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} maxFontSizeMultiplier={1.3}>
             Connexion du personnel
           </Text>
           <Text style={styles.heroSous} maxFontSizeMultiplier={1.3}>
