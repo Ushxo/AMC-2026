@@ -73,7 +73,7 @@ export function Carte({ commandes, children, regionInitiale, onPress, onRegionCh
   );
 }
 
-export function RepereGroupe({ position, couleur, nombre, pointEleve, marque, onPress, zIndex, accessibilityLabel }: RepereGroupeProps) {
+export function RepereGroupe({ position, couleur, nombre, pointEleve, marque, pointAvis, onPress, zIndex, accessibilityLabel }: RepereGroupeProps) {
   return (
     <MarqueurEgout
       coordinate={position}
@@ -81,6 +81,7 @@ export function RepereGroupe({ position, couleur, nombre, pointEleve, marque, on
       etat="groupe"
       numero={nombre}
       pointEleve={pointEleve}
+      pointAvis={pointAvis}
       marque={marque}
       onPress={onPress}
       zIndex={zIndex}

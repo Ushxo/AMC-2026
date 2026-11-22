@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import type { Region } from '../lib/config';
-import { niveauStable, regrouper, type Regroupement } from '../lib/regroupement';
+import { decalerInfos, niveauStable, regrouper, type ItemInfo, type Regroupement } from '../lib/regroupement';
 import type { Endroit } from '../types';
 
 type Etat = { region: Region; niveau: number | null };
@@ -10,6 +10,8 @@ type Etat = { region: Region; niveau: number | null };
 const SEUIL_DEPLACEMENT = 0.08;
 /** Variation de l'étendue visible (en part) en dessous de laquelle on ne recalcule pas. */
 const SEUIL_ETENDUE = 0.03;
+
+const INFOS_VIDES: ItemInfo[] = [];
 
 /**
  * Regroupe les endroits par secteur selon la zone visible et la taille de la carte (à brancher sur la carte).
@@ -20,6 +22,7 @@ export function useRegroupement(
   endroits: Endroit[],
   regionInitiale: Region,
   hauteurInitiale = 360,
+  infos: ItemInfo[] = INFOS_VIDES,
 ): { regroupement: Regroupement; surRegion: (r: Region) => void; surTaille: (t: { largeur: number; hauteur: number }) => void } {
   const [etat, setEtat] = useState<Etat>({ region: regionInitiale, niveau: null });
   const [hauteur, setHauteur] = useState(hauteurInitiale);
@@ -27,8 +30,12 @@ export function useRegroupement(
   const hauteurCourante = useRef(hauteurInitiale);
 
   const regroupement = useMemo(
-    () => regrouper(endroits, etat.region, hauteur, etat.niveau ?? undefined),
-    [endroits, etat, hauteur],
+    () => {
+      const r = regrouper(endroits, etat.region, hauteur, etat.niveau ?? undefined, infos);
+      // Un repère d'information trop près d'un signalement (ou d'un autre) est décalé : rien ne se superpose.
+      return r.infosIsolees.length === 0 ? r : { ...r, infosIsolees: decalerInfos(r.infosIsolees, r.isoles, etat.region, hauteur) };
+    },
+    [endroits, etat, hauteur, infos],
   );
 
   const surRegion = useCallback((r: Region) => {

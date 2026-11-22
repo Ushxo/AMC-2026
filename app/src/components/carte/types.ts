@@ -61,6 +61,10 @@ export type RepereGroupeProps = {
   nombre: number;
   pointEleve?: boolean;
   marque?: MarqueSelection;
+  /** Groupe d'éléments d'information seulement (avis d'eau, chantiers, zones) : repère bleu neutre, `nombre` les compte. */
+  information?: boolean;
+  /** Le groupe de signalements absorbe aussi au moins un avis d'eau officiel : petite marque bleu pétrole. */
+  pointAvis?: boolean;
   onPress?: () => void;
   zIndex?: number;
   accessibilityLabel?: string;

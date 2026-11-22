@@ -6,7 +6,7 @@ import { useThemeCarte } from '@/hooks/use-theme-carte';
 import { deltasPourRayon } from '@/lib/position-citoyen';
 import { cadrerPoints, regionDepuisCamera, zoomDepuisDelta } from '@/lib/camera';
 import { choisirIdCarte, envCarte } from '@/lib/carte-reglages';
-import { NOM_IMAGE_VEHICULE, nomImageGroupe, nomImageInfo, nomImageRepere } from '@/lib/images-reperes';
+import { NOM_IMAGE_VEHICULE, nomImageGroupe, nomImageGroupeInfo, nomImageInfo, nomImageRepere } from '@/lib/images-reperes';
 import type { Coordonnees } from '@/types';
 
 import type { CarteProps, CercleProps, RepereGroupeProps, RepereInfoProps, RepereProps, TraceProps, VehiculeProps, ZoneProps } from './types';
@@ -296,7 +296,7 @@ export function Repere({ id, position, couleur, etat, numero, titre, description
   return null;
 }
 
-export function RepereGroupe({ id, position, couleur, nombre, pointEleve, marque, onPress }: RepereGroupeProps) {
+export function RepereGroupe({ id, position, couleur, nombre, pointEleve, marque, information, onPress }: RepereGroupeProps) {
   const { inscrire } = useContext(ContexteCarte);
   const cle = `${PREFIXE_REPERE}${id}`;
   useElement(
@@ -305,14 +305,14 @@ export function RepereGroupe({ id, position, couleur, nombre, pointEleve, marque
       poserRepere(c, {
         id: cle,
         position: ll(position),
-        imgPath: nomImageGroupe(couleur, nombre, !!pointEleve),
+        imgPath: information ? nomImageGroupeInfo(nombre) : nomImageGroupe(couleur, nombre, !!pointEleve),
         // Sélection d'un groupe sans image de plus : opacité (tous 1, certains 0,8, aucun 0,5).
         alpha: marque === 'aucune' ? 0.5 : marque === 'tiret' ? 0.8 : 1,
         anchor: { u: 0.5, v: 75 / 84 },
       });
     },
     (c) => c.removeMarker(cle),
-    [position.latitude, position.longitude, couleur, nombre, pointEleve, marque],
+    [position.latitude, position.longitude, couleur, nombre, pointEleve, marque, information],
   );
   useEffect(() => {
     inscrire(cle, { onPress });

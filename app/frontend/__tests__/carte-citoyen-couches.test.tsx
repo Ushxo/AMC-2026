@@ -55,7 +55,7 @@ jest.mock('@/hooks/use-couches', () => ({ useCouches: () => ({ couches: mockCouc
 jest.mock('@/hooks/use-source', () => ({ useSource: () => ({ etat: 'en_ligne' }) }));
 jest.mock('@/hooks/use-endroits', () => ({ useEndroits: () => ({ endroits: [], signalements: [], chargement: false, erreur: null, rafraichir: jest.fn() }) }));
 jest.mock('@/hooks/use-bouches-existantes', () => ({ useBouchesExistantes: () => ({ bouches: [], surRegion: jest.fn() }) }));
-jest.mock('@/hooks/use-regroupement', () => ({ useRegroupement: () => ({ regroupement: { groupes: [], isoles: [] }, surRegion: jest.fn(), surTaille: jest.fn() }) }));
+jest.mock('@/hooks/use-regroupement', () => ({ useRegroupement: (_e: unknown, _r: unknown, _h: unknown, infos: unknown[] = []) => ({ regroupement: { groupes: [], isoles: [], infosIsolees: infos }, surRegion: jest.fn(), surTaille: jest.fn() }) }));
 jest.mock('@/hooks/use-position-carte', () => ({ usePositionCarte: () => ({ position: { latitude: 45.5, longitude: -73.5 }, statut: 'ok', actualiser: jest.fn() }) }));
 jest.mock('@/hooks/use-recherche-adresse', () => ({
   MESSAGE_RECHERCHE_INDISPONIBLE: 'x',

@@ -27,6 +27,11 @@ export function nomImageRepere(couleur: string, etat: EtatRepere = 'normal', num
 
 export const NOM_IMAGE_VEHICULE = 'vehicule';
 
+/** Image d'un groupe d'éléments d'information seulement : bleu pétrole, nombre de 2 à 9 ou « 9+ » (neuf images en tout). */
+export function nomImageGroupeInfo(nombre: number): string {
+  return `groupe_info_${nombre > 9 ? '9plus' : Math.max(2, nombre)}`;
+}
+
 /** Image d'un repère d'information (avis d'ébullition, coupure, eau accumulée, chantier, zone inondable) : info_<genre>. */
 export function nomImageInfo(genre: 'ebullition' | 'coupure' | 'bande' | 'chantier' | 'zone'): string {
   return `info_${genre}`;

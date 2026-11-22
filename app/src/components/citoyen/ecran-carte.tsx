@@ -22,7 +22,6 @@ import { useCouches } from '@/hooks/use-couches';
 import { useBandesInondation } from '@/hooks/use-bandes-inondation';
 import { useBouchesExistantes } from '@/hooks/use-bouches-existantes';
 import { useRegroupement } from '@/hooks/use-regroupement';
-import type { Regroupement } from '@/lib/regroupement';
 import { useEndroits } from '@/hooks/use-endroits';
 import { usePositionCarte } from '@/hooks/use-position-carte';
 import { useSource } from '@/hooks/use-source';
@@ -64,7 +63,7 @@ function premierSignalement(e: Endroit): string {
   return (ouvert ?? e.signalements[0]).id;
 }
 
-const REGROUPEMENT_VIDE: Regroupement = { groupes: [], isoles: [] };
+const AUCUN_ENDROIT: Endroit[] = [];
 
 /** Hauteur de la barre du bas de la coquille (les boutons flottants se posent au-dessus). */
 const HAUTEUR_BARRE = 92;
@@ -119,9 +118,6 @@ export default function CarteCitoyen({ coquille }: Props) {
   const region = useMemo(() => chargerRegion(), []);
   const visibles = useMemo(() => endroits.filter((e) => e.nombre > 0), [endroits]);
   const { bouches, surRegion } = useBouchesExistantes(endroits);
-  const { regroupement, surRegion: surRegionGroupes, surTaille } = useRegroupement(visibles, region);
-  const carte = useRef<CarteCommandes>(null);
-  const { position: maPosition, statut: statutPosition, actualiser } = usePositionCarte();
   const avis = useMemo(() => avisVisibles(couches.avisEau, coucheVisible), [couches.avisEau, coucheVisible]);
   // Un petit repère touchable au milieu de chaque avis, bande d'eau, chantier et zone inondable affichés : le chemin de toucher le plus sûr.
   const infos = useMemo(
@@ -134,6 +130,10 @@ export default function CarteCitoyen({ coquille }: Props) {
       }),
     [avis, bandes, coucheVisible, couches.chantiers, couches.zonesInondables],
   );
+  const { regroupement, surRegion: surRegionGroupes, surTaille } = useRegroupement(coucheVisible.signalements ? visibles : AUCUN_ENDROIT, region, undefined, infos);
+  const infosParId = useMemo(() => new Map(infos.map((r) => [r.id, r])), [infos]);
+  const carte = useRef<CarteCommandes>(null);
+  const { position: maPosition, statut: statutPosition, actualiser } = usePositionCarte();
   // Position du téléphone : on le dit seulement si elle est sous un avis (sinon, rien à signaler de plus).
   const verifPosition = useMemo(() => (maPosition ? verifierAvis(maPosition, couches.avisEau, 'position') : null), [maPosition, couches.avisEau]);
   // Ouverture sur le citoyen : la carte attend un instant sa dernière position connue (jamais la fenêtre de permission),
@@ -274,9 +274,12 @@ export default function CarteCitoyen({ coquille }: Props) {
               )
             : null}
           {coucheVisible.eauAccumulee ? <BandesInondation bandes={bandes} onPress={(b) => ouvrirFiche(ficheBande(b))} /> : null}
-          {infos.map((r) => (
-            <RepereInfo key={r.id} id={r.id} position={r.position} genre={r.genre} accessibilityLabel={`${r.libelle}. Ouvrir la fiche.`} onPress={() => ouvrirFiche(r.fiche)} />
-          ))}
+          {regroupement.infosIsolees.map((r) => {
+            const info = infosParId.get(r.id);
+            return info ? (
+              <RepereInfo key={r.id} id={r.id} position={r.position} genre={r.genre} accessibilityLabel={`${info.libelle}. Ouvrir la fiche.`} onPress={() => ouvrirFiche(info.fiche)} />
+            ) : null;
+          })}
           {(coucheVisible.regards ? bouches : []).map((b) => (
             <Repere
               key={`b-${b.id}`}
@@ -291,7 +294,7 @@ export default function CarteCitoyen({ coquille }: Props) {
             />
           ))}
           <ReperesEndroits
-            regroupement={coucheVisible.signalements ? regroupement : REGROUPEMENT_VIDE}
+            regroupement={regroupement}
             onZoomer={(points) => carte.current?.zoomer(points)}
             rendreEndroit={(e) => {
               const nombre = formaterNombre(e.nombre, 'signalement ouvert', 'signalements ouverts');

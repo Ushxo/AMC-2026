@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Ellipse, Path, Text as TexteSvg } from 'react-native-svg';
 
-import { COULEUR_ACCENT, COULEUR_REPERE, couleurSigne, LISERE_CLAIR, LISERE_SOMBRE } from './style';
+import { COULEUR_ACCENT, COULEUR_REPERE, COULEURS_INFO, couleurSigne, LISERE_CLAIR, LISERE_SOMBRE } from './style';
 
 /** normal = à faire ; choisi = sélectionné (coche) ; attenue = non sélectionné ; prochain = prochain arrêt (grand) ; fait = arrêt fait (coche, gris). */
 export type EtatRepere = 'normal' | 'choisi' | 'attenue' | 'prochain' | 'fait' | 'groupe';
@@ -56,6 +56,8 @@ type Props = {
   numero?: number;
   /** Groupe : petit point rouge quand il contient un endroit élevé mais que sa moyenne n'est pas rouge. */
   pointEleve?: boolean;
+  /** Petite marque bleu pétrole : le groupe absorbe au moins un avis d'eau officiel. */
+  pointAvis?: boolean;
   /** Groupe de la carte de sélection : tous les endroits (coche), certains (tiret). */
   marque?: MarqueSelection;
 };
@@ -64,7 +66,7 @@ type Props = {
  * Repère de bouche d'égout : une goutte avec une grille. La forme dit l'état, pas seulement la couleur :
  * grille = à faire, coche = sélectionné ou fait, grand avec halo bleu = prochain arrêt, atténué = non sélectionné.
  */
-export function RepereEgout({ couleur, etat = 'normal', numero, pointEleve, marque }: Props) {
+export function RepereEgout({ couleur, etat = 'normal', numero, pointEleve, pointAvis, marque }: Props) {
   const { largeur, hauteur } = TAILLES[etat];
   const g = geometrieRepere(etat);
   const coche = etat === 'choisi' || etat === 'fait';
@@ -100,6 +102,7 @@ export function RepereEgout({ couleur, etat = 'normal', numero, pointEleve, marq
           strokeLinejoin="round"
         />
         )}
+        {pointAvis ? <Circle cx={12} cy={13} r={9} fill={COULEURS_INFO.ebullition} stroke={LISERE_CLAIR} strokeWidth={3} /> : null}
         {pointEleve ? <Circle cx={52} cy={13} r={9} fill={COULEUR_REPERE.elevee} stroke={LISERE_CLAIR} strokeWidth={3} /> : null}
         {marque === 'coche' || marque === 'tiret' ? (
           <>

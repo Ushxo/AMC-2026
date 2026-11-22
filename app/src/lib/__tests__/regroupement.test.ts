@@ -2,6 +2,8 @@ import type { Endroit, Gravite } from '../../types';
 import type { Region } from '../config';
 import {
   dansRegion,
+  decalerInfos,
+  type ItemInfo,
   etatSelectionGroupe,
   graviteMoyenne,
   libelleGroupe,
@@ -157,5 +159,71 @@ describe('stabilité du niveau (hystérésis) et coût', () => {
       for (let k = 0; k < 20; k++) regrouper(e, region, 340);
       console.log(`regrouper(${n} endroits) : ${((performance.now() - t) / 20).toFixed(2)} ms par appel`);
     }
+  });
+});
+
+describe('regroupement avec éléments d’information (avis, eau accumulée, chantiers, zones)', () => {
+  const info = (id: string, lat: number, lng: number, genre: ItemInfo['genre'] = 'ebullition'): ItemInfo => ({ id, genre, position: { latitude: lat, longitude: lng } });
+
+  it('dézoomé : les éléments d’information entrent dans le groupe de leur secteur sans changer le nombre ni la gravité', () => {
+    const a = e(45.5001, -73.5701, 'elevee');
+    const b = e(45.5003, -73.5703, 'faible');
+    const sans = regrouper([a, b], loin, HAUTEUR).groupes[0];
+    const r = regrouper([a, b], loin, HAUTEUR, undefined, [info('i1', 45.5002, -73.5702), info('i2', 45.5002, -73.5702, 'chantier')]);
+    expect(r.groupes).toHaveLength(1);
+    const g = r.groupes[0];
+    expect(g.nombre).toBe(2); // compte les signalements seulement
+    expect(g.gravite).toBe(sans.gravite);
+    expect(g.infos).toHaveLength(2);
+    expect(g.nombreAvis).toBe(1); // un avis d'eau, un chantier
+    expect(r.infosIsolees).toEqual([]); // plus dessinés un par un
+  });
+
+  it('libellé : « 2 avis d’eau » est dit dans le repère de groupe', () => {
+    const r = regrouper([e(45.5001, -73.5701), e(45.5003, -73.5703)], loin, HAUTEUR, undefined, [info('i1', 45.5002, -73.5702), info('i2', 45.5002, -73.5702, 'coupure')]);
+    expect(libelleGroupe(r.groupes[0], () => 'Faible')).toBe("Secteur : 2 endroits signalés, gravité moyenne : faible, 2 avis d'eau. Toucher pour zoomer");
+  });
+
+  it('un secteur sans signalement donne UN groupe « information » à partir de deux éléments, un seul élément reste seul', () => {
+    const r = regrouper([], loin, HAUTEUR, undefined, [info('i1', 45.5001, -73.5701), info('i2', 45.5003, -73.5703, 'bande'), info('i3', 45.53, -73.54, 'zone')]);
+    expect(r.groupes).toHaveLength(1);
+    expect(r.groupes[0].seulementInfo).toBe(true);
+    expect(r.groupes[0].nombre).toBe(2);
+    expect(r.infosIsolees.map((x) => x.id)).toEqual(['i3']);
+    expect(libelleGroupe(r.groupes[0], () => '')).toMatch(/2 éléments d'information \(1 avis d'eau, 1 autre information\)/);
+  });
+
+  it('un seul signalement dans le secteur garde son repère ; deux éléments d’information font un groupe « information »', () => {
+    const seul = e(45.5001, -73.5701);
+    const r = regrouper([seul], loin, HAUTEUR, undefined, [info('i1', 45.5002, -73.5702), info('i2', 45.5003, -73.5703)]);
+    expect(r.isoles).toEqual([seul]);
+    expect(r.groupes.map((g) => g.seulementInfo)).toEqual([true]);
+  });
+
+  it('au zoom de rue, tout s’affiche un par un', () => {
+    const a = e(45.5001, -73.5701);
+    const b = e(45.5003, -73.5703);
+    const rue: Region = { latitude: 45.5, longitude: -73.57, latitudeDelta: SEUIL_ZOOM_REGROUPEMENT, longitudeDelta: 0.005 };
+    const r = regrouper([a, b], rue, HAUTEUR, undefined, [info('i1', 45.5002, -73.5702), info('i2', 45.5002, -73.5703)]);
+    expect(r.groupes).toEqual([]);
+    expect(r.isoles).toHaveLength(2);
+    expect(r.infosIsolees).toHaveLength(2);
+  });
+
+  it('hors de la zone visible : ignorés', () => {
+    const r = regrouper([], loin, HAUTEUR, undefined, [info('i1', 46.5, -73.57)]);
+    expect(r.infosIsolees).toEqual([]);
+  });
+
+  it('un repère d’information sur un signalement est décalé (le signalement garde sa place) ; deux éléments confondus aussi', () => {
+    const rue: Region = { latitude: 45.5, longitude: -73.57, latitudeDelta: 0.003, longitudeDelta: 0.004 };
+    const sig = e(45.5, -73.57);
+    const out = decalerInfos([info('a', 45.5, -73.57), info('b', 45.5, -73.57, 'bande')], [sig], rue, HAUTEUR);
+    expect(out[0].position.longitude).toBeGreaterThan(-73.57);
+    expect(out[1].position.longitude).toBeGreaterThan(out[0].position.longitude);
+    expect(sig.position).toEqual({ latitude: 45.5, longitude: -73.57 });
+    // loin de tout : inchangé
+    const libre = info('c', 45.502, -73.57);
+    expect(decalerInfos([libre], [sig], rue, HAUTEUR)[0]).toBe(libre);
   });
 });

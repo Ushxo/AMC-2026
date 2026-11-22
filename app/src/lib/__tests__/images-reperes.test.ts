@@ -1,4 +1,4 @@
-import { hexSansDieze, nomImageGroupe, nomImageRepere, NOM_IMAGE_VEHICULE } from '../images-reperes';
+import { nomImageGroupeInfo, hexSansDieze, nomImageGroupe, nomImageRepere, NOM_IMAGE_VEHICULE } from '../images-reperes';
 
 describe('noms des images de repères', () => {
   it('gravité : un nom par couleur et par état', () => {
@@ -39,5 +39,18 @@ describe('images des repères de groupe', () => {
     expect(nomImageGroupe('#2F7D32', 250, false)).toBe('groupe_2F7D32_99plus');
     expect(nomImageGroupe('#2F7D32', 1, false)).toBe('groupe_2F7D32_2');
     expect(nomImageGroupe('#123456', 5, false)).toBe('groupe_2F7D32_5');
+  });
+});
+
+declare const __dirname: string;
+
+describe('images des groupes d\'information', () => {
+  it('une image par nombre de 2 à 9 et « 9+ » : neuf images, présentes dans assets/reperes', () => {
+    const noms = [1, 2, 3, 9, 10, 250].map(nomImageGroupeInfo);
+    expect(noms).toEqual(['groupe_info_2', 'groupe_info_2', 'groupe_info_3', 'groupe_info_9', 'groupe_info_9plus', 'groupe_info_9plus']);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = jest.requireActual('fs');
+    const dossier = jest.requireActual('path').resolve(__dirname, '../../../assets/reperes');
+    for (const n of new Set(noms)) expect(fs.existsSync(`${dossier}/${n}@3x.png`)).toBe(true);
   });
 });

@@ -14,6 +14,11 @@ const CASE_BASE = 0.0005;
 const M_PAR_DEGRE_LAT = 110540;
 const M_PAR_DEGRE_LNG_EQ = 111320;
 
+/** Un élément d'information de la carte (avis d'eau, eau accumulée, chantier, zone inondable) qui entre dans les groupes de son secteur. */
+export type ItemInfo = { id: string; genre: 'ebullition' | 'coupure' | 'bande' | 'chantier' | 'zone'; position: Coordonnees };
+
+export const estAvisEau = (i: Pick<ItemInfo, 'genre'>): boolean => i.genre === 'ebullition' || i.genre === 'coupure';
+
 export type Groupe = {
   /** Identifiant stable : niveau de zoom + case de la grille. */
   id: string;
@@ -27,9 +32,15 @@ export type Groupe = {
   nombreEleves: number;
   /** Il y a au moins un endroit élevé mais la moyenne n'est pas rouge : on le signale par un point rouge. */
   marqueEleve: boolean;
+  /** Éléments d'information absorbés par le groupe (ils ne changent ni le nombre ni la gravité moyenne). */
+  infos: ItemInfo[];
+  /** Nombre d'avis d'eau officiels parmi les éléments d'information absorbés. */
+  nombreAvis: number;
+  /** Secteur qui n'a QUE des éléments d'information : un repère de groupe neutre (bleu), `nombre` compte alors ces éléments. */
+  seulementInfo: boolean;
 };
 
-export type Regroupement = { groupes: Groupe[]; isoles: Endroit[] };
+export type Regroupement = { groupes: Groupe[]; isoles: Endroit[]; infosIsolees: ItemInfo[] };
 
 export function graviteMoyenne(endroits: Pick<Endroit, 'gravite_affichee' | 'nombre'>[]): Gravite {
   let somme = 0;
@@ -84,41 +95,96 @@ export function dansRegion(p: Coordonnees, r: Region, marge = 0.2): boolean {
  * Regroupe les endroits de la zone visible par secteur : une case qui contient 2 endroits ou plus devient UN groupe
  * (placé au barycentre) ; une case à un seul endroit garde son repère ; aucun regroupement quand on est assez zoomé.
  */
-export function regrouper(endroits: Endroit[], region: Region, hauteurPx: number, niveauImpose?: number): Regroupement {
+export function regrouper(endroits: Endroit[], region: Region, hauteurPx: number, niveauImpose?: number, infos: ItemInfo[] = []): Regroupement {
   const visibles = endroits.filter((e) => dansRegion(e.position, region));
-  if (region.latitudeDelta <= SEUIL_ZOOM_REGROUPEMENT) return { groupes: [], isoles: visibles };
+  const infosVisibles = infos.filter((i) => dansRegion(i.position, region));
+  if (region.latitudeDelta <= SEUIL_ZOOM_REGROUPEMENT) return { groupes: [], isoles: visibles, infosIsolees: infosVisibles };
   const niveau = niveauImpose ?? niveauGrille(region.latitudeDelta, hauteurPx);
   const { dLat, dLng } = tailleCase(niveau, region.latitude);
-  const cases = new Map<string, Endroit[]>();
-  for (const e of visibles) {
-    const cle = `${Math.floor(e.position.latitude / dLat)}:${Math.floor(e.position.longitude / dLng)}`;
-    const liste = cases.get(cle);
-    if (liste) liste.push(e);
-    else cases.set(cle, [e]);
-  }
+  const cleDe = (p: Coordonnees) => `${Math.floor(p.latitude / dLat)}:${Math.floor(p.longitude / dLng)}`;
+  const cases = new Map<string, { e: Endroit[]; i: ItemInfo[] }>();
+  const dans = (cle: string) => {
+    let c = cases.get(cle);
+    if (!c) cases.set(cle, (c = { e: [], i: [] }));
+    return c;
+  };
+  for (const e of visibles) dans(cleDe(e.position)).e.push(e);
+  for (const i of infosVisibles) dans(cleDe(i.position)).i.push(i);
   const groupes: Groupe[] = [];
   const isoles: Endroit[] = [];
-  for (const [cle, liste] of cases) {
+  const infosIsolees: ItemInfo[] = [];
+  for (const [cle, { e: liste, i: elements }] of cases) {
+    // Deux signalements ou plus : groupe classique, qui absorbe les éléments d'information du secteur.
+    // Un seul signalement (ou aucun) : il garde son repère ; les éléments d'information font un groupe « information » à partir de deux.
     if (liste.length < 2) {
       isoles.push(...liste);
+      if (elements.length < 2) {
+        infosIsolees.push(...elements);
+        continue;
+      }
+      groupes.push({
+        id: `groupe-info-${niveau}-${cle}`,
+        position: barycentre(elements.map((x) => x.position)),
+        endroits: [],
+        nombre: elements.length,
+        gravite: 'faible',
+        nombreEleves: 0,
+        marqueEleve: false,
+        infos: elements,
+        nombreAvis: elements.filter(estAvisEau).length,
+        seulementInfo: true,
+      });
       continue;
     }
     const gravite = graviteMoyenne(liste);
     const nombreEleves = liste.filter((e) => e.gravite_affichee === 'elevee').length;
     groupes.push({
       id: `groupe-${niveau}-${cle}`,
-      position: {
-        latitude: liste.reduce((t, e) => t + e.position.latitude, 0) / liste.length,
-        longitude: liste.reduce((t, e) => t + e.position.longitude, 0) / liste.length,
-      },
+      position: barycentre([...liste.map((x) => x.position), ...elements.map((x) => x.position)]),
       endroits: liste,
       nombre: liste.length,
       gravite,
       nombreEleves,
       marqueEleve: nombreEleves > 0 && gravite !== 'elevee',
+      infos: elements,
+      nombreAvis: elements.filter(estAvisEau).length,
+      seulementInfo: false,
     });
   }
-  return { groupes, isoles };
+  return { groupes, isoles, infosIsolees };
+}
+
+function barycentre(points: Coordonnees[]): Coordonnees {
+  return {
+    latitude: points.reduce((t, p) => t + p.latitude, 0) / points.length,
+    longitude: points.reduce((t, p) => t + p.longitude, 0) / points.length,
+  };
+}
+
+/** Écart à l'écran (points) en dessous duquel deux repères se superposeraient. */
+export const ECART_SUPERPOSITION_PX = 14;
+
+/**
+ * Éléments d'information isolés : un repère d'information trop proche (quelques points d'écran) d'un repère de signalement ou d'un autre
+ * élément est décalé vers l'est : le signalement garde sa place (priorité), rien ne se superpose.
+ */
+export function decalerInfos(infos: ItemInfo[], endroits: Endroit[], region: Region, hauteurPx: number): ItemInfo[] {
+  const mParPoint = (region.latitudeDelta * M_PAR_DEGRE_LAT) / Math.max(hauteurPx, 1);
+  const dLngParPoint = mParPoint / (M_PAR_DEGRE_LNG_EQ * Math.cos((region.latitude * Math.PI) / 180));
+  const pt = (p: Coordonnees) => ({ x: p.longitude / dLngParPoint, y: (p.latitude * M_PAR_DEGRE_LAT) / mParPoint });
+  const occupes = endroits.map((e) => pt(e.position));
+  const sortie: ItemInfo[] = [];
+  for (const i of infos) {
+    let position = i.position;
+    for (let essai = 0; essai < 6; essai++) {
+      const a = pt(position);
+      if (!occupes.some((o) => Math.hypot(o.x - a.x, o.y - a.y) < ECART_SUPERPOSITION_PX)) break;
+      position = { latitude: position.latitude, longitude: position.longitude + dLngParPoint * ECART_SUPERPOSITION_PX * (essai + 1) };
+    }
+    occupes.push(pt(position));
+    sortie.push(position === i.position ? i : { ...i, position });
+  }
+  return sortie;
 }
 
 /** Sélection d'un groupe : tous, certains ou aucun de ses endroits. */
@@ -127,9 +193,16 @@ export function etatSelectionGroupe(g: Groupe, estChoisi: (cle: string) => boole
   return n === 0 ? 'aucun' : n === g.endroits.length ? 'tous' : 'partiel';
 }
 
-/** « Secteur : 12 endroits signalés, gravité moyenne : moyenne, dont 3 élevés. Toucher pour zoomer » */
+/** « Secteur : 12 endroits signalés, gravité moyenne : moyenne, dont 3 élevés, 2 avis d'eau. Toucher pour zoomer » */
 export function libelleGroupe(g: Groupe, libelleGravite: (x: Gravite) => string): string {
+  if (g.seulementInfo) {
+    const autres = g.infos.length - g.nombreAvis;
+    const parts = [g.nombreAvis > 0 ? `${g.nombreAvis} ${g.nombreAvis > 1 ? "avis d'eau" : "avis d'eau"}` : '', autres > 0 ? `${autres} ${autres > 1 ? 'autres informations' : 'autre information'}` : ''].filter(Boolean);
+    return `Secteur : ${g.infos.length} éléments d'information (${parts.join(', ')}). Toucher pour zoomer`;
+  }
   const eleves = g.nombreEleves > 0 ? `, dont ${g.nombreEleves} ${g.nombreEleves > 1 ? 'élevés' : 'élevé'}` : '';
-  return `Secteur : ${g.nombre} endroits signalés, gravité moyenne : ${libelleGravite(g.gravite).toLowerCase()}${eleves}. Toucher pour zoomer`;
+  const avis = g.nombreAvis > 0 ? `, ${g.nombreAvis} ${g.nombreAvis > 1 ? "avis d'eau" : "avis d'eau"}` : '';
+  const autres = g.infos.length - g.nombreAvis;
+  const reste = autres > 0 ? `, ${autres} ${autres > 1 ? 'autres informations' : 'autre information'}` : '';
+  return `Secteur : ${g.nombre} endroits signalés, gravité moyenne : ${libelleGravite(g.gravite).toLowerCase()}${eleves}${avis}${reste}. Toucher pour zoomer`;
 }
-

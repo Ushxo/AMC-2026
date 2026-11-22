@@ -4,7 +4,7 @@ import { RepereGroupe } from '@/components/carte';
 import { etatSelectionGroupe, libelleGroupe, type Regroupement } from '@/lib/regroupement';
 import { LIBELLES_GRAVITE, type Coordonnees, type Endroit } from '@/types';
 
-import { COULEUR_REPERE } from './style';
+import { COULEUR_REPERE, COULEURS_INFO } from './style';
 
 type Props = {
   regroupement: Regroupement;
@@ -16,23 +16,28 @@ type Props = {
   estChoisi?: (cle: string) => boolean;
 };
 
-/** Repères d'une carte : un repère par endroit isolé, un repère de groupe par secteur (nombre, gravité moyenne). */
+/**
+ * Repères d'une carte : un repère par endroit isolé, un repère de groupe par secteur (nombre, gravité moyenne).
+ * Un secteur qui n'a que des éléments d'information (avis d'eau, chantiers, zones) donne un repère de groupe neutre bleu.
+ */
 export function ReperesEndroits({ regroupement, rendreEndroit, onZoomer, estChoisi }: Props) {
   return (
     <>
       {regroupement.groupes.map((g) => {
-        const selection = estChoisi ? etatSelectionGroupe(g, estChoisi) : null;
+        const selection = estChoisi && !g.seulementInfo ? etatSelectionGroupe(g, estChoisi) : null;
         return (
           <RepereGroupe
             key={g.id}
             id={g.id}
             position={g.position}
-            couleur={COULEUR_REPERE[g.gravite]}
+            couleur={g.seulementInfo ? COULEURS_INFO.ebullition : COULEUR_REPERE[g.gravite]}
             nombre={g.nombre}
             pointEleve={g.marqueEleve}
+            pointAvis={g.nombreAvis > 0 && !g.seulementInfo}
+            information={g.seulementInfo}
             marque={selection === 'tous' ? 'coche' : selection === 'partiel' ? 'tiret' : selection === 'aucun' ? 'aucune' : undefined}
             zIndex={3}
-            onPress={() => onZoomer(g.endroits.map((e) => e.position))}
+            onPress={() => onZoomer([...g.endroits.map((e) => e.position), ...g.infos.map((i) => i.position)])}
             accessibilityLabel={`${libelleGroupe(g, (x) => LIBELLES_GRAVITE[x])}${selection ? `, ${selection === 'tous' ? 'tous sélectionnés' : selection === 'partiel' ? 'sélection partielle' : 'aucun sélectionné'}` : ''}`}
           />
         );
