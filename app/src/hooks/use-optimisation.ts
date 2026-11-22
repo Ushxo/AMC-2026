@@ -102,7 +102,7 @@ export function useOptimisation(): {
         id: r.id,
         cree_le: new Date().toISOString(),
         statut: 'en_attente',
-        parametres: { version: 1, equipe_ids: [], affectations_forcees: [], limite_secondes: 8, ...parametres },
+        parametres: { version: 1, equipe_ids: [], affectations_forcees: [], limite_secondes: 5, ...parametres },
         message: null,
         commence_le: null,
         termine_le: null,

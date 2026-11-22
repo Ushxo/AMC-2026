@@ -658,10 +658,12 @@ def test_un_echec_des_traces_ne_change_pas_la_demande_terminee(monkeypatch):
     assert any("tracés non ajoutés" in ligne for ligne in lignes)
 
 
-def test_la_limite_par_defaut_est_celle_du_cas_de_demo():
+def test_la_limite_par_defaut_du_calcul_en_direct():
+    # Le calcul en direct répond en 5 s. Le résultat précalculé du cas de démonstration,
+    # lui, a été produit avec 8 s et ne change pas.
     from optimisation.ecoute import LIMITE_DEFAUT_S
 
-    assert LIMITE_DEFAUT_S == 8.0
+    assert LIMITE_DEFAUT_S == 5.0
 
 
 def test_le_journal_donne_les_durees_par_etape():

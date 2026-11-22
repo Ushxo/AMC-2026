@@ -43,7 +43,7 @@ export function parametresParDefaut(p?: Partial<ParametresOptimisation>): Parame
     equipe_ids: [],
     incident_ids: [],
     affectations_forcees: [],
-    limite_secondes: 8,
+    limite_secondes: 5,
     ...p,
   };
 }

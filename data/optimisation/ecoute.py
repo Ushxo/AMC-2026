@@ -34,7 +34,7 @@ from optimisation.solveur import resoudre
 INTERVALLE_S = 3.0
 INTERVENTION_S = 480  # hypothèse de démo, comme dans les précalculés
 PENALITE_INCIDENT_S = {"accident": 600, "rue_fermee": 1800, "autre": 300}
-LIMITE_MIN_S, LIMITE_MAX_S, LIMITE_DEFAUT_S = 1.0, 30.0, 8.0
+LIMITE_MIN_S, LIMITE_MAX_S, LIMITE_DEFAUT_S = 1.0, 30.0, 5.0
 
 MESSAGE_AUCUNE_EQUIPE = "Aucune équipe disponible pour cette période."
 MESSAGE_AUCUN_ENDROIT = "Aucun signalement ouvert à planifier."

@@ -3,7 +3,7 @@ import type { StatutDemande } from '../types';
 export type EtapeProgression = 'envoi' | 'en_attente' | 'en_cours' | 'terminee' | 'echec' | 'precalcule' | 'trace';
 
 /** Durée attendue d'un calcul mesuré : limite du solveur (8 s) + lecture, matrices et publication. */
-export const DUREE_ATTENDUE_MS = 10000;
+export const DUREE_ATTENDUE_MS = 7000;
 export const FRACTION_MAX_AVANT_FIN = 0.95;
 
 export const LIBELLES_ETAPE: Record<EtapeProgression, string> = {
