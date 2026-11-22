@@ -816,6 +816,16 @@ class MagasinSupabase:
                             **(
                                 {"fait": True, "fait_le": a.get("fait_le")} if a.get("fait") else {}
                             ),
+                            # Résultat « non fait » et commentaire (migration 0012), seulement s'il existe.
+                            **(
+                                {
+                                    "non_fait": True,
+                                    "commentaire": a.get("commentaire"),
+                                    "traite_le": a.get("traite_le"),
+                                }
+                                if a.get("non_fait")
+                                else {}
+                            ),
                         }
                         for a in t["arrets"]
                     ]

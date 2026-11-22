@@ -3,8 +3,10 @@
 `publier_tournees` efface toutes les tournées avant d'écrire celles de la demande, et l'app lit les
 tournées de la dernière demande terminée. Quand une demande ne porte que sur certaines équipes, le
 service relit le plan en place et republie telles quelles les tournées des autres équipes. Les arrêts
-déjà faits de l'équipe recalculée restent en tête du plan avec leur état ; seuls les arrêts restants
-sont réordonnés.
+déjà TRAITÉS de l'équipe recalculée (faits, ou déclarés non faits avec un commentaire) restent en tête du
+plan avec leur état, dans leur ordre d'origine ; seuls les arrêts restants sont réordonnés. Un arrêt non
+fait est traité pour la journée : il n'est pas replanifié. Lecture tolérante : sans les colonnes de la
+migration 0012, non_fait vaut faux et le commentaire est vide.
 """
 
 from __future__ import annotations
@@ -24,6 +26,9 @@ def _arrets_depuis_lignes(ligne: dict[str, Any]) -> list[dict[str, Any]]:
             "depart_prevu": a["depart_prevu"],
             "fait": bool(a.get("fait")),
             "fait_le": a.get("fait_le"),
+            "non_fait": bool(a.get("non_fait")),
+            "commentaire": a.get("commentaire"),
+            "traite_le": a.get("traite_le"),
         }
         for a in sorted(ligne.get("arrets") or [], key=lambda a: a["rang"])
     ]
@@ -68,12 +73,13 @@ def tournee_conservee(ligne: dict[str, Any], nom: str | None) -> dict[str, Any]:
 
 
 def cles_a_exclure(en_place: list[dict[str, Any]], equipes_recalculees: set[str]) -> set[str]:
-    """Endroits à ne pas replanifier : ceux des autres équipes, et ceux déjà faits par les équipes recalculées."""
+    """Endroits à ne pas replanifier : ceux des autres équipes, et ceux déjà traités (faits ou non faits)
+    par les équipes recalculées."""
     cles: set[str] = set()
     for ligne in en_place:
         recalculee = ligne["equipe_id"] in equipes_recalculees
         for a in ligne.get("arrets") or []:
-            if not recalculee or a.get("fait"):
+            if not recalculee or a.get("fait") or a.get("non_fait"):
                 cles.add(a["cle_endroit"])
     return cles
 
@@ -98,13 +104,17 @@ def fusionner(
     ligne_par_equipe = {ligne["equipe_id"]: ligne for ligne in en_place}
     for t in resultat["tournees"]:
         ligne = ligne_par_equipe.get(t["equipe_id"])
-        faits = [a for a in _arrets_depuis_lignes(ligne) if a["fait"]] if ligne else []
+        # Arrêts traités : faits, ou non faits (avec leur commentaire), dans leur ordre d'origine.
+        faits = (
+            [a for a in _arrets_depuis_lignes(ligne) if a["fait"] or a["non_fait"]] if ligne else []
+        )
         for i, a in enumerate(faits, start=1):
             a["rang"] = i
         for a in t["arrets"]:
             a["rang"] += len(faits)
             a.setdefault("fait", False)
             a.setdefault("fait_le", None)
+            a.setdefault("non_fait", False)
         t["arrets"] = faits + t["arrets"]
         t["recalculee"] = True
         t["faits_conserves"] = len(faits)

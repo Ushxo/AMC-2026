@@ -45,6 +45,9 @@ class MagasinPlan(FauxMagasin):
                         "depart_prevu": a["depart_prevu"],
                         "fait": bool(a.get("fait")),
                         "fait_le": a.get("fait_le"),
+                        "non_fait": bool(a.get("non_fait")),
+                        "commentaire": a.get("commentaire"),
+                        "traite_le": a.get("traite_le"),
                     }
                     for a in t["arrets"]
                 ],
@@ -125,7 +128,15 @@ def test_recalcul_d_une_equipe_garde_les_autres_tournees_et_les_arrets_faits():
     # Les autres équipes : tournée republiée telle quelle (mêmes rangs, heures, arrêts).
     assert apres["e2"]["conservee"] is True
     assert apres["e2"]["arrets"] == [
-        {**a, "fait": False, "fait_le": None} for a in avant["e2"]["arrets"]
+        {
+            **a,
+            "fait": False,
+            "fait_le": None,
+            "non_fait": False,
+            "commentaire": None,
+            "traite_le": None,
+        }
+        for a in avant["e2"]["arrets"]
     ]
     for champ in ("distance_m", "duree_s", "debut_prevu", "fin_prevue", "geometrie"):
         assert apres["e2"][champ] == avant["e2"][champ]
@@ -547,3 +558,146 @@ def test_magasin_supabase_ne_corrige_que_les_arrets_manquants():
     mises_a_jour = [a for a in client.appels if a[1] == "update"]
     # Le rang 1 est déjà fait (la 0006 l'a écrit) : seul le rang 2 est corrigé.
     assert [a[3] for a in mises_a_jour] == [(("tournee_id", "t-e1"), ("rang", 2))]
+
+
+# ---------- arrêts non faits, avec commentaire ----------
+
+
+def marquer_non_fait(
+    ligne, rang, commentaire="grille brisée, à réparer", quand="2026-11-22T09:30:00+00:00"
+):
+    a = next(x for x in ligne["arrets"] if x["rang"] == rang)
+    a["non_fait"], a["commentaire"], a["traite_le"] = True, commentaire, quand
+    return a["cle_endroit"]
+
+
+def test_arret_non_fait_reste_en_tete_avec_son_commentaire_et_n_est_pas_revisite():
+    m = plan_une_equipe()
+    ligne = m.en_place[0]
+    fait = ligne["arrets"][0]
+    fait["fait"], fait["fait_le"] = True, "2026-11-22T09:00:00+00:00"
+    cle_non_fait = marquer_non_fait(ligne, 2)
+    restants = [a["cle_endroit"] for a in ligne["arrets"][2:]]
+    # L'app peut envoyer, par erreur, l'endroit non fait parmi les restants : il n'est pas replanifié.
+    d = demande_partielle(
+        m, equipe_ids=["e1"], recalcul="tournee", cles_endroits=[cle_non_fait, *restants]
+    )
+    assert d["statut"] == "terminee"
+    t = m.tournees["d2"]["tournees"][0]
+    assert cles(t)[:2] == [fait["cle_endroit"], cle_non_fait]
+    assert cles(t).count(cle_non_fait) == 1 and sorted(cles(t)[2:]) == sorted(restants)
+    traites = t["arrets"][:2]
+    assert [(a["fait"], a["non_fait"]) for a in traites] == [(True, False), (False, True)]
+    assert traites[1]["commentaire"] == "grille brisée, à réparer"
+    assert traites[1]["traite_le"] == "2026-11-22T09:30:00+00:00"
+    assert [a["rang"] for a in t["arrets"]] == list(range(1, len(t["arrets"]) + 1))
+    assert t["faits_conserves"] == 2 and t["recalculee"] is True
+    assert not any(a["non_fait"] or a["fait"] for a in t["arrets"][2:])
+    # Sans cles_endroits : même résultat, l'endroit non fait n'est pas repris dans les restants.
+    m2 = plan_une_equipe()
+    cle2 = marquer_non_fait(m2.en_place[0], 1)
+    demande_partielle(m2, equipe_ids=["e1"], recalcul="tournee")
+    t2 = m2.tournees["d2"]["tournees"][0]
+    assert cles(t2)[0] == cle2 and cles(t2).count(cle2) == 1 and t2["arrets"][0]["non_fait"] is True
+
+
+def test_tournee_conservee_garde_ses_non_faits_et_leur_commentaire():
+    m = plan_complet()
+    autre = next(t for t in m.en_place if t["equipe_id"] == "e2")
+    cle = marquer_non_fait(autre, 1, "accès bloqué")
+    demande_partielle(m, equipe_ids=["e1"], recalcul="tournee")
+    conservee = par_equipe(m.tournees["d2"])["e2"]
+    assert conservee["conservee"] is True
+    a = conservee["arrets"][0]
+    assert a["cle_endroit"] == cle and a["non_fait"] is True and a["commentaire"] == "accès bloqué"
+    assert a["traite_le"] == "2026-11-22T09:30:00+00:00" and a["fait"] is False
+
+
+def test_cles_a_exclure_compte_les_non_faits():
+    en_place = [
+        {"equipe_id": "a", "arrets": [{"cle_endroit": "x", "non_fait": True}, {"cle_endroit": "y"}]}
+    ]
+    assert cles_a_exclure(en_place, {"a"}) == {"x"}
+    assert cles_a_exclure(en_place, set()) == {"x", "y"}
+
+
+def test_base_sans_les_colonnes_lecture_tolerante():
+    """Lignes sans non_fait, commentaire ni traite_le (migration 0012 non lancée) : faux et vide, sans erreur."""
+    from optimisation.plan_partiel import tournee_conservee
+
+    ligne = {
+        "equipe_id": "e",
+        "distance_m": 1,
+        "duree_s": 2,
+        "debut_prevu": "a",
+        "fin_prevue": "b",
+        "arrets": [
+            {
+                "rang": 1,
+                "cle_endroit": "x",
+                "latitude": 1,
+                "longitude": 2,
+                "arrivee_prevue": "t",
+                "depart_prevu": "u",
+            }
+        ],
+    }
+    [a] = tournee_conservee(ligne, "E")["arrets"]
+    assert a["non_fait"] is False and a["commentaire"] is None and a["traite_le"] is None
+    assert a["fait"] is False
+
+
+def test_chemin_de_repli_n_ecrit_les_colonnes_non_fait_que_si_elles_servent():
+    client = FauxClient()
+    resultat = {
+        "tournees": [
+            {
+                "equipe_id": "e1",
+                "distance_m": 1,
+                "duree_s": 2,
+                "debut_prevu": "a",
+                "fin_prevue": "b",
+                "geometrie": None,
+                "arrets": [
+                    {
+                        "rang": 1,
+                        "cle_endroit": "x",
+                        "signalement_ids": [],
+                        "position": {"latitude": 1, "longitude": 2},
+                        "arrivee_prevue": "t",
+                        "depart_prevu": "u",
+                    },
+                    {
+                        "rang": 2,
+                        "cle_endroit": "y",
+                        "signalement_ids": [],
+                        "position": {"latitude": 1, "longitude": 2},
+                        "arrivee_prevue": "t",
+                        "depart_prevu": "u",
+                        "non_fait": True,
+                        "commentaire": "à réparer",
+                        "traite_le": "2026-11-22T09:30:00+00:00",
+                    },
+                ],
+            }
+        ]
+    }
+    MagasinSupabase(client).ecrire_tournees("d2", resultat)
+    inserts = [a for a in client.appels if a[0] == "arrets" and a[1] == "insert"]
+    lignes = inserts[0][2]
+    assert "non_fait" not in lignes[0] and "commentaire" not in lignes[0]
+    assert lignes[1]["non_fait"] is True and lignes[1]["commentaire"] == "à réparer"
+
+
+def test_calcul_global_replanifie_l_endroit_non_fait_tant_que_ses_signalements_sont_ouverts():
+    """Relance globale ou calcul du lendemain : un arrêt non fait ne ferme pas les signalements, l'endroit
+    redevient planifiable (le problème n'est pas réglé), sans état hérité."""
+    m = plan_complet()
+    cle = marquer_non_fait(m.en_place[0], 1)
+    demande_partielle(m, "d2")  # calcul global : aucun paramètre de recalcul
+    r = m.tournees["d2"]
+    assert r["portee"] == "complet"
+    tous = [c for t in r["tournees"] for c in cles(t)]
+    assert cle in tous and len(tous) == len(set(tous)) == N
+    arret = next(a for t in r["tournees"] for a in t["arrets"] if a["cle_endroit"] == cle)
+    assert not arret.get("non_fait") and arret.get("commentaire") is None
