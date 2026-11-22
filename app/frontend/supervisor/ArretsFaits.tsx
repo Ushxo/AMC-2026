@@ -1,5 +1,6 @@
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Texte as Text } from '@/components/texte';
 
 import { Palette } from "@/constants/theme";
 import { Chargement, Vide } from "@/components/ville/etat-ecran";

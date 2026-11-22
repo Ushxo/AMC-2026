@@ -6,6 +6,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
+jest.mock('expo-font', () => ({ useFonts: () => [true, null] }));
+jest.mock('@expo-google-fonts/montserrat', () => ({}));
 const mockAcces = jest.fn();
 jest.mock('@/hooks/use-acces', () => ({ useAcces: () => mockAcces() }));
 jest.mock('../auth/AuthFlow', () => {

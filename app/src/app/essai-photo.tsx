@@ -7,7 +7,8 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Texte as Text } from '@/components/texte';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CameraView, useCameraPermissions, type VueCamera } from '@/lib/camera-optionnelle';

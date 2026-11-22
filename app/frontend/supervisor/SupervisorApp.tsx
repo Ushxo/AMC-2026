@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Alert, Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { Alert, Platform, Pressable, StatusBar, StyleSheet, View } from 'react-native';
+import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

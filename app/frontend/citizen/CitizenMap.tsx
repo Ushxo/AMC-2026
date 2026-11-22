@@ -1,16 +1,7 @@
 
 import React, { useState } from "react";
-import {
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Alert, Modal, Platform, Pressable, StatusBar, StyleSheet, View } from 'react-native';
+import { Texte as Text, ChampTexte as TextInput } from '@/components/texte';
 
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
