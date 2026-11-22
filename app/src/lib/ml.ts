@@ -4,11 +4,6 @@
 //   if (!resultat.valide) → demander une autre photo
 //   else → resultat.score_gravite (0-100) pour classer le signalement
 //
-// La clé d'accès vient de EXPO_PUBLIC_ML_CLE (app/.env) : elle part dans l'en-tête
-// X-Cle-API, et sans elle le serveur refuse la photo (401).
-// L'adresse du serveur vient de EXPO_PUBLIC_ML_URL (app/.env) :
-//   - en local : http://IP_DU_PC:8000 (téléphone sur le même wifi)
-//   - en ligne : l'adresse Cloud Run, https://egouts-ml-xxxx.a.run.app
 
 import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
@@ -34,14 +29,20 @@ export class ErreurML extends Error {
   }
 }
 
-const URL_ML = process.env.EXPO_PUBLIC_ML_URL?.replace(/\/$/, '');
-const CLE_ML = process.env.EXPO_PUBLIC_ML_CLE;
+// La photo passe par la fonction serveur « juger-photo » : la clé du service d'analyse reste
+// côté serveur et n'est jamais dans l'app.
+const URL_SERVEUR = process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/(rest\/v1)?\/?$/, '');
+const CLE_PUBLIQUE = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-function adresse(chemin: string): string {
-  if (!URL_ML) {
-    throw new ErreurML('EXPO_PUBLIC_ML_URL manque dans app/.env : relancer Expo après l’avoir ajouté.');
+function adresse(): string {
+  if (!URL_SERVEUR) {
+    throw new ErreurML('EXPO_PUBLIC_SUPABASE_URL manque dans app/.env.local : relancer Expo après l’avoir ajouté.');
   }
-  return URL_ML + chemin;
+  return URL_SERVEUR + '/functions/v1/juger-photo';
+}
+
+function enTetes(): Record<string, string> | undefined {
+  return CLE_PUBLIQUE ? { apikey: CLE_PUBLIQUE, Authorization: `Bearer ${CLE_PUBLIQUE}` } : undefined;
 }
 
 /**
@@ -56,7 +57,7 @@ async function lireFichier(uri: string): Promise<Blob> {
 }
 
 export async function jugerPhoto(uri: string): Promise<ResultatPhoto> {
-  const url = adresse('/juger'); // hors du try : l'erreur « adresse manquante » doit remonter telle quelle
+  const url = adresse(); // hors du try : l'erreur « adresse manquante » doit remonter telle quelle
 
   const formulaire = new FormData();
   try {
@@ -71,14 +72,14 @@ export async function jugerPhoto(uri: string): Promise<ResultatPhoto> {
     reponse = await fetch(url, {
       method: 'POST',
       body: formulaire,
-      headers: CLE_ML ? { 'X-Cle-API': CLE_ML } : undefined,
+      headers: enTetes(),
     });
   } catch (e) {
     console.warn('[ml] envoi de la photo échoué', e);
     throw new ErreurML('Serveur d’analyse injoignable. Vérifie ta connexion.');
   }
-  if (reponse.status === 401) {
-    throw new ErreurML('Clé du serveur d’analyse manquante ou invalide : vérifier EXPO_PUBLIC_ML_CLE dans app/.env.', 401);
+  if (reponse.status === 401 || reponse.status === 503) {
+    throw new ErreurML('L’analyse de la photo n’est pas disponible pour l’instant.', reponse.status);
   }
   if (!reponse.ok) {
     const corps = await reponse.json().catch(() => null);
@@ -90,7 +91,7 @@ export async function jugerPhoto(uri: string): Promise<ResultatPhoto> {
 /** Réveille le serveur (Cloud Run s'endort quand personne ne l'utilise). */
 export async function reveillerServeurML(): Promise<boolean> {
   try {
-    return (await fetch(adresse('/sante'))).ok;
+    return (await fetch(adresse(), { headers: enTetes() })).ok;
   } catch {
     return false;
   }

@@ -32,7 +32,7 @@ export const MESSAGE_PHOTO_ACCEPTEE = 'Photo acceptée : on voit bien un égout.
 export const MESSAGE_PHOTO_PAS_EGOUT = "Cette photo ne montre pas un égout. Prenez une photo de l'égout ou de la grille.";
 export const MESSAGE_ANALYSE_INDISPONIBLE = "La photo n'a pas pu être vérifiée pour l'instant. Elle sera jointe telle quelle.";
 
-/** L'analyse n'existe que si l'adresse du service est réglée (EXPO_PUBLIC_ML_URL). */
+/** L'analyse passe par la fonction serveur : elle n'existe que si l'adresse du serveur est réglée. */
 export function analyseDisponible(): boolean {
-  return !!process.env.EXPO_PUBLIC_ML_URL;
+  return !!process.env.EXPO_PUBLIC_SUPABASE_URL;
 }

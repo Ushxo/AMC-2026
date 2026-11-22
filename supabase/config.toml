@@ -438,3 +438,7 @@ enabled = true
 # Le jeton est vérifié dans la fonction elle-même (auth.getUser + rôle admin).
 [functions.creer-utilisateur]
 verify_jwt = false
+
+# Les citoyens n'ont pas de compte : la fonction vérifie elle-même la clé publique de l'app.
+[functions.juger-photo]
+verify_jwt = false
