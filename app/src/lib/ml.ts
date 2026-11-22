@@ -4,6 +4,8 @@
 //   if (!resultat.valide) → demander une autre photo
 //   else → resultat.score_gravite (0-100) pour classer le signalement
 //
+// La clé d'accès vient de EXPO_PUBLIC_ML_CLE (app/.env) : elle part dans l'en-tête
+// X-Cle-API, et sans elle le serveur refuse la photo (401).
 // L'adresse du serveur vient de EXPO_PUBLIC_ML_URL (app/.env) :
 //   - en local : http://IP_DU_PC:8000 (téléphone sur le même wifi)
 //   - en ligne : l'adresse Cloud Run, https://egouts-ml-xxxx.a.run.app
@@ -33,6 +35,7 @@ export class ErreurML extends Error {
 }
 
 const URL_ML = process.env.EXPO_PUBLIC_ML_URL?.replace(/\/$/, '');
+const CLE_ML = process.env.EXPO_PUBLIC_ML_CLE;
 
 function adresse(chemin: string): string {
   if (!URL_ML) {
@@ -65,10 +68,17 @@ export async function jugerPhoto(uri: string): Promise<ResultatPhoto> {
 
   let reponse: Response;
   try {
-    reponse = await fetch(url, { method: 'POST', body: formulaire });
+    reponse = await fetch(url, {
+      method: 'POST',
+      body: formulaire,
+      headers: CLE_ML ? { 'X-Cle-API': CLE_ML } : undefined,
+    });
   } catch (e) {
     console.warn('[ml] envoi de la photo échoué', e);
     throw new ErreurML('Serveur d’analyse injoignable. Vérifie ta connexion.');
+  }
+  if (reponse.status === 401) {
+    throw new ErreurML('Clé du serveur d’analyse manquante ou invalide : vérifier EXPO_PUBLIC_ML_CLE dans app/.env.', 401);
   }
   if (!reponse.ok) {
     const corps = await reponse.json().catch(() => null);

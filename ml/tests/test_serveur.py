@@ -79,3 +79,30 @@ def test_onnx_donne_les_memes_probabilites_que_pytorch(client, modele_entraine, 
         assert abs(obtenu["probabilites"][classe] - p) <= 2
     if attendu["score_gravite"] is not None and obtenu["score_gravite"] is not None:
         assert abs(obtenu["score_gravite"] - attendu["score_gravite"]) <= 3
+
+
+@pytest.fixture
+def client_avec_cle(modele_entraine):
+    mp = pytest.MonkeyPatch()
+    mp.setenv("DOSSIER_MODELE", str(modele_entraine / "modeles"))
+    mp.setenv("CLE_API", "cle-de-test")
+    import serveur.app
+
+    yield TestClient(importlib.reload(serveur.app).app)
+    mp.delenv("CLE_API")
+    importlib.reload(serveur.app)
+    mp.undo()
+
+
+def test_cle_exigee_quand_elle_est_reglee(client_avec_cle):
+    photo = {"photo": ("grille.png", png(), "image/png")}
+    assert client_avec_cle.post("/juger", files=photo).status_code == 401
+    assert client_avec_cle.post("/juger", files=photo, headers={"X-Cle-API": "mauvaise"}).status_code == 401
+    assert client_avec_cle.post("/juger", files=photo, headers={"X-Cle-API": "cle-de-test"}).status_code == 200
+    assert client_avec_cle.get("/sante").status_code == 200
+
+
+def test_refus_sans_cle_garde_les_entetes_cors(client_avec_cle):
+    reponse = client_avec_cle.post("/juger", headers={"Origin": "http://localhost:8081"})
+    assert reponse.status_code == 401
+    assert reponse.headers.get("access-control-allow-origin") == "*"
