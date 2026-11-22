@@ -40,6 +40,8 @@ jest.mock('../citizen/PhotoStep', () => {
 });
 
 const mockEnvoyer = jest.fn();
+let mockSansColonne = false;
+jest.mock('@/lib/source', () => ({ ...jest.requireActual('@/lib/source'), colonnePhotoManquante: () => mockSansColonne }));
 jest.mock('@/hooks/use-creer-signalement', () => ({
   useCreerSignalement: () => ({ envoyer: (...a: unknown[]) => mockEnvoyer(...a), envoiEnCours: false }),
 }));
@@ -62,6 +64,7 @@ async function jusquAuFormulaire(avecPhoto: boolean) {
 describe('signalement : seuil selon la photo', () => {
   beforeEach(() => {
     process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://exemple.test';
+    mockSansColonne = false;
     mockEnvoyer.mockReset();
     mockJuger.mockResolvedValue(acceptee);
   });
@@ -70,7 +73,7 @@ describe('signalement : seuil selon la photo', () => {
     mockEnvoyer.mockResolvedValue({ statut: 'envoye', signalement: { id: 's1' } });
     await jusquAuFormulaire(true);
     await fireEvent.press(screen.getByText('Envoyer le signalement'));
-    expect(await screen.findByText('Merci, votre signalement est envoyé.')).toBeTruthy();
+    expect(await screen.findByText('Signalement reçu. Il est sur la carte.')).toBeTruthy();
     expect(mockEnvoyer).toHaveBeenCalledWith(expect.objectContaining({ photoVerifiee: true, photoUri: 'file:///p.jpg' }));
   });
 
@@ -80,5 +83,22 @@ describe('signalement : seuil selon la photo', () => {
     await fireEvent.press(screen.getByText('Envoyer le signalement'));
     expect(await screen.findByText(MESSAGE_RECU_SANS_CONFIRMATION)).toBeTruthy();
     expect(mockEnvoyer).toHaveBeenCalledWith(expect.objectContaining({ photoVerifiee: false }));
+  });
+
+  it('hors ligne : un seul message, « gardé sur ce téléphone », sans promesse contradictoire', async () => {
+    mockEnvoyer.mockResolvedValue({ statut: 'en_attente', signalement: { id: 's3' } });
+    await jusquAuFormulaire(false);
+    await fireEvent.press(screen.getByText('Envoyer le signalement'));
+    expect(await screen.findByText('Signalement gardé sur ce téléphone. Il partira au retour du réseau.')).toBeTruthy();
+    expect(screen.queryByText(/Signalement reçu/)).toBeNull();
+  });
+
+  it('migration 0011 absente : « Signalement reçu. » seulement, aucune promesse d’attente', async () => {
+    mockSansColonne = true;
+    mockEnvoyer.mockResolvedValue({ statut: 'envoye', signalement: { id: 's4' } });
+    await jusquAuFormulaire(false);
+    await fireEvent.press(screen.getByText('Envoyer le signalement'));
+    expect(await screen.findByText('Signalement reçu.')).toBeTruthy();
+    expect(screen.queryByText(/apparaîtra/)).toBeNull();
   });
 });

@@ -256,6 +256,11 @@ export function colonneRefusee(e: { code?: string; message?: string }): boolean 
   );
 }
 
+/** Vrai quand la base a refusé la colonne photo_verifiee (migration 0011 pas lancée) : le seuil selon la photo n'agit pas. */
+export function colonnePhotoManquante(): boolean {
+  return colonnePhotoAbsente;
+}
+
 export function reinitialiserColonnePhoto(): void {
   colonnePhotoAbsente = false;
 }

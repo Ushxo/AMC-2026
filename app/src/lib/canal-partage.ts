@@ -4,6 +4,8 @@ import { getSupabase } from './supabase';
 // Les événements rapprochés sont regroupés : une relecture au plus toutes les 300 ms.
 
 export const REGROUPEMENT_MS = 300;
+/** Délai avant de fermer un canal sans abonné : un changement d'onglet ne le ferme pas pour le rouvrir aussitôt. */
+export const GRACE_FERMETURE_MS = 2500;
 
 type Entree = {
   canal: unknown;
@@ -13,6 +15,7 @@ type Entree = {
   connecte: boolean;
   dejaConnecte: boolean;
   minuteur: ReturnType<typeof setTimeout> | null;
+  fermeture: ReturnType<typeof setTimeout> | null;
   dernierAppel: number;
 };
 
@@ -55,6 +58,7 @@ export function abonnerTable(table: string, rappel: () => void): () => void {
         connecte: false,
         dejaConnecte: false,
         minuteur: null,
+        fermeture: null,
         dernierAppel: 0,
       };
       nouvelle.canal = client
@@ -68,6 +72,10 @@ export function abonnerTable(table: string, rappel: () => void): () => void {
     }
   }
   const courante = entree;
+  if (courante.fermeture) {
+    clearTimeout(courante.fermeture); // un abonné est revenu pendant le délai de grâce : le canal reste ouvert
+    courante.fermeture = null;
+  }
   courante.rappels.add(rappel);
   let actif = true;
   return () => {
@@ -77,12 +85,17 @@ export function abonnerTable(table: string, rappel: () => void): () => void {
     if (courante.rappels.size > 0) return;
     if (courante.minuteur) clearTimeout(courante.minuteur);
     courante.minuteur = null;
-    if (entrees.get(table) === courante) entrees.delete(table);
-    try {
-      void courante.client.removeChannel(courante.canal as Parameters<typeof courante.client.removeChannel>[0]);
-    } catch {
-      // canal déjà fermé : rien à faire
-    }
+    // Dernier abonné parti : on attend un court instant avant de fermer le canal.
+    courante.fermeture = setTimeout(() => {
+      courante.fermeture = null;
+      if (courante.rappels.size > 0) return;
+      if (entrees.get(table) === courante) entrees.delete(table);
+      try {
+        void courante.client.removeChannel(courante.canal as Parameters<typeof courante.client.removeChannel>[0]);
+      } catch {
+        // canal déjà fermé : rien à faire
+      }
+    }, GRACE_FERMETURE_MS);
   };
 }
 
@@ -109,6 +122,7 @@ export function nombreCanauxOuverts(): number {
 export function reinitialiserCanaux(): void {
   entrees.forEach((e) => {
     if (e.minuteur) clearTimeout(e.minuteur);
+    if (e.fermeture) clearTimeout(e.fermeture);
   });
   entrees.clear();
 }

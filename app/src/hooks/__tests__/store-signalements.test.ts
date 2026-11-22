@@ -6,6 +6,7 @@ import {
   reinitialiserStoreSignalements,
 } from '../../lib/store-signalements';
 import type { Signalement } from '../../types';
+import { definirCitoyen } from '../../lib/session';
 import { useSignalements } from '../use-signalements';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -175,5 +176,29 @@ describe('magasin partagé des signalements', () => {
       await jest.advanceTimersByTimeAsync(10);
     });
     expect(m.lireSignalements).toHaveBeenCalledTimes(2);
+  });
+
+  it('un changement de compte vide le cache de l’ancien compte, puis relit', async () => {
+    definirCitoyen(null);
+    const un = await renderHook(() => useSignalements());
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(10);
+    });
+    expect(un.result.current.signalements).toHaveLength(2);
+    const lecturesAvant = m.lireSignalements.mock.calls.length;
+    let fin: (v: Signalement[]) => void = () => {};
+    m.lireSignalements.mockImplementationOnce(() => new Promise<Signalement[]>((r) => (fin = r)));
+    await act(async () => {
+      definirCitoyen({ user_id: 'u2', nom: 'Autre', courriel: 'a@b.ca' });
+    });
+    expect(un.result.current.signalements).toHaveLength(0); // le cache de l'ancien compte n'est plus montré
+    expect(un.result.current.chargement).toBe(true);
+    await act(async () => {
+      fin([sig('z')]);
+      await jest.advanceTimersByTimeAsync(10);
+    });
+    expect(m.lireSignalements.mock.calls.length).toBeGreaterThan(lecturesAvant);
+    expect(un.result.current.signalements.map((x) => x.id)).toEqual(['z']);
+    definirCitoyen(null);
   });
 });

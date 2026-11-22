@@ -10,6 +10,7 @@ import { hrefEndroit } from '@/components/ville/href-endroit';
 import { LigneEndroit } from '@/components/ville/ligne-endroit';
 import { Resume } from '@/components/ville/resume';
 import { useSignalements } from '@/hooks/use-signalements';
+import { sansNonConfirmes } from '@/lib/gravite';
 import { construireListe } from '@/lib/liste';
 import { calculerResume } from '@/lib/resume';
 import type { Categorie, Etat } from '@/types';
@@ -37,7 +38,7 @@ export function ListeAlertes({ entete, pied, avecResume = true, espaceBas = 0 }:
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [actualisation, setActualisation] = useState(false);
 
-  const resume = useMemo(() => calculerResume(signalements), [signalements]);
+  const resume = useMemo(() => calculerResume(sansNonConfirmes(signalements)), [signalements]);
   const endroits = useMemo(() => construireListe(signalements, { etats, categories }), [signalements, etats, categories]);
 
   async function actualiser() {

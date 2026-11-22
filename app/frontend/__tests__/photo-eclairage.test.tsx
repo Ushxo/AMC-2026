@@ -70,3 +70,22 @@ describe('éclairage de la caméra', () => {
     expect(screen.getByLabelText("Allumer l'éclairage")).toBeTruthy();
   });
 });
+
+describe('ligne « avec une photo, tout de suite sur la carte »', () => {
+  const rendre = (verification?: { statut: 'en_cours' | 'acceptee' | 'refusee' | 'impossible'; message: string }) =>
+    render(<PhotoStep photoUri="file:///p.jpg" onPhoto={jest.fn()} onBack={jest.fn()} onSkip={jest.fn()} onContinue={jest.fn()} verification={verification} />);
+
+  it('montrée sans vérification ou photo acceptée ; cachée quand l’analyse est impossible ou la photo refusée (aucune contradiction)', async () => {
+    const { unmount } = await rendre();
+    expect(screen.getByText(/apparaît tout de suite sur la carte/)).toBeTruthy();
+    unmount();
+    const b = await rendre({ statut: 'acceptee', message: 'Photo acceptée' });
+    expect(screen.getByText(/apparaît tout de suite sur la carte/)).toBeTruthy();
+    b.unmount();
+    const c = await rendre({ statut: 'impossible', message: 'La photo n’a pas pu être vérifiée' });
+    expect(screen.queryByText(/apparaît tout de suite sur la carte/)).toBeNull();
+    c.unmount();
+    await rendre({ statut: 'refusee', message: 'Pas un égout' });
+    expect(screen.queryByText(/apparaît tout de suite sur la carte/)).toBeNull();
+  });
+});

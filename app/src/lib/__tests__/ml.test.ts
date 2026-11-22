@@ -101,4 +101,33 @@ describe('jugerPhoto', () => {
     const { jugerPhoto } = charger(undefined);
     await expect(jugerPhoto('file:///x.jpg')).rejects.toThrow('EXPO_PUBLIC_SUPABASE_URL');
   });
+
+  it('abandonne l’analyse après 12 s : jamais d’attente sans fin', async () => {
+    jest.useFakeTimers();
+    try {
+      const { jugerPhoto, DELAI_ANALYSE_MS } = charger('https://ml.example.com');
+      (globalThis.fetch as jest.Mock).mockImplementation(
+        (_u: string, o: { signal: AbortSignal }) =>
+          new Promise((_r, rejeter) => o.signal.addEventListener('abort', () => rejeter(new Error('abort')))),
+      );
+      const attente = jugerPhoto('file:///photo.jpg');
+      const verdict = expect(attente).rejects.toThrow('prend trop de temps');
+      await jest.advanceTimersByTimeAsync(DELAI_ANALYSE_MS + 10);
+      await verdict;
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('réveil : une seule fois par session, sans bloquer, erreurs avalées', async () => {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://ml.example.com';
+    jest.resetModules();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { reveillerUneFois } = require('../reveil-ml') as typeof import('../reveil-ml');
+    (globalThis.fetch as jest.Mock).mockRejectedValue(new Error('hors ligne'));
+    reveillerUneFois();
+    reveillerUneFois();
+    await Promise.resolve();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
 });

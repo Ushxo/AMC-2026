@@ -3,6 +3,8 @@ import { RAFRAICHISSEMENT_MS, SONDE_REPLI_MS } from './config';
 import { lister, type ElementFile } from './file-attente';
 import { MESSAGE_LECTURE_ECHEC } from './messages';
 import { demarrerReleve } from './releve';
+import { reveillerUneFois } from './reveil-ml';
+import { abonnerEmploye, citoyenCourant, employeCourant } from './session';
 import {
   abonnerChangements,
   abonnerSignalementsRealtime,
@@ -29,6 +31,25 @@ let relance = false;
 let depart: ReturnType<typeof setTimeout> | null = null;
 let arreterBoucles: (() => void) | null = null;
 const ecouteurs = new Set<() => void>();
+// Compte pour lequel le cache a été lu : un autre compte (ou une déconnexion) vide le cache.
+let cleCompte: string | null = null;
+
+function cleDuCompte(): string {
+  return `${employeCourant()?.user_id ?? ''}|${citoyenCourant()?.user_id ?? ''}`;
+}
+
+/** Le compte a changé depuis la dernière lecture : le cache de l'ancien compte est vidé et on relit. */
+function verifierCompte(): void {
+  const cle = cleDuCompte();
+  if (cleCompte !== null && cle !== cleCompte) {
+    cleCompte = cle;
+    derniereLecture = 0;
+    publier({ ...ETAT_INITIAL });
+    void rafraichirSignalements();
+    return;
+  }
+  cleCompte = cle;
+}
 
 /** Mêmes signalements (identifiants, états, gravités, positions) : la liste précédente est gardée, rien ne se recalcule. */
 export function memesSignalements(a: Signalement[], b: Signalement[]): boolean {
@@ -134,8 +155,11 @@ function lireSiPerime(): void {
 }
 
 function demarrer(): void {
+  verifierCompte();
   lireSiPerime();
+  reveillerUneFois(); // le service d'analyse des photos est prêt quand le citoyen arrive à l'étape photo
   const arretLocal = abonnerChangements(() => void rafraichirSignalements());
+  const arretCompte = abonnerEmploye(verifierCompte);
   // Realtime : relecture dès qu'un signalement change ; la relève (lente si le canal est connecté) reste le repli.
   const arretRealtime = abonnerSignalementsRealtime(() => void rafraichirSignalements());
   // Hors ligne : on sonde la connexion, et le renvoi de la file repart dès son retour.
@@ -155,6 +179,7 @@ function demarrer(): void {
   });
   arreterBoucles = () => {
     arretLocal();
+    arretCompte();
     arretRealtime();
     arretReleve();
   };
@@ -188,6 +213,7 @@ export function reinitialiserStoreSignalements(): void {
   ecouteurs.clear();
   etat = ETAT_INITIAL;
   derniereLecture = 0;
+  cleCompte = null;
   renvoiLance = false;
   enCours = null;
   relance = false;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { abonnerDemandes, chargerPrecalcule, lireDerniereTerminee } from '../lib/optimisation';
+import { abonnerTable } from '../lib/canal-partage';
 import { demarrerReleve } from '../lib/releve';
 import { etatSource } from '../lib/source';
 import { nettoyerResultat } from '../lib/tournees';
@@ -86,11 +87,16 @@ export function useTournees(): {
     actif.current = true;
     const depart = setTimeout(() => void rafraichir(), 0);
     const arret = abonnerDemandes(() => void rafraichir());
+    // Un arrêt fait ou non fait, une tournée publiée : la table change sans toucher à la demande, on relit aussi.
+    const arretArrets = abonnerTable('arrets', () => void rafraichir());
+    const arretTournees = abonnerTable('tournees', () => void rafraichir());
     const arretReleveLocal = abonnerReleve(() => void rafraichir());
     return () => {
       actif.current = false;
       clearTimeout(depart);
       arretReleveLocal();
+      arretTournees();
+      arretArrets();
       arret();
     };
   }, [rafraichir]);

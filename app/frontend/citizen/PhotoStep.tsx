@@ -11,6 +11,7 @@ import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
 import { MESSAGE_ASTUCE_PHOTO } from '@/lib/messages-seuil';
+import { reveillerUneFois } from '@/lib/reveil-ml';
 import { CAMERA } from '@/components/ville/style';
 
 // Commandes de la caméra : couleurs fixes (fond sombre de l'objectif). Le reste de l'écran suit la marque.
@@ -60,6 +61,11 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
   // Éclairage voulu par la personne : lampe en continu (caméra arrière seulement), éteinte dès qu'on quitte la caméra.
   const [eclairage, setEclairage] = useState(false);
   const [ready, setReady] = useState(false);
+
+  // Le service d'analyse se réveille dès l'ouverture de l'étape (il peut dormir).
+  useEffect(() => {
+    reveillerUneFois();
+  }, []);
 
   const arriere = facing === "back";
   const lampe = eclairage && arriere && !photoUri;
@@ -199,7 +205,8 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
         </View>
       </View>
 
-      <Text style={styles.astuce}>{MESSAGE_ASTUCE_PHOTO}</Text>
+      {/* Pas de promesse quand l'analyse est impossible ou que la photo est refusée : le message de vérification parle seul. */}
+      {verification?.statut === "impossible" || verification?.statut === "refusee" ? null : <Text style={styles.astuce}>{MESSAGE_ASTUCE_PHOTO}</Text>}
 
       {verification ? (
         <View

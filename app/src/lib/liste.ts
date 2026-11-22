@@ -1,8 +1,11 @@
 import type { Endroit, Signalement } from '../types';
 import { filtrerSignalements, type FiltreSignalements } from './filtre';
-import { regrouper, trierEndroits } from './gravite';
+import { regrouper, sansNonConfirmes, trierEndroits } from './gravite';
 
-/** Liste du mode Ville : filtrée, regroupée par endroit, triée (gravité affichée puis date). */
+/**
+ * Liste du mode Ville : seulement les endroits confirmés (la confirmation se juge sur tous les signalements de l'endroit,
+ * avant les filtres), filtrée, regroupée par endroit, triée (gravité affichée puis date).
+ */
 export function construireListe(signalements: Signalement[], filtre?: FiltreSignalements): Endroit[] {
-  return trierEndroits(regrouper(filtrerSignalements(signalements, filtre)));
+  return trierEndroits(regrouper(filtrerSignalements(sansNonConfirmes(signalements), filtre)));
 }

@@ -38,12 +38,11 @@ import { FeuilleProbleme } from '@/components/citoyen/feuille-probleme';
 import { lieuDeEndroit } from '@/lib/interventions';
 import { chargerAdresses, chargerRegion } from '@/lib/officiel';
 import { ecrireBrouillon, lireBrouillon, viderBrouillon } from '@/lib/brouillon-signalement';
-import { MESSAGE_RECU_SANS_CONFIRMATION } from '@/lib/messages-seuil';
+import { MESSAGE_GARDE_HORS_LIGNE, MESSAGE_RECU_SANS_CONFIRMATION, MESSAGE_RECU_SIMPLE, MESSAGE_RECU_SUR_CARTE } from '@/lib/messages-seuil';
+import { colonnePhotoManquante } from '@/lib/source';
 import {
   MESSAGE_ECHEC_ENVOI,
-  MESSAGE_EN_ATTENTE,
   MESSAGE_EN_ATTENTE_SANS_PHOTO,
-  MESSAGE_ENVOYE,
   MESSAGE_ENVOYE_SANS_PHOTO,
   MESSAGE_POSITION_REFUSEE,
 } from '@/lib/messages';
@@ -262,14 +261,18 @@ export default function Signaler() {
       fini.current = true;
       viderBrouillon();
       setEnvoyeId(r.signalement.id);
-      setMessages([r.sansPhoto ? MESSAGE_ENVOYE_SANS_PHOTO : photoVerifiee ? MESSAGE_ENVOYE : MESSAGE_RECU_SANS_CONFIRMATION]);
+      // Un seul message par cas, sans contradiction : le seuil ne s'applique pas si la base n'a pas la colonne (migration 0011).
+      const sansSeuil = colonnePhotoManquante();
+      setMessages([
+        r.sansPhoto ? MESSAGE_ENVOYE_SANS_PHOTO : sansSeuil ? MESSAGE_RECU_SIMPLE : photoVerifiee ? MESSAGE_RECU_SUR_CARTE : MESSAGE_RECU_SANS_CONFIRMATION,
+      ]);
     } else {
       fini.current = true;
       viderBrouillon();
       setEnvoyeId(r.signalement.id);
-      const base = r.sansPhoto ? MESSAGE_EN_ATTENTE_SANS_PHOTO : MESSAGE_EN_ATTENTE;
-      const suite = photoVerifiee || r.sansPhoto ? [] : [MESSAGE_RECU_SANS_CONFIRMATION];
-      setMessages(r.signalement.echec_envoi ? [base, `${MESSAGE_ECHEC_ENVOI} ${r.signalement.echec_envoi}`] : [base, ...suite]);
+      // Hors ligne : on dit seulement que le signalement est gardé ; ce qu'il adviendra sur la carte se dira à l'envoi.
+      const base = r.sansPhoto ? MESSAGE_EN_ATTENTE_SANS_PHOTO : MESSAGE_GARDE_HORS_LIGNE;
+      setMessages(r.signalement.echec_envoi ? [base, `${MESSAGE_ECHEC_ENVOI} ${r.signalement.echec_envoi}`] : [base]);
     }
   }
 

@@ -29,6 +29,7 @@ import { useSource } from '@/hooks/use-source';
 import { useTheme } from '@/hooks/use-theme';
 import { formaterNombre } from '@/lib/format';
 import type { Region } from '@/lib/config';
+import { sansNonConfirmes } from '@/lib/gravite';
 import { abonnerBrouillon, ecrireBrouillon, lireBrouillon, viderBrouillon } from '@/lib/brouillon-signalement';
 import { chargerRegion } from '@/lib/officiel';
 import { libelleBande } from '@/lib/inondation';
@@ -81,7 +82,7 @@ export default function CarteCitoyen({ coquille }: Props) {
   const { etat } = useSource();
   const { couches } = useCouches();
   const { endroits, signalements, chargement, erreur, rafraichir } = useEndroits();
-  const bandes = useBandesInondation(signalements);
+  const bandes = useBandesInondation(useMemo(() => sansNonConfirmes(signalements), [signalements]));
   const deltaRegion = useRef<number | undefined>(undefined);
   const [options, setOptions] = useState(false);
   const [hauteurEntete, setHauteurEntete] = useState(200);

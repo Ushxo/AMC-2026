@@ -4,6 +4,7 @@ import {
   canalConnecte,
   nombreCanauxOuverts,
   REGROUPEMENT_MS,
+  GRACE_FERMETURE_MS,
   reinitialiserCanaux,
 } from '../canal-partage';
 
@@ -51,8 +52,23 @@ describe('canal Realtime partagé', () => {
     a();
     expect(removeChannel).not.toHaveBeenCalled();
     b();
+    expect(removeChannel).not.toHaveBeenCalled(); // délai de grâce
+    jest.advanceTimersByTime(GRACE_FERMETURE_MS);
     expect(removeChannel).toHaveBeenCalledTimes(1);
     expect(nombreCanauxOuverts()).toBe(0);
+  });
+
+  it('un abonné qui revient pendant le délai de grâce garde le même canal (changement d’onglet)', () => {
+    const a = abonnerTable('signalements', jest.fn());
+    a();
+    jest.advanceTimersByTime(GRACE_FERMETURE_MS - 500);
+    const b = abonnerTable('signalements', jest.fn());
+    jest.advanceTimersByTime(GRACE_FERMETURE_MS * 2);
+    expect(mockClient.channel).toHaveBeenCalledTimes(1);
+    expect(removeChannel).not.toHaveBeenCalled();
+    b();
+    jest.advanceTimersByTime(GRACE_FERMETURE_MS);
+    expect(removeChannel).toHaveBeenCalledTimes(1);
   });
 
   it('une table différente ouvre un autre canal', () => {

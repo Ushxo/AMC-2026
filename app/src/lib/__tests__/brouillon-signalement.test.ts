@@ -1,6 +1,7 @@
 import {
   abonnerBrouillon,
   DUREE_BROUILLON_MS,
+  DUREE_DEMANDE_FEUILLE_MS,
   ecrireBrouillon,
   lireBrouillon,
   viderBrouillon,
@@ -51,5 +52,15 @@ describe('brouillon du signalement', () => {
     jest.advanceTimersByTime(DUREE_BROUILLON_MS + 1000);
     expect(lireBrouillon().categorie).toBeNull();
     expect(lireBrouillon().photoUri).toBeNull();
+  });
+
+  it('une demande de rouvrir la feuille que personne n’a prise tombe vite (la carte n’était pas là)', () => {
+    ecrireBrouillon({ categorie: 'grille_bouchee', photoUri: 'file:///p.jpg', feuilleOuverte: true });
+    expect(lireBrouillon().feuilleOuverte).toBe(true);
+    jest.advanceTimersByTime(DUREE_DEMANDE_FEUILLE_MS + 100);
+    expect(lireBrouillon().feuilleOuverte).toBe(false);
+    expect(lireBrouillon().photoUri).toBe('file:///p.jpg'); // le reste du brouillon est gardé
+    ecrireBrouillon({ feuilleOuverte: true });
+    expect(lireBrouillon().feuilleOuverte).toBe(true);
   });
 });

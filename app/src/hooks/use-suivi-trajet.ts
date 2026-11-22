@@ -79,7 +79,7 @@ export function useSuiviTrajet(equipeId: string): {
   const { signalements } = useSignalements();
   const { changer } = useChangerEtat();
   const locaux = useEtatTrajet();
-  const { faits: faitsLocaux, partiels } = locaux;
+  const { partiels } = locaux;
   const [choix, setChoix] = useState<string | null>(null);
   const [ordreCles, setOrdreCles] = useState<string[] | null>(null);
 

@@ -75,6 +75,8 @@ import type { Jetons } from '@/marque/jetons';
 import { BoutonAction } from '@/components/bouton-action';
 
 const ECART_ROUTE_VALABLE_M = 150;
+/** Délai entre la fermeture d'une fenêtre et l'ouverture de la suivante (animation de fermeture sur iPhone). */
+export const DELAI_ENTRE_FENETRES_MS = 450;
 const NOM_GARAGE: DestinationNommee = { arrivee: 'au garage', direction: 'du garage' };
 const NOM_FIN: DestinationNommee = { arrivee: 'à la fin de la tournée', direction: 'de la fin de la tournée' };
 const ZOOM_SUIVI = 17; // Google
@@ -225,6 +227,18 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
     }
     setRecalculDemande({ prochainAvant: courant ? idArret(courant) : null });
     setMessage(MESSAGE_RECALCUL_DEMANDE);
+  }
+
+  // Sur iPhone, deux fenêtres ne se présentent pas en même temps : on ferme la liste, puis on ouvre la feuille de résultat
+  // une fois la fermeture finie (le délai couvre l'animation).
+  const delaiResultat = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (delaiResultat.current) clearTimeout(delaiResultat.current);
+  }, []);
+  function ouvrirResultatApresListe(a: Arret) {
+    setListe(false);
+    if (delaiResultat.current) clearTimeout(delaiResultat.current);
+    delaiResultat.current = setTimeout(() => setResultatCible({ arret: a, choix: choixDe(a) }), DELAI_ENTRE_FENETRES_MS);
   }
 
   function choixDe(a: Arret): ChoixResultat | null {
@@ -650,7 +664,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
         arrets={arrets}
         statutDe={statut}
         commentaireDe={commentaire}
-        onChoisir={peutMarquer && !finie ? (a) => { setListe(false); setResultatCible({ arret: a, choix: choixDe(a) }); } : undefined}
+        onChoisir={peutMarquer && !finie ? ouvrirResultatApresListe : undefined}
         onFermer={() => setListe(false)}
       />
       <FeuilleResultatArret

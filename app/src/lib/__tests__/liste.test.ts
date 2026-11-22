@@ -37,3 +37,21 @@ describe('libelleNombreEndroit', () => {
     expect(libelleNombreEndroit(reglesDeux, ['regle', 'rejete'])).toBe('2 signalements fermés');
   });
 });
+
+describe('liste du superviseur : seulement les endroits confirmés', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { sig } = require('../test-utils/fabrique') as typeof import('../test-utils/fabrique');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { calculerResume } = require('../resume') as typeof import('../resume');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { sansNonConfirmes } = require('../gravite') as typeof import('../gravite');
+
+  it('un signalement sans photo seul n’est ni listé ni compté ; avec photo vérifiée ou à trois, oui', () => {
+    const seul = sig({ grille_id: 'a', photo_verifiee: false });
+    const avecPhoto = sig({ grille_id: 'b', photo_verifiee: true });
+    const trois = [1, 2, 3].map(() => sig({ grille_id: 'c', photo_verifiee: false }));
+    const tous = [seul, avecPhoto, ...trois];
+    expect(construireListe(tous).map((e) => e.cle).sort()).toEqual(['grille:b', 'grille:c']);
+    expect(calculerResume(sansNonConfirmes(tous)).parEtat.nouveau).toBe(4);
+  });
+});

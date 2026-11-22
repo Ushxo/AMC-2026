@@ -17,6 +17,8 @@ export type BrouillonSignalement = {
 
 /** Un brouillon plus vieux que ça est oublié (une alerte abandonnée ne revient pas des heures plus tard). */
 export const DUREE_BROUILLON_MS = 30 * 60 * 1000;
+/** Une demande de rouvrir la feuille se périme vite : si la carte ne l'a pas prise aussitôt, elle n'est plus d'actualité. */
+export const DUREE_DEMANDE_FEUILLE_MS = 5000;
 
 const VIDE: BrouillonSignalement = {
   feuilleOuverte: false,
@@ -29,6 +31,7 @@ const VIDE: BrouillonSignalement = {
 
 let brouillon: BrouillonSignalement = VIDE;
 let misAJourLe = 0;
+let feuilleDemandeeLe = 0;
 const ecouteurs = new Set<() => void>();
 
 function perime(): boolean {
@@ -37,12 +40,17 @@ function perime(): boolean {
 
 /** Le brouillon courant (vide s'il n'y en a pas ou s'il est périmé). La valeur ne change que lorsqu'on écrit. */
 export function lireBrouillon(): BrouillonSignalement {
-  return perime() ? VIDE : brouillon;
+  if (perime()) return VIDE;
+  // Demande de rouvrir la feuille restée sans réponse (la carte n'était pas là) : elle tombe, sans notifier.
+  if (brouillon.feuilleOuverte && Date.now() - feuilleDemandeeLe > DUREE_DEMANDE_FEUILLE_MS) {
+    brouillon = { ...brouillon, feuilleOuverte: false };
+  }
+  return brouillon;
 }
 
 /** Met à jour une partie du brouillon. Ne notifie que si quelque chose change. */
 export function ecrireBrouillon(champs: Partial<BrouillonSignalement>): void {
-  const base = perime() ? VIDE : brouillon;
+  const base = lireBrouillon();
   const change = (Object.keys(champs) as (keyof BrouillonSignalement)[]).some((k) => {
     const a = base[k];
     const b = champs[k];
@@ -56,6 +64,7 @@ export function ecrireBrouillon(champs: Partial<BrouillonSignalement>): void {
   if (!change) return;
   brouillon = { ...base, ...champs };
   misAJourLe = Date.now();
+  if (champs.feuilleOuverte === true) feuilleDemandeeLe = Date.now();
   ecouteurs.forEach((f) => f());
 }
 

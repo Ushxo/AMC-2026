@@ -56,6 +56,9 @@ async function lireFichier(uri: string): Promise<Blob> {
   return new File(uri) as unknown as Blob;
 }
 
+/** Au-delà de ce délai, l'analyse est abandonnée : la photo part telle quelle, non vérifiée. */
+export const DELAI_ANALYSE_MS = 12000;
+
 export async function jugerPhoto(uri: string): Promise<ResultatPhoto> {
   const url = adresse(); // hors du try : l'erreur « adresse manquante » doit remonter telle quelle
 
@@ -67,32 +70,52 @@ export async function jugerPhoto(uri: string): Promise<ResultatPhoto> {
     throw new ErreurML('Impossible de lire la photo sur le téléphone.');
   }
 
-  let reponse: Response;
+  // Délai d'attente : un service endormi ou lent ne laisse jamais « Vérification… » sans fin.
+  const controle = new AbortController();
+  const minuteur = setTimeout(() => controle.abort(), DELAI_ANALYSE_MS);
   try {
-    reponse = await fetch(url, {
-      method: 'POST',
-      body: formulaire,
-      headers: enTetes(),
-    });
-  } catch (e) {
-    console.warn('[ml] envoi de la photo échoué', e);
-    throw new ErreurML('Serveur d’analyse injoignable. Vérifie ta connexion.');
+    let reponse: Response;
+    try {
+      reponse = await fetch(url, {
+        method: 'POST',
+        body: formulaire,
+        headers: enTetes(),
+        signal: controle.signal,
+      });
+    } catch (e) {
+      console.warn('[ml] envoi de la photo échoué', e);
+      throw new ErreurML(
+        controle.signal.aborted ? 'L’analyse de la photo prend trop de temps.' : 'Serveur d’analyse injoignable. Vérifie ta connexion.',
+      );
+    }
+    if (reponse.status === 401 || reponse.status === 503) {
+      throw new ErreurML('L’analyse de la photo n’est pas disponible pour l’instant.', reponse.status);
+    }
+    if (!reponse.ok) {
+      const corps = await reponse.json().catch(() => null);
+      throw new ErreurML(corps?.detail ?? 'Analyse de la photo impossible.', reponse.status);
+    }
+    try {
+      return await reponse.json();
+    } catch {
+      throw new ErreurML(controle.signal.aborted ? 'L’analyse de la photo prend trop de temps.' : 'Réponse d’analyse illisible.');
+    }
+  } finally {
+    clearTimeout(minuteur);
   }
-  if (reponse.status === 401 || reponse.status === 503) {
-    throw new ErreurML('L’analyse de la photo n’est pas disponible pour l’instant.', reponse.status);
-  }
-  if (!reponse.ok) {
-    const corps = await reponse.json().catch(() => null);
-    throw new ErreurML(corps?.detail ?? 'Analyse de la photo impossible.', reponse.status);
-  }
-  return reponse.json();
 }
 
-/** Réveille le serveur (Cloud Run s'endort quand personne ne l'utilise). */
+/** Réveille le serveur (Cloud Run s'endort quand personne ne l'utilise). Ne lève jamais d'erreur. */
 export async function reveillerServeurML(): Promise<boolean> {
+  const controle = new AbortController();
+  const minuteur = setTimeout(() => controle.abort(), DELAI_REVEIL_MS);
   try {
-    return (await fetch(adresse(), { headers: enTetes() })).ok;
+    return (await fetch(adresse(), { headers: enTetes(), signal: controle.signal })).ok;
   } catch {
     return false;
+  } finally {
+    clearTimeout(minuteur);
   }
 }
+
+const DELAI_REVEIL_MS = 20000;
