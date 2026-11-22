@@ -46,15 +46,16 @@ export async function dissocierCompte(equipeId: string): Promise<string | null> 
 }
 
 /** Équipe du compte connecté. `disponible` faux si la fonction n'existe pas encore (migration pas lancée). */
-export async function lireMonEquipe(): Promise<{ equipeId: string | null; disponible: boolean }> {
+export async function lireMonEquipe(): Promise<{ equipeId: string | null; disponible: boolean; echec: boolean }> {
   const client = getSupabase();
-  if (!client) return { equipeId: null, disponible: false };
+  if (!client) return { equipeId: null, disponible: false, echec: false };
   try {
     const { data, error } = await avecDelai(client.rpc('mon_equipe'), DELAI_MS);
-    if (error) return { equipeId: null, disponible: !estRefusOuAbsent(error) };
-    return { equipeId: typeof data === 'string' ? data : null, disponible: true };
+    // Fonction absente ou refusée : pas disponible (pas une panne). Toute autre erreur : la lecture a échoué.
+    if (error) return { equipeId: null, disponible: !estRefusOuAbsent(error), echec: !estRefusOuAbsent(error) };
+    return { equipeId: typeof data === 'string' ? data : null, disponible: true, echec: false };
   } catch {
-    return { equipeId: null, disponible: false };
+    return { equipeId: null, disponible: false, echec: true };
   }
 }
 

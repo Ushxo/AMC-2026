@@ -54,6 +54,7 @@ describe('administration : marque de l’organisation', () => {
   it('un préréglage change l’aperçu, le contraste reste lisible, l’enregistrement applique la marque en direct', async () => {
     await render(<MarqueOrganisation />);
     expect(await screen.findByLabelText('Aperçu de la marque Priorix')).toBeTruthy();
+    expect(screen.getByText(/sont recalculées à partir de ces quatre couleurs/)).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('Préréglage Bleu fleuve'));
     expect(screen.getAllByText(/✓/).length).toBeGreaterThanOrEqual(5); // tous les couples sont lisibles
     expect(screen.queryByText(/✗/)).toBeNull();

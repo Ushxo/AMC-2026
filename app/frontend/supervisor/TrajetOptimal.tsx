@@ -29,7 +29,7 @@ import {
 } from "@/lib/messages";
 import { chargerRegion, chargerAdresses } from "@/lib/officiel";
 import { OPTIONS_PAR_DEFAUT, parametresDesOptions } from "@/lib/options-calcul";
-import { endroitsOuverts, selectionAEnvoyer } from "@/lib/selection";
+import { endroitsOuverts, nettoyerSelection, selectionAEnvoyer } from "@/lib/selection";
 import { dateProchainQuart } from "@/lib/temps";
 import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { IllustrationProbleme } from "@/components/illustration-probleme";
@@ -51,7 +51,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
   const router = useRouter();
   const { etat } = useSource();
   const { peutGerer } = useSessionEmploye();
-  const { endroits } = useEndroits();
+  const { endroits, chargement: endroitsEnChargement } = useEndroits();
   const ouverts = useMemo(() => endroitsOuverts(endroits), [endroits]);
   const { equipes, chargement: equipesEnChargement } = useEquipes();
   const { resultat, source, chargement } = useTournees();
@@ -60,25 +60,42 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
   const adresses = useMemo(() => chargerAdresses(), []);
   const [choix, setChoix] = useState<string | null>(null);
   const [lance, setLance] = useState(false);
+  const [refus, setRefus] = useState<string | null>(null);
+  const [delaiDepasse, setDelaiDepasse] = useState(false);
   const dejaLance = useRef(false);
+  // La sélection nettoyée : une sélection vide ne part JAMAIS au service (il la lirait comme « tous les endroits »).
+  const propres = useMemo(() => nettoyerSelection(cles, ouverts), [cles, ouverts]);
+  const aucunEndroit = !endroitsEnChargement && propres.length === 0;
 
-  // Le calcul part une seule fois, quand les endroits et les équipes sont chargés.
+  // Le calcul part une seule fois, quand les endroits et les équipes sont chargés et que la sélection n'est pas vide.
   useEffect(() => {
-    if (dejaLance.current || ouverts.length === 0 || equipesEnChargement || !peutGerer) return;
+    if (dejaLance.current || endroitsEnChargement || propres.length === 0 || equipesEnChargement || !peutGerer) return;
     dejaLance.current = true;
-    const envoyer = selectionAEnvoyer(cles, ouverts);
+    const envoyer = selectionAEnvoyer(propres, ouverts);
     const base = { date: dateProchainQuart(Date.now(), equipes.filter((e) => e.active).map((e) => e.debut_quart)), ...parametresDesOptions(OPTIONS_PAR_DEFAUT) };
-    void lancer(envoyer ? { ...base, cles_endroits: envoyer } : base).then(() => setLance(true));
+    void lancer(envoyer ? { ...base, cles_endroits: envoyer } : base).then((m) => {
+      setRefus(m);
+      setLance(true);
+    });
   });
+
+  // Jamais d'attente sans fin : si rien ne s'est passé au bout de 45 s, l'écran le dit.
+  useEffect(() => {
+    if (!peutGerer || lance || aucunEndroit) return;
+    const t = setTimeout(() => setDelaiDepasse(true), 45000);
+    return () => clearTimeout(t);
+  }, [peutGerer, lance, aucunEndroit]);
 
   const tourneesAvecArrets = (resultat?.tournees ?? []).filter((t) => t.arrets.length > 0);
   const actif = tourneesAvecArrets.find((t) => t.equipe_id === choix) ?? tourneesAvecArrets[0];
   const tracesEnAttente = demande?.statut === "terminee" && !!resultat && resultat.tournees.some((t) => !t.geometrie);
   const progression = useProgressionOptimisation(demande, { envoi: enCours && !demande, tracesEnAttente });
   const echec = demande?.statut === "echec" ? (demande.message ?? MESSAGE_OPTIMISATION_ECHEC) : null;
-  const calcul = (enCours && !basculeSurPrecalcule) || (peutGerer && !lance && !echec);
+  const calcul = (enCours && !basculeSurPrecalcule) || (peutGerer && !lance && !echec && !aucunEndroit && !delaiDepasse);
+  // La raison d'un refus ou d'un échec est toujours visible, avec ou sans plan.
+  const raison = refus ?? echec ?? (delaiDepasse && !lance ? "Le calcul ne répond pas. Revenez à la liste et réessayez." : null);
   const nombre = actif?.arrets.length ?? 0;
-  const selectionPartielle = selectionAEnvoyer(cles, ouverts) !== undefined;
+  const selectionPartielle = selectionAEnvoyer(propres, ouverts) !== undefined;
   const nonServis = resultat?.non_servis ?? [];
 
   return (
@@ -100,15 +117,27 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
             {resultat && actif ? <Text style={styles.note}>Le plan en place est affiché tout de suite ; il sera remplacé à l&apos;arrivée du nouveau calcul.</Text> : null}
           </View>
         ) : null}
-        {echec && !calcul ? (
+        {aucunEndroit ? (
+          <View style={styles.bloc} accessibilityRole="alert">
+            <Text style={styles.blocTitre}>Aucun endroit à planifier</Text>
+            <Text style={styles.note}>Les endroits choisis ne sont plus ouverts (réglés depuis, ou filtres trop stricts). Revenez à la liste pour changer la sélection.</Text>
+            <BoutonAction titre="Retour à la liste" onPress={onRetour} />
+          </View>
+        ) : null}
+        {raison && !calcul && !aucunEndroit ? (
           <Text style={styles.alerte} accessibilityRole="alert">
-            {echec}
+            {raison}
           </Text>
         ) : null}
-        {chargement && !resultat ? (
+        {message && !raison && !aucunEndroit ? (
+          <Text style={styles.note} accessibilityLiveRegion="polite">
+            {message}
+          </Text>
+        ) : null}
+        {aucunEndroit ? null : chargement && !resultat ? (
           <Chargement texte="Chargement du trajet…" />
         ) : !resultat || !actif ? (
-          calcul || echec ? null : <Vide texte={MESSAGE_AUCUNE_TOURNEE} />
+          calcul || raison ? null : <Vide texte={MESSAGE_AUCUNE_TOURNEE} />
         ) : (
           <>
             <View style={styles.genere}>
@@ -228,11 +257,6 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
                   );
                 })}
               </View>
-            ) : null}
-            {message ? (
-              <Text style={styles.note} accessibilityRole="alert">
-                {message}
-              </Text>
             ) : null}
             <Pressable onPress={onDetails} accessibilityRole="button" style={styles.lien}>
               <Text style={styles.lienTexte}>Options et détails du calcul (équipes, gain, incident simulé)</Text>

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import StaffApp from '../StaffApp';
 
@@ -33,5 +33,15 @@ describe('espace employé : Ma carte', () => {
     await render(<StaffApp onLogout={() => {}} />);
     expect(screen.getByText('Aucune équipe associée à ce compte')).toBeTruthy();
     expect(screen.getByText(/Demandez au superviseur/)).toBeTruthy();
+  });
+
+  it('échec de lecture de l’équipe : message distinct de « aucune équipe », avec Réessayer', async () => {
+    const reessayer = jest.fn();
+    mockEquipe.mockReturnValue({ equipeId: null, chargement: false, echec: true, reessayer });
+    await render(<StaffApp onLogout={() => {}} />);
+    expect(screen.getByText('Votre équipe n’a pas pu être lue')).toBeTruthy();
+    expect(screen.queryByText('Aucune équipe associée à ce compte')).toBeNull();
+    await fireEvent.press(screen.getByText('Réessayer'));
+    expect(reessayer).toHaveBeenCalled();
   });
 });

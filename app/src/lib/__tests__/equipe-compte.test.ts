@@ -37,8 +37,16 @@ describe('compte et position d’équipe', () => {
     const rpc = jest.fn().mockResolvedValue({ data: null, error: absent });
     const from = jest.fn(() => ({ select: async () => ({ data: null, error: { code: 'PGRST205', message: 'does not exist' } }) }));
     (getSupabase as jest.Mock).mockReturnValue(client(rpc, from));
-    expect(await lireMonEquipe()).toEqual({ equipeId: null, disponible: false });
+    expect(await lireMonEquipe()).toEqual({ equipeId: null, disponible: false, echec: false });
     expect(await lirePositionsEquipes()).toBeNull();
+  });
+
+  it('panne de lecture (réseau, serveur) : echec vrai, distinct de « aucune équipe »', async () => {
+    const rpc = jest.fn().mockResolvedValue({ data: null, error: { code: '500', message: 'panne' } });
+    (getSupabase as jest.Mock).mockReturnValue(client(rpc, jest.fn()));
+    expect(await lireMonEquipe()).toEqual({ equipeId: null, disponible: true, echec: true });
+    (getSupabase as jest.Mock).mockReturnValue(client(jest.fn().mockRejectedValue(new Error('réseau')), jest.fn()));
+    expect((await lireMonEquipe()).echec).toBe(true);
   });
 
   it('lit l’équipe du compte et les positions', async () => {
@@ -50,7 +58,7 @@ describe('compte et position d’équipe', () => {
       }),
     }));
     (getSupabase as jest.Mock).mockReturnValue(client(rpc, from));
-    expect(await lireMonEquipe()).toEqual({ equipeId: 'eq-1', disponible: true });
+    expect(await lireMonEquipe()).toEqual({ equipeId: 'eq-1', disponible: true, echec: false });
     expect(await lirePositionsEquipes()).toEqual([
       { equipe_id: 'eq-1', position: { latitude: 45.5, longitude: -73.57 }, cap: null, maj_le: '2026-11-22T12:00:00Z' },
     ]);

@@ -11,7 +11,7 @@ const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('@/components/ville/carte-tournees', () => ({ CarteTournees: () => null }));
 
-const mockLancer = jest.fn(async (_p?: Record<string, unknown>) => null);
+const mockLancer = jest.fn(async (_p?: Record<string, unknown>): Promise<string | null> => null);
 const mockEndroits: Endroit[] = [
   {
     cle: 'a',
@@ -34,7 +34,7 @@ const mockEndroits: Endroit[] = [
     signalements: [{ id: '2', categorie: 'grille_bouchee', etat: 'nouveau', cree_le: '2026-11-20T11:00:00Z' } as never],
   },
 ];
-jest.mock('@/hooks/use-endroits', () => ({ useEndroits: () => ({ endroits: mockEndroits, signalements: [] }) }));
+jest.mock('@/hooks/use-endroits', () => ({ useEndroits: () => ({ endroits: mockEndroits, signalements: [], chargement: false }) }));
 jest.mock('@/hooks/use-equipes', () => ({ useEquipes: () => ({ equipes: [], chargement: false }) }));
 jest.mock('@/hooks/use-source', () => ({ useSource: () => ({ etat: 'en_ligne' }) }));
 jest.mock('@/hooks/use-session-employe', () => ({ useSessionEmploye: () => ({ peutGerer: true }) }));
@@ -97,5 +97,22 @@ describe('trajet optimal', () => {
     expect(screen.getByText('Trajet généré')).toBeTruthy();
     expect(screen.getByText('Interventions du trajet (1)')).toBeTruthy();
     mockEnCours = false;
+  });
+
+  it('une sélection devenue vide ne part JAMAIS au service : « Aucun endroit à planifier » avec sortie', async () => {
+    mockLancer.mockClear();
+    const onRetour = jest.fn();
+    await render(<TrajetOptimal cles={['zzz-disparu']} onRetour={onRetour} onDetails={jest.fn()} />);
+    expect(mockLancer).not.toHaveBeenCalled();
+    expect(screen.getByText('Aucun endroit à planifier')).toBeTruthy();
+    expect(screen.queryByText('Calcul des tournées en cours…')).toBeNull();
+    await fireEvent.press(screen.getByText('Retour à la liste'));
+    expect(onRetour).toHaveBeenCalled();
+  });
+
+  it('le refus du calcul est toujours visible, même sans plan', async () => {
+    mockLancer.mockResolvedValueOnce('Création de la demande refusée : droits insuffisants.');
+    await render(<TrajetOptimal cles={['a']} onRetour={jest.fn()} onDetails={jest.fn()} />);
+    expect(await screen.findByText('Création de la demande refusée : droits insuffisants.')).toBeTruthy();
   });
 });

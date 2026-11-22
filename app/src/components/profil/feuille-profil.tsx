@@ -10,7 +10,7 @@ import { Chip } from '@/components/ville/chip';
 import { useTheme } from '@/hooks/use-theme';
 import { lireOrganisations } from '@/lib/organisations';
 import { APPARENCES, LIBELLES_APPARENCE } from '@/marque/jetons';
-import { appliquerMarquePersonnel, choisirMarqueCitoyen, definirApparence } from '@/marque/magasin';
+import { appliquerMarquePersonnel, choisirMarqueCitoyen, definirApparence, organisationAvecLocale } from '@/marque/magasin';
 import { ORGANISATIONS_EMBARQUEES, type Organisation } from '@/marque/organisations-embarquees';
 import { useMarque } from '@/marque/utiliser';
 
@@ -38,7 +38,7 @@ export function FeuilleProfil({ visible, onFermer, nom, role, marqueChoisie = nu
   useEffect(() => {
     if (!visible || !marqueChoisie) return;
     let actif = true;
-    void lireOrganisations().then((r) => actif && setOrganisations(r.organisations));
+    void lireOrganisations().then((r) => actif && setOrganisations(r.organisations.map(organisationAvecLocale)));
     return () => {
       actif = false;
     };

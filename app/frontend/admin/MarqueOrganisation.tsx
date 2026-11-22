@@ -17,7 +17,7 @@ import {
   type Graines,
 } from "@/marque/jetons";
 import { NUANCES } from "@/marque/nuances";
-import { mettreAJourOrganisation } from "@/marque/magasin";
+import { garderMarqueLocale, mettreAJourOrganisation, oublierMarqueLocale, organisationAvecLocale } from "@/marque/magasin";
 import { imageLogo, LIBELLES_LOGO } from "@/marque/logos";
 import { CLES_LOGO, enregistrerOrganisation, lireOrganisations, organisationEmbarquee, type Organisation } from "@/lib/organisations";
 import { useStyles } from "@/marque/utiliser";
@@ -76,9 +76,10 @@ export default function MarqueOrganisation() {
     let actif = true;
     void lireOrganisations().then((r) => {
       if (!actif) return;
-      setOrganisations(r.organisations);
+      const liste = r.organisations.map(organisationAvecLocale);
+      setOrganisations(liste);
       setEnBase(r.enBase);
-      if (r.organisations[0]) charger(r.organisations[0]);
+      if (liste[0]) charger(liste[0]);
     });
     return () => {
       actif = false;
@@ -120,10 +121,14 @@ export default function MarqueOrganisation() {
       return;
     }
     setCouleurs(corrigees);
-    mettreAJourOrganisation(maj); // visible tout de suite ici
+    if (refus === "local") garderMarqueLocale(maj); // appliquée tout de suite ET gardée au redémarrage sur ce téléphone
+    else {
+      oublierMarqueLocale(maj.code);
+      mettreAJourOrganisation(maj); // visible tout de suite ici
+    }
     setOrganisations((l) => (l ?? []).map((o) => (o.code === maj.code ? maj : o)));
     setMessage({
-      texte: refus === "local" ? `Marque appliquée sur ce téléphone seulement : la base n'est pas encore prête (migration 0009).${note}` : `Marque enregistrée : elle s'applique en direct sur les autres téléphones.${note}`,
+      texte: refus === "local" ? `Marque appliquée et gardée sur ce téléphone seulement (même après redémarrage) : la base n'est pas encore prête (migration 0009), les autres téléphones ne la voient pas.${note}` : `Marque enregistrée : elle s'applique en direct sur les autres téléphones.${note}`,
       ok: true,
     });
   }
@@ -192,6 +197,7 @@ export default function MarqueOrganisation() {
       <Text style={styles.titre} accessibilityRole="header">
         Couleurs principales
       </Text>
+      <Text style={styles.note}>Les autres couleurs (textes, fonds des cartes, bordures, accent) sont recalculées à partir de ces quatre couleurs pour rester cohérentes et lisibles.</Text>
       {JETONS_PRINCIPAUX.map(({ cle, libelle }) => (
         <View key={cle} style={styles.groupe}>
           <View style={styles.ligneCouleur}>

@@ -4,6 +4,9 @@ import { ajusterContraste, contraste, melanger, texteSur } from '../couleurs';
 import { appliquerApparence, completerCouleurs, corrigerContraste, jetonsDepuis, paletteDepuisGraines, PREREGLAGES, problemesContraste } from '../jetons';
 import {
   abonnerMarque,
+  garderMarqueLocale,
+  oublierMarqueLocale,
+  organisationAvecLocale,
   appliquerMarquePersonnel,
   chargerMarqueLocale,
   choisirMarqueCitoyen,
@@ -150,5 +153,36 @@ describe('marque courante', () => {
     definirApparence('contraste');
     expect(lireMarque().jetons.background).toBe('#FFFFFF');
     expect(lireMarque().organisation.code).toBe('montreal');
+  });
+
+  it('une marque réglée sans la base est gardée au redémarrage, puis remplacée quand la base la donne', async () => {
+    const perso = { ...montreal, nom_app: 'Égouts Montréal 2', couleurs: { ...montreal.couleurs, primary: '#0F4C81' } };
+    garderMarqueLocale(perso);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(organisationAvecLocale(montreal).nom_app).toBe('Égouts Montréal 2');
+    reinitialiserMarque();
+    expect(organisationAvecLocale(montreal).nom_app).toBe('Égouts Montréal'); // l'état est vidé : on repart de zéro
+    choisirMarqueCitoyen(montreal);
+    garderMarqueLocale(perso);
+    await new Promise((r) => setTimeout(r, 10));
+    reinitialiserMarque();
+    await chargerMarqueLocale(ORGANISATIONS_EMBARQUEES);
+    expect(organisationAvecLocale(montreal).nom_app).toBe('Égouts Montréal 2');
+    // la base la reprend : la copie locale disparaît
+    mettreAJourOrganisation({ ...montreal, id: 'o2', nom_app: 'Égouts Montréal (base)' });
+    expect(organisationAvecLocale(montreal).nom_app).toBe('Égouts Montréal');
+    oublierMarqueLocale('montreal');
+  });
+
+  it('une marque identique ne reconstruit rien (pas de re-rendu pour rien)', () => {
+    const rappel = jest.fn();
+    const arret = abonnerMarque(rappel);
+    const avant = lireMarque();
+    mettreAJourOrganisation({ ...priorix }); // mêmes valeurs
+    expect(lireMarque()).toBe(avant);
+    expect(rappel).not.toHaveBeenCalled();
+    mettreAJourOrganisation({ ...priorix, nom_app: 'Autre nom' });
+    expect(rappel).toHaveBeenCalledTimes(1);
+    arret();
   });
 });

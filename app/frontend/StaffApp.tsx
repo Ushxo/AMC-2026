@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Texte as Text } from '@/components/texte';
 
 import { EcranTrajet } from "@/app/ville/trajet/[equipe]";
+import { Bouton } from "@/components/ville/bouton";
 import { Chargement } from "@/components/ville/etat-ecran";
 import { useAcces } from "@/hooks/use-acces";
 import { useMonEquipe } from "@/hooks/use-mon-equipe";
@@ -16,7 +17,7 @@ import type { Jetons } from '@/marque/jetons';
 export default function StaffApp({ onLogout }: { onLogout: () => void }) {
   const styles = useStyles(creerStyles);
   const { nom } = useAcces();
-  const { equipeId, chargement } = useMonEquipe();
+  const { equipeId, chargement, echec, reessayer } = useMonEquipe();
   const { equipes } = useEquipes();
   const nomEquipe = equipes.find((e) => e.id === equipeId)?.nom ?? null;
 
@@ -28,6 +29,12 @@ export default function StaffApp({ onLogout }: { onLogout: () => void }) {
           <Chargement texte="Recherche de votre équipe…" />
         ) : equipeId ? (
           <EcranTrajet equipe={equipeId} />
+        ) : echec ? (
+          <View style={styles.vide} accessibilityRole="alert">
+            <Text style={styles.titre}>Votre équipe n’a pas pu être lue</Text>
+            <Text style={styles.texte}>Vérifiez la connexion, puis réessayez. Si le problème continue, prévenez le superviseur.</Text>
+            <Bouton titre="Réessayer" pleineLargeur onPress={reessayer} />
+          </View>
         ) : (
           <View style={styles.vide} accessibilityRole="alert">
             <Text style={styles.titre}>Aucune équipe associée à ce compte</Text>
