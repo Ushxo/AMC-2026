@@ -8,7 +8,6 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
-jest.mock('@/components/ville/selecteur-carte', () => ({ SelecteurCarte: () => null }));
 jest.mock('@/components/ville/liste-endroits', () => ({ ListeEndroits: () => null }));
 jest.mock('@/components/ville/reperes-endroits', () => ({ ReperesEndroits: () => null }));
 const mockDessines: string[] = [];

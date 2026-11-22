@@ -5,10 +5,9 @@ import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { IconeAnimee } from '@/components/mouvement/icone-animee';
-import { useChangementImmediat } from '@/components/mouvement/onglets-gardes';
+import { IconeBascule } from '@/components/mouvement/icone-bascule';
+import { useOngletUnique } from '@/components/mouvement/onglets-gardes';
 import { PastilleGlissante, type CiblePastille } from '@/components/mouvement/pastille-glissante';
-import { RebondEchelle } from '@/components/mouvement/rebond-echelle';
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
@@ -35,7 +34,7 @@ type Props = {
 
 export function BottomNav({ active: actifParent, onChange }: Props) {
   // La pastille et l'icône suivent le toucher tout de suite ; le contenu change juste après, en transition.
-  const { actifLocal: active, changer } = useChangementImmediat(actifParent, onChange);
+  const { actifLocal: active, changer } = useOngletUnique(actifParent, onChange);
   const P = useTheme();
   const styles = useStyles(creerStyles);
   const insets = useSafeAreaInsets();
@@ -60,9 +59,7 @@ export function BottomNav({ active: actifParent, onChange }: Props) {
             onLayout={mesurer(tab.id)}
             style={styles.tab}
           >
-            <RebondEchelle actif={selected}>
-              <IconeAnimee nom={selected ? tab.iconActive : tab.icon} taille={30} couleur={P.primary} />
-            </RebondEchelle>
+            <IconeBascule actif={selected} nomVide={tab.icon} nomPlein={tab.iconActive} taille={30} couleur={P.primary} />
             <Text style={[styles.label, selected && styles.labelActive]} maxFontSizeMultiplier={1.3}>{tab.label}</Text>
           </Pressable>
         );

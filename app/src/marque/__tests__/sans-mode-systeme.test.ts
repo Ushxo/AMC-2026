@@ -29,3 +29,16 @@ describe('aucune dépendance au mode du système', () => {
     expect(fautifs).toEqual([]);
   });
 });
+
+describe('plus de sélecteur de style de carte', () => {
+  it('aucun fichier ne parle d’« Automatique » ni de préférence de thème de carte', () => {
+    const fautifs: string[] = [];
+    for (const dossier of ['src', 'frontend']) {
+      for (const f of fichiers(path.join(RACINE, dossier))) {
+        const texte: string = fs.readFileSync(f, 'utf8');
+        if (/>\s*Automatique\s*</.test(texte) || /label:\s*['"]Automatique['"]|Automatique:|'Automatique'|"Automatique"/.test(texte) || /theme-pref|PreferenceTheme|selecteur-carte/.test(texte)) fautifs.push(path.relative(RACINE, f));
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+});

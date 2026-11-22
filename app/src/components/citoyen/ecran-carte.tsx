@@ -17,7 +17,6 @@ import { ReperesEndroits } from '@/components/ville/reperes-endroits';
 import { Chargement } from '@/components/ville/etat-ecran';
 import { ListeEndroits } from '@/components/ville/liste-endroits';
 import { BandesInondation } from '@/components/ville/bandes-inondation';
-import { SelecteurCarte } from '@/components/ville/selecteur-carte';
 import { useCouches } from '@/hooks/use-couches';
 import { useBandesInondation } from '@/hooks/use-bandes-inondation';
 import { useBouchesExistantes } from '@/hooks/use-bouches-existantes';
@@ -548,7 +547,6 @@ export default function CarteCitoyen({ coquille }: Props) {
                 ))}
               </View>
             ) : null}
-            <SelecteurCarte />
             <ListeEndroits endroits={visibles} onOuvrir={(e) => { setOptions(false); router.push({ pathname: '/suivi/[id]', params: { id: premierSignalement(e) } }); }} />
             <ThemedText type="small" themeColor="textSecondary">
               Les repères montrent les endroits signalés, avec leur gravité. Touchez un repère, puis sa bulle, pour suivre un signalement.

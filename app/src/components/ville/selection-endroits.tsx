@@ -14,7 +14,6 @@ import { LIBELLES_GRAVITE, type Endroit, type Gravite, type Signalement } from '
 
 import { Bouton } from './bouton';
 import { Chip } from './chip';
-import { SelecteurCarte } from './selecteur-carte';
 import { CarteSelection } from './carte-selection';
 import { CIBLE_MIN, COULEUR_REPERE } from './style';
 import { Coche } from './coche';
@@ -122,7 +121,6 @@ export function SelectionEndroits({
           {MESSAGE_ZONE_ESTIMEE}. Touchez une zone pour sélectionner (ou retirer) tous ses endroits ; « Voir la zone » ouvre sa fiche.
         </ThemedText>
       ) : null}
-      <SelecteurCarte />
       <Bouton titre="Agrandir la carte" variante="discret" onPress={() => setPlein(true)} />
       <Modal visible={plein} animationType="slide" onRequestClose={() => setPlein(false)}>
         <View style={[styles.plein, { backgroundColor: theme.background, paddingTop: insets.top }]}>

@@ -1,8 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { render, screen } from '@testing-library/react-native';
 
-import { SelecteurCarte } from '../selecteur-carte';
 import { geometrieRepere, RepereEgout } from '../repere-egout';
-import { reinitialiserThemePourTests, lirePreferenceTheme } from '../../../lib/theme-pref';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -31,21 +29,6 @@ describe('ancrage du repère', () => {
 
   it('le prochain arrêt est plus grand', () => {
     expect(geometrieRepere('prochain').zoneH).toBeGreaterThan(geometrieRepere('normal').zoneH);
-  });
-});
-
-describe('sélecteur de style de carte', () => {
-  beforeEach(() => reinitialiserThemePourTests());
-
-  it('trois boutons, l’état choisi est annoncé, un appui change la préférence', async () => {
-    await render(<SelecteurCarte />);
-    const radios = screen.getAllByRole('radio');
-    expect(radios).toHaveLength(3);
-    expect(screen.getByLabelText('Automatique').props.accessibilityState.checked).toBe(true);
-    await fireEvent.press(screen.getByLabelText('Sombre'));
-    expect(lirePreferenceTheme()).toBe('sombre');
-    expect(screen.getByLabelText('Sombre').props.accessibilityState.checked).toBe(true);
-    expect(screen.getByLabelText('Automatique').props.accessibilityState.checked).toBe(false);
   });
 });
 

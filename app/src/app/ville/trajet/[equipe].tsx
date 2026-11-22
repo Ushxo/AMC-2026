@@ -31,7 +31,6 @@ import { Chargement, Vide } from '@/components/ville/etat-ecran';
 import { EtiquetteNeutre } from '@/components/ville/etiquette';
 import { MarqueurEgout } from '@/components/ville/marqueur-egout';
 import { MarqueurVehicule } from '@/components/ville/marqueur-vehicule';
-import { SelecteurCarte } from '@/components/ville/selecteur-carte';
 import { COULEUR_ACCENT, COULEUR_ARRET_FAIT, COULEUR_TRACE_ATTENUE, couleurEquipe, BLANC_FIXE } from '@/components/ville/style';
 import { useEquipes } from '@/hooks/use-equipes';
 import { useMonEquipe } from '@/hooks/use-mon-equipe';
@@ -442,7 +441,6 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
                     accessibilityLabel="Carte du trajet de la tournée">
                     {contenuCarte}
                   </CarteCommune>
-                  <SelecteurCarte />
                 </>
               ) : session ? (
                 <>

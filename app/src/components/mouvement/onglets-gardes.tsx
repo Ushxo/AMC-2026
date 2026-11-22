@@ -1,12 +1,38 @@
-import { createContext, memo, startTransition, useContext, useState, type ReactNode } from 'react';
+import { createContext, memo, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-/** Vrai quand l'onglet est celui qu'on voit. Les écrans qui travaillent en tâche de fond (minuteurs, animations) peuvent s'y suspendre. */
-const OngletActifContexte = createContext(true);
+/**
+ * Store d'un onglet : objet STABLE (créé une fois par panneau). Sa valeur change quand l'onglet est montré ou caché, mais le contexte
+ * qui le porte ne change jamais : une bascule ne redessine aucun écran, sauf ceux qui s'abonnent explicitement (`useOngletActif`).
+ */
+type StoreOnglet = { actif: boolean; ecouteurs: Set<() => void> };
 
-/** L'onglet qui contient cet écran est-il visible ? (Vrai hors d'une coquille à onglets.) */
+const magasinParDefaut: StoreOnglet = { actif: true, ecouteurs: new Set() };
+const OngletActifContexte = createContext<StoreOnglet>(magasinParDefaut);
+
+/** L'onglet qui contient cet écran est-il visible ? Redessine l'écran à chaque bascule : réservé aux petits composants. (Vrai hors coquille.) */
 export function useOngletActif(): boolean {
-  return useContext(OngletActifContexte);
+  const store = useContext(OngletActifContexte);
+  return useSyncExternalStore(
+    (f) => {
+      store.ecouteurs.add(f);
+      return () => store.ecouteurs.delete(f);
+    },
+    () => store.actif,
+    () => store.actif,
+  );
+}
+
+/**
+ * Lecture SANS rendu de la visibilité de l'onglet : à lire dans un minuteur ou un rappel (`ref.current()`). Une bascule
+ * ne redessine pas le composant et ne relance aucun effet.
+ */
+export function useOngletActifRef(): { current: () => boolean } {
+  const store = useContext(OngletActifContexte);
+  const ref = useRef({ current: () => store.actif });
+  // la fonction lit toujours le store courant
+  ref.current.current = () => store.actif;
+  return ref.current;
 }
 
 export type OngletGarde = {
@@ -16,8 +42,9 @@ export type OngletGarde = {
   /** Ce dont dépend le contenu (état de la coquille qu'il lit). Vide : le contenu ne se redessine jamais à cause de la coquille. */
   deps?: readonly unknown[];
   /**
-   * Garde la taille de l'onglet quand il est caché (invisible mais mesuré, sans toucher) : pour une carte native, qui ne doit pas
-   * être réduite à zéro. Sinon l'onglet caché est retiré de la mise en page (`display: none`).
+   * Garde l'onglet visible SOUS les autres quand il est caché (sans toucher) : pour une carte native, dont on ne change jamais
+   * l'opacité ni la taille (un changement d'alpha d'une carte force un nouveau rendu des tuiles). Les autres onglets doivent alors
+   * être opaques : voir `fond`.
    */
   gardeTaille?: boolean;
 };
@@ -26,13 +53,14 @@ export type OngletGarde = {
  * Coquille à onglets qui GARDE montés les onglets déjà visités : un onglet n'est monté qu'à son premier passage, puis seulement
  * caché (jamais démonté). Revenir sur la carte ne recrée plus la carte native ni ses repères, et les écrans gardent leur état.
  * Un onglet caché ne reçoit aucun toucher, est masqué au lecteur d'écran et ne se redessine pas quand la coquille change d'onglet.
+ * `fond` : couleur opaque des onglets ordinaires (ils recouvrent l'onglet « gardeTaille » resté dessous).
  */
-export function OngletsGardes({ actif, onglets, style }: { actif: string; onglets: OngletGarde[]; style?: StyleProp<ViewStyle> }) {
+export function OngletsGardes({ actif, onglets, fond, style }: { actif: string; onglets: OngletGarde[]; fond?: string; style?: StyleProp<ViewStyle> }) {
   const [visites, setVisites] = useState<ReadonlySet<string>>(() => new Set([actif]));
   if (!visites.has(actif)) setVisites(new Set([...visites, actif]));
   return (
     <View style={[styles.cadre, style]}>
-      {onglets.map((o) => (visites.has(o.id) || o.id === actif ? <Panneau key={o.id} onglet={o} visible={o.id === actif} /> : null))}
+      {onglets.map((o) => (visites.has(o.id) || o.id === actif ? <Panneau key={o.id} onglet={o} visible={o.id === actif} fond={fond} /> : null))}
     </View>
   );
 }
@@ -47,15 +75,22 @@ const ContenuFige = memo(
   (avant, apres) => memesDeps(avant.deps, apres.deps),
 );
 
-function Panneau({ onglet, visible }: { onglet: OngletGarde; visible: boolean }) {
-  const cache = onglet.gardeTaille ? styles.invisible : styles.retire;
+function Panneau({ onglet, visible, fond }: { onglet: OngletGarde; visible: boolean; fond?: string }) {
+  // Le store est créé une fois ; seule sa valeur change (jamais l'objet donné au contexte).
+  const [store] = useState<StoreOnglet>(() => ({ actif: visible, ecouteurs: new Set() }));
+  useEffect(() => {
+    if (store.actif === visible) return;
+    store.actif = visible;
+    store.ecouteurs.forEach((f) => f());
+  }, [visible, store]);
+  const cache = onglet.gardeTaille ? null : styles.retire;
   return (
     <View
-      style={[StyleSheet.absoluteFill, !visible && cache]}
+      style={[StyleSheet.absoluteFill, !onglet.gardeTaille && fond ? { backgroundColor: fond } : null, !visible && cache]}
       pointerEvents={visible ? 'auto' : 'none'}
       accessibilityElementsHidden={!visible}
       importantForAccessibility={visible ? 'auto' : 'no-hide-descendants'}>
-      <OngletActifContexte.Provider value={visible}>
+      <OngletActifContexte.Provider value={store}>
         <ContenuFige rendu={onglet.rendu} deps={onglet.deps} />
       </OngletActifContexte.Provider>
     </View>
@@ -63,21 +98,14 @@ function Panneau({ onglet, visible }: { onglet: OngletGarde; visible: boolean })
 }
 
 /**
- * Changement d'onglet en deux temps : l'état « onglet touché » (pastille, icône) change tout de suite, et le changement de
- * contenu passe en transition : le rendu lourd du nouvel écran ne bloque jamais le retour visuel du toucher.
+ * Onglet actif d'une barre : la coque en est l'unique source de vérité. Pas d'état local ni de transition : le dernier toucher
+ * gagne toujours, et toucher l'onglet déjà actif ne fait rien. (Les onglets étant gardés montés, le changement de contenu est léger.)
  */
-export function useChangementImmediat<Id extends string>(actif: Id, onChange: (id: Id) => void): { actifLocal: Id; changer: (id: Id) => void } {
-  const [actifLocal, setActifLocal] = useState(actif);
-  const [vu, setVu] = useState(actif);
-  if (actif !== vu) {
-    setVu(actif);
-    setActifLocal(actif);
-  }
+export function useOngletUnique<Id extends string>(actif: Id, onChange: (id: Id) => void): { actifLocal: Id; changer: (id: Id) => void } {
   return {
-    actifLocal,
+    actifLocal: actif,
     changer: (id: Id) => {
-      setActifLocal(id);
-      startTransition(() => onChange(id));
+      if (id !== actif) onChange(id);
     },
   };
 }
@@ -85,5 +113,4 @@ export function useChangementImmediat<Id extends string>(actif: Id, onChange: (i
 const styles = StyleSheet.create({
   cadre: { flex: 1 },
   retire: { display: 'none' },
-  invisible: { opacity: 0 },
 });
