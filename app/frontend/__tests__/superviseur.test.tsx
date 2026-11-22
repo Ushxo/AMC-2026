@@ -37,8 +37,8 @@ const tournee = (nom: string, arrets: Arret[]): Tournee => ({
 });
 const resultat = (tournees: Tournee[]) => ({ tournees }) as unknown as ResultatOptimisation;
 
-describe('rapports du superviseur : arrêts faits (lecture)', () => {
-  it('chargement, aucune tournée, aucun arrêt fait', async () => {
+describe('rapports du superviseur : arrêts évalués par les équipes (lecture)', () => {
+  it('chargement, aucune tournée, aucun arrêt évalué', async () => {
     mockTournees.mockReturnValue({ resultat: null, chargement: true });
     const { rerender } = await render(<ArretsFaits />);
     expect(screen.getByText('Chargement des tournées…')).toBeTruthy();
@@ -47,16 +47,27 @@ describe('rapports du superviseur : arrêts faits (lecture)', () => {
     expect(screen.getByText('Aucune tournée pour le moment.')).toBeTruthy();
     mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, false)])]), chargement: false });
     await rerender(<ArretsFaits />);
-    expect(screen.getByText('Aucun arrêt fait pour le moment.')).toBeTruthy();
+    expect(screen.getByText('Aucun arrêt évalué pour le moment.')).toBeTruthy();
   });
 
-  it('liste les arrêts faits de chaque équipe', async () => {
-    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, true), arret(2, false), arret(3, true)])]), chargement: false });
+  it('liste les arrêts évalués de chaque équipe : réparés (faits) et pas réglés avec leur commentaire', async () => {
+    const nonRegle: Arret = { ...arret(2, false), regle: false, commentaire: 'Grille à remplacer', evalue_le: '2026-11-22T14:00:00Z' };
+    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [arret(1, true), nonRegle, arret(3, true), arret(4, false)])]), chargement: false });
     await render(<ArretsFaits />);
     expect(screen.getByText('Équipe 1')).toBeTruthy();
-    expect(screen.getByText('2 arrêts faits sur 3')).toBeTruthy();
-    expect(screen.getByText(/^1\. fait à /)).toBeTruthy();
-    expect(screen.queryByText(/^2\. /)).toBeNull();
+    expect(screen.getByText(/^3 arrêts évalués sur 4 · 1 pas réglé/)).toBeTruthy();
+    expect(screen.getByText(/^1\. Réparé à /)).toBeTruthy();
+    expect(screen.getByText(/^2\. Pas réglé à /)).toBeTruthy();
+    expect(screen.getByText('« Grille à remplacer »')).toBeTruthy();
+    expect(screen.queryByText(/^4\. /)).toBeNull();
+    expect(screen.getByText('En cours')).toBeTruthy();
+  });
+
+  it('montre quand le rapport de l’équipe a été reçu', async () => {
+    const t = { ...tournee('Équipe 1', [arret(1, true)]), rapport_envoye_le: '2026-11-22T15:00:00Z' };
+    mockTournees.mockReturnValue({ resultat: resultat([t]), chargement: false });
+    await render(<ArretsFaits />);
+    expect(screen.getByText('Rapport reçu')).toBeTruthy();
   });
 });
 

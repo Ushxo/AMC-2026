@@ -14,7 +14,7 @@ import { Chargement } from "@/components/ville/etat-ecran";
 import { useAcces } from "@/hooks/use-acces";
 import AuthFlow from "./auth/AuthFlow";
 import CitizenApp from "./citizen/CitizenApp";
-import StaffApp from "./StaffApp";
+import EmployeeApp from "./employee/EmployeeApp";
 import SupervisorApp from "./supervisor/SupervisorApp";
 
 // Racine de l'app (« / ») : le citoyen arrive DIRECTEMENT sur la carte (aucune connexion). L'icône de profil ouvre la connexion
@@ -40,7 +40,7 @@ export default function AppRoot() {
 
   if (!polices && !erreurPolices) return <Chargement texte="Ouverture de Priorix…" />;
   if (ecran === "superviseur") return <SupervisorApp onLogout={logout} />;
-  if (ecran === "employe") return <StaffApp onLogout={logout} />;
+  if (ecran === "employe") return <EmployeeApp onLogout={logout} />;
   // Reprise de la session gardée : un bref chargement évite que la carte clignote chez le personnel déjà connecté.
   if (!pret && !citoyen) return <Chargement texte="Ouverture de Priorix…" />;
   if (connexionPersonnel) return <AuthFlow onConnecte={() => setConnexionPersonnel(false)} onRetour={() => setConnexionPersonnel(false)} />;

@@ -259,6 +259,10 @@ export type Arret = {
   depart_prevu: string;
   fait?: boolean;
   fait_le?: string | null;
+  /** Évaluation sur place par l'équipe (migration 0009) : réglé ou non, commentaire si non réglé. */
+  regle?: boolean | null;
+  commentaire?: string | null;
+  evalue_le?: string | null;
 };
 
 export type Tournee = {
@@ -271,6 +275,8 @@ export type Tournee = {
   fin_prevue: string;
   geometrie: { type: 'LineString'; coordinates: [number, number][] } | null;
   arrets: Arret[];
+  /** Moment où l'équipe a envoyé son rapport au superviseur (migration 0009). */
+  rapport_envoye_le?: string | null;
   // D'où part et où finit la tournée. Absents dans les anciens résultats : garage et garage.
   depart?: 'garage' | 'position';
   depart_position?: Coordonnees;

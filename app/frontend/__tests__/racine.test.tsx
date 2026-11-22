@@ -36,7 +36,7 @@ jest.mock('../supervisor/SupervisorApp', () => {
   const { Text } = jest.requireActual('react-native');
   return { __esModule: true, default: () => <Text>Coquille superviseur</Text> };
 });
-jest.mock('../StaffApp', () => {
+jest.mock('../employee/EmployeeApp', () => {
   const { Text } = jest.requireActual('react-native');
   return { __esModule: true, default: () => <Text>Coquille employé</Text> };
 });

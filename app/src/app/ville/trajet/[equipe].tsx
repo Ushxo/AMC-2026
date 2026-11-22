@@ -76,8 +76,24 @@ export default function Trajet() {
   return <EcranTrajet equipe={equipe} />;
 }
 
-/** Le trajet d'une équipe (aperçu, navigation, « Arrêt fait »...) : utilisable aussi dans la coquille de l'employé (« Ma carte »). */
-export function EcranTrajet({ equipe }: { equipe?: string }) {
+/**
+ * Le trajet d'une équipe (aperçu, navigation, « Arrêt fait »...) : utilisable aussi dans la coquille de l'employé (« Ma carte »).
+ * onEvaluer : espace employé. Arrivé à un arrêt, « Évaluer l'intervention » ouvre l'état du travail au lieu de marquer l'arrêt fait.
+ * demarrer : la navigation démarre tout de suite (sans l'écran d'aperçu) ; onFin est appelé quand l'employé l'arrête.
+ */
+export function EcranTrajet({
+  equipe,
+  onEvaluer,
+  demarrer = false,
+  onFin,
+}: {
+  equipe?: string;
+  onEvaluer?: (arretId: string) => void;
+  demarrer?: boolean;
+  onFin?: () => void;
+}) {
+  const demarrageDirect = demarrer && !NAVIGATION_GOOGLE;
+  const TITRE_ACTION = onEvaluer ? "Évaluer l'intervention" : 'Arrêt fait';
   const { bottom } = useSafeAreaInsets();
   const theme = useTheme();
   const { etat } = useSource();
@@ -88,7 +104,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
   const suivi = useSuiviTrajet(equipe ?? '');
   const [message, setMessage] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
-  const [enSuivi, setEnSuivi] = useState(false);
+  const [enSuivi, setEnSuivi] = useState(demarrageDirect);
   const [libre, setLibre] = useState(false);
   const [arrivee, setArrivee] = useState<string | null>(null);
   const [liste, setListe] = useState(false);
@@ -102,7 +118,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
 
   const { tournee, arrets, courant, faits, total, local, estFait, estPartiel } = suivi;
   // Seul le compte de l'équipe publie la position de l'équipe, et seulement une fois le suivi démarré (visible). Un superviseur qui ouvre l'aperçu ne publie rien.
-  const [suiviActif, setSuiviActif] = useState(false);
+  const [suiviActif, setSuiviActif] = useState(demarrageDirect);
   const compteDeLEquipe = !!tournee && monEquipe === tournee.equipe_id;
   const envoyer = peutPublierPosition({ suiviActif, compteDeLEquipe, local, demoHorsLigne, repli: etat === 'repli' });
   const pos = usePositionSuivie(tournee?.equipe_id ?? null, envoyer);
@@ -138,14 +154,18 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
 
   // Vue d'ensemble : la position (ou le garage) et le prochain arrêt dans le cadre.
   const vueEnsemble = useCallback(() => {
-    setEnSuivi(false);
-    setLibre(false);
+    // Démarrage direct (espace employé) : on reste en navigation, la caméra arrête seulement de suivre.
+    if (demarrageDirect) setLibre(true);
+    else {
+      setEnSuivi(false);
+      setLibre(false);
+    }
     const points = [departAffiche, cible, ...(troncon?.points ?? [])].filter((p): p is NonNullable<typeof p> => !!p);
     if (points.length < 2) return;
     // regionAutour garde une étendue minimale : un arrêt tout près ne fait pas zoomer au niveau d'un trottoir.
     carte.current?.animateCamera({ pitch: 0, heading: 0 }, { duration: 300 });
     carte.current?.animateToRegion(regionAutour(points, regionParDefaut), 500);
-  }, [departAffiche, cible, troncon, regionParDefaut]);
+  }, [departAffiche, cible, troncon, regionParDefaut, demarrageDirect]);
 
   // Guidage de secours (navigation Google impossible) : la carte suit le véhicule.
   useEffect(() => {
@@ -214,6 +234,10 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
   }
 
   async function faire(id: string) {
+    if (onEvaluer) {
+      onEvaluer(id);
+      return;
+    }
     setOccupe(true);
     const r = await suivi.marquerFait(id);
     setOccupe(false);
@@ -293,7 +317,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
   // L'équipe est à un arrêt non fait qui n'est pas le prochain : on propose de le faire maintenant (l'ordre des autres ne change pas).
   const surPlace = !finie && peutMarquer ? arretSurPlace(pos.position, restants, courant) : null;
   const suggestion = surPlace
-    ? { texte: `Vous êtes à l'arrêt ${surPlace.rang} : le faire maintenant ?`, titre: `Arrêt ${surPlace.rang} fait`, onPress: () => void faire(idArret(surPlace)) }
+    ? { texte: `Vous êtes à l'arrêt ${surPlace.rang} : le faire maintenant ?`, titre: onEvaluer ? `Évaluer l'arrêt ${surPlace.rang}` : `Arrêt ${surPlace.rang} fait`, onPress: () => void faire(idArret(surPlace)) }
     : null;
   const reste = tournee && !finie ? libelleReste(resteEstime(tournee, estFait)) : null;
   const pastille = finie ? 'Tournée terminée' : courant ? `Arrêt ${rangCourant + 1} sur ${total}` : '';
@@ -308,7 +332,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
         reste={reste}
         info={infoDepart}
         suggestion={suggestion}
-        titreAction={arriveeFin ? 'Terminer' : 'Arrêt fait'}
+        titreAction={arriveeFin ? 'Terminer' : TITRE_ACTION}
         occupe={occupe}
         actionActive={arriveeFin || (peutMarquer && !!courant && !estFait(courant))}
         onAction={() => (arriveeFin ? arreter() : courant ? void faire(idArret(courant)) : undefined)}
@@ -471,7 +495,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                   </ThemedText>
                   <Bouton
                     pleineLargeur
-                    titre={occupe ? 'Enregistrement…' : 'Arrêt fait'}
+                    titre={occupe ? 'Enregistrement…' : TITRE_ACTION}
                     variante="discret"
                     occupe={occupe}
                     actif={peutMarquer && !estFait(courant)}
@@ -672,6 +696,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
         {barre(() => {
           setSuiviActif(false);
           setEnSuivi(false);
+          onFin?.();
         })}
         {feuille}
       </ThemedView>

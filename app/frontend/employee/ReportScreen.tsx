@@ -1,74 +1,81 @@
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Texte as Text } from "@/components/texte";
+import { formaterDate } from "@/lib/format";
+import type { Evaluation } from "@/lib/rapport";
+import { idArret } from "@/lib/trajet";
+import type { Arret } from "@/types";
 import { BOTTOM_NAV_HEIGHT } from "../components/BottomNav";
-import { useDemo } from "../context/DemoContext";
-import { KIND_TITLES } from "../format";
-import { describeSewer } from "../supervisor/planning";
-import { Tour, WorkStatus } from "../types/models";
-import { E, Header } from "./shared";
+import { E, Header, type InfoArret } from "./shared";
 
-const TOUR_STATE: Record<Tour["state"], { label: string; color: string; bg: string }> = {
-  Assignée: { label: "À commencer", color: E.orange, bg: "#FCE5D2" },
-  "En cours": { label: "En cours", color: E.orange, bg: "#FCE5D2" },
-  "À valider": { label: "Transmis au superviseur", color: "#8A6A05", bg: "#FBF0CE" },
-  Validée: { label: "Validé", color: E.green, bg: E.sageSoft },
+type Props = {
+  arrets: Arret[];
+  infos: Map<string, InfoArret>;
+  evaluation: (a: Arret) => Evaluation | null;
+  envoyeLe: string | null;
+  envoi: boolean;
+  erreur: string | null;
+  onEnvoyer: () => void;
 };
 
-const ITEM_ICON: Record<WorkStatus, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
-  "À faire": { icon: "ellipse-outline", color: E.muted, label: "À faire" },
-  Fait: { icon: "checkmark-circle", color: E.green, label: "Réparé" },
-  "À suivre": { icon: "alert-circle", color: E.orange, label: "Pas réglé" },
-};
-
-// Rapport : état de chaque arrêt des tournées de l'équipe.
-export default function ReportScreen({ team }: { team: string }) {
+// Rapport : l'état de chaque arrêt de la tournée et l'envoi au superviseur.
+export default function ReportScreen({ arrets, infos, evaluation, envoyeLe, envoi, erreur, onEnvoyer }: Props) {
   const insets = useSafeAreaInsets();
-  const { tours, alerts } = useDemo();
-  const own = [...tours].reverse().filter((t) => t.teamId === team);
+  const evalues = arrets.filter((a) => evaluation(a)).length;
+  const complet = arrets.length > 0 && evalues === arrets.length;
+
+  const etat = envoyeLe
+    ? { label: `Envoyé au superviseur le ${formaterDate(envoyeLe)}`, color: E.green, bg: E.sageSoft }
+    : complet
+      ? { label: "Prêt à envoyer", color: "#8A6A05", bg: "#FBF0CE" }
+      : { label: "En cours", color: E.orange, bg: "#FCE5D2" };
 
   return (
     <View style={styles.root}>
       <Header title="Rapport" />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: BOTTOM_NAV_HEIGHT + insets.bottom + 20 }]}>
-        {!own.length && <Text style={styles.empty}>Aucune tournée pour {team} pour le moment.</Text>}
+        {arrets.length === 0 ? (
+          <Text style={styles.empty}>Aucune tournée pour votre équipe pour le moment.</Text>
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Tournée actuelle</Text>
+            <Text style={[styles.state, { color: etat.color, backgroundColor: etat.bg }]}>{etat.label}</Text>
+            <Text style={styles.progress}>
+              {evalues}/{arrets.length} arrêts évalués
+            </Text>
 
-        {own.map((tour, n) => {
-          const st = TOUR_STATE[tour.state];
-          const done = tour.items.filter((i) => i.status !== "À faire").length;
-          return (
-            <View key={tour.id} style={styles.card}>
-              <View style={styles.cardHead}>
-                <Text style={styles.cardTitle}>{n === 0 ? "Tournée actuelle" : "Tournée précédente"}</Text>
-                <Text style={[styles.state, { color: st.color, backgroundColor: st.bg }]}>{st.label}</Text>
-              </View>
-              <Text style={styles.progress}>
-                {done}/{tour.items.length} arrêts évalués
-              </Text>
-
-              {tour.items.map((item, i) => {
-                const info = describeSewer(item.sewerId, alerts);
-                const ic = ITEM_ICON[item.status];
-                return (
-                  <View key={item.sewerId} style={styles.item}>
-                    <Ionicons name={ic.icon} size={24} color={ic.color} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.itemTitle}>
-                        {i + 1}. {KIND_TITLES[info.kind]}
-                      </Text>
-                      <Text style={styles.itemSub}>
-                        {info.sewer?.label} · {ic.label}
-                      </Text>
-                      {item.reason ? <Text style={styles.reason}>« {item.reason} »</Text> : null}
-                    </View>
+            {arrets.map((a) => {
+              const ev = evaluation(a);
+              const info = infos.get(idArret(a));
+              const icone = !ev ? "ellipse-outline" : ev.regle ? "checkmark-circle" : "alert-circle";
+              const couleur = !ev ? E.muted : ev.regle ? E.green : E.orange;
+              return (
+                <View key={idArret(a)} style={styles.item}>
+                  <Ionicons name={icone} size={24} color={couleur} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.itemTitle}>
+                      {a.rang}. {info?.titre ?? "Arrêt"}
+                    </Text>
+                    <Text style={styles.itemSub}>
+                      {info?.lieu ?? ""} · {!ev ? "À évaluer" : ev.regle ? "Réparé" : "Pas réglé"}
+                    </Text>
+                    {ev?.commentaire ? <Text style={styles.reason}>« {ev.commentaire} »</Text> : null}
                   </View>
-                );
-              })}
-            </View>
-          );
-        })}
+                </View>
+              );
+            })}
+
+            {erreur ? <Text style={styles.erreur} accessibilityRole="alert">{erreur}</Text> : null}
+            {complet && !envoyeLe ? (
+              <Pressable style={[styles.send, envoi && { opacity: 0.6 }]} disabled={envoi} onPress={onEnvoyer} accessibilityRole="button">
+                <Text style={styles.sendText}>{envoi ? "Envoi…" : "Envoyer le rapport au superviseur"}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -99,29 +106,25 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  cardHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
   cardTitle: {
     fontSize: 18,
     fontWeight: "800",
     color: "#151A13",
   },
   state: {
+    alignSelf: "flex-start",
     fontSize: 13,
     fontWeight: "800",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
     overflow: "hidden",
+    marginTop: 8,
   },
   progress: {
     color: E.muted,
     fontSize: 13,
-    marginTop: 4,
+    marginTop: 8,
     marginBottom: 6,
   },
   item: {
@@ -146,5 +149,23 @@ const styles = StyleSheet.create({
     color: E.text,
     fontStyle: "italic",
     marginTop: 4,
+  },
+  erreur: {
+    color: E.red,
+    fontSize: 14,
+    marginTop: 10,
+  },
+  send: {
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: E.orange,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 14,
+  },
+  sendText: {
+    color: E.white,
+    fontSize: 17,
+    fontWeight: "800",
   },
 });

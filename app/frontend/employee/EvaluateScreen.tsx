@@ -1,45 +1,35 @@
 import React, { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { describeSewer } from "../supervisor/planning";
-import { E, Header, StopSummary } from "./shared";
+import { ChampTexte as TextInput, Texte as Text } from "@/components/texte";
+import { E, Header, StopSummary, type InfoArret } from "./shared";
 
 type Choice = "oui" | "non";
 
+const OPTIONS: { value: Choice; label: string }[] = [
+  { value: "oui", label: "Oui, réparé" },
+  { value: "non", label: "Non, pas réglé" },
+];
+
 type Props = {
-  info: ReturnType<typeof describeSewer>;
+  info: InfoArret;
+  /** Dernier arrêt de la tournée : l'envoi part aussi au superviseur. */
+  dernier: boolean;
+  envoi: boolean;
+  erreur: string | null;
   onBack: () => void;
   onSend: (fixed: boolean, comment: string) => void;
 };
 
 // État du travail : le responsable indique si le problème est réglé.
-export default function EvaluateScreen({ info, onBack, onSend }: Props) {
+export default function EvaluateScreen({ info, dernier, envoi, erreur, onBack, onSend }: Props) {
   const insets = useSafeAreaInsets();
   const [choice, setChoice] = useState<Choice | null>(null);
   const [comment, setComment] = useState("");
 
-  const canSend = choice === "oui" || (choice === "non" && comment.trim().length > 0);
-
-  function Option({ value, label }: { value: Choice; label: string }) {
-    const selected = choice === value;
-    return (
-      <Pressable
-        onPress={() => setChoice(value)}
-        style={[styles.option, selected && styles.optionSelected]}
-        accessibilityRole="radio"
-        accessibilityState={{ selected }}
-      >
-        <Ionicons
-          name={selected ? "checkmark-circle" : "ellipse-outline"}
-          size={28}
-          color={selected ? E.green : E.text}
-        />
-        <Text style={styles.optionText}>{label}</Text>
-      </Pressable>
-    );
-  }
+  const canSend = !envoi && (choice === "oui" || (choice === "non" && comment.trim().length > 0));
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -50,8 +40,21 @@ export default function EvaluateScreen({ info, onBack, onSend }: Props) {
         <View style={styles.divider} />
 
         <Text style={styles.question}>Le problème est-il réglé ?</Text>
-        <Option value="oui" label="Oui, réparé" />
-        <Option value="non" label="Non, pas réglé" />
+        {OPTIONS.map(({ value, label }) => {
+          const selected = choice === value;
+          return (
+            <Pressable
+              key={value}
+              onPress={() => setChoice(value)}
+              style={[styles.option, selected && styles.optionSelected]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+            >
+              <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={28} color={selected ? E.green : E.text} />
+              <Text style={styles.optionText}>{label}</Text>
+            </Pressable>
+          );
+        })}
 
         {choice === "non" && (
           <View style={{ marginTop: 8 }}>
@@ -65,6 +68,7 @@ export default function EvaluateScreen({ info, onBack, onSend }: Props) {
               placeholder="Ex. : grille endommagée, nécessite un remplacement."
               placeholderTextColor={E.muted}
               multiline
+              maxLength={500}
               autoFocus
             />
           </View>
@@ -72,12 +76,14 @@ export default function EvaluateScreen({ info, onBack, onSend }: Props) {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        {erreur ? <Text style={styles.erreur} accessibilityRole="alert">{erreur}</Text> : null}
+        {dernier ? <Text style={styles.note}>Dernier arrêt : le rapport de la tournée partira au superviseur.</Text> : null}
         <Pressable
           style={[styles.send, !canSend && { opacity: 0.5 }]}
           disabled={!canSend}
           onPress={() => onSend(choice === "oui", comment.trim())}
         >
-          <Text style={styles.sendText}>Envoyer le rapport</Text>
+          <Text style={styles.sendText}>{envoi ? "Envoi…" : "Envoyer le rapport"}</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -145,6 +151,17 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 18,
     paddingTop: 12,
+    gap: 8,
+  },
+  erreur: {
+    color: E.red,
+    fontSize: 14,
+    textAlign: "center",
+  },
+  note: {
+    color: E.muted,
+    fontSize: 13,
+    textAlign: "center",
   },
   send: {
     height: 60,

@@ -22,6 +22,9 @@ type LigneArret = {
   depart_prevu: string;
   fait?: boolean;
   fait_le?: string | null;
+  regle?: boolean | null;
+  commentaire?: string | null;
+  evalue_le?: string | null;
 };
 
 type LigneTournee = {
@@ -34,6 +37,8 @@ type LigneTournee = {
   geometrie: Tournee['geometrie'];
   /** Départ, fin, recalcul partiel (colonne ajoutée par la migration 0006 ; absente tant qu'elle n'est pas lancée). */
   details?: Record<string, unknown> | null;
+  /** Rapport envoyé au superviseur (migration 0009 ; absente tant qu'elle n'est pas lancée). */
+  rapport_envoye_le?: string | null;
 };
 
 export type LigneDemande = {
@@ -106,7 +111,11 @@ export function assemblerResultat(
           depart_prevu: a.depart_prevu,
           fait: a.fait,
           ...(a.fait_le ? { fait_le: a.fait_le } : {}),
+          ...(a.regle != null ? { regle: a.regle } : {}),
+          ...(a.commentaire ? { commentaire: a.commentaire } : {}),
+          ...(a.evalue_le ? { evalue_le: a.evalue_le } : {}),
         })),
+      ...(t.rapport_envoye_le ? { rapport_envoye_le: t.rapport_envoye_le } : {}),
       ...detailsTournee(t.details),
     })),
     non_servis: demande.non_servis ?? [],
