@@ -8,7 +8,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IllustrationProbleme } from '@/components/illustration-probleme';
 import { useMesSignalements } from '@/hooks/use-mes-signalements';
+import { useSignalements } from '@/hooks/use-signalements';
 import { formaterDate } from '@/lib/format';
+import { confirmationDuSignalement, indexerEndroits } from '@/lib/gravite';
+import { ETIQUETTE_EN_ATTENTE_CONFIRMATION, phraseManque } from '@/lib/messages-seuil';
 import { chargerAdresses } from '@/lib/officiel';
 import { adressePlusProche } from '@/lib/recherche';
 import { LIBELLES_CATEGORIE, LIBELLES_ETAT, type Categorie, type Etat, type Signalement } from '@/types';
@@ -93,6 +96,8 @@ export default function MyAlerts() {
   const router = useRouter();
   const { mes, chargement, erreur, rafraichir } = useMesSignalements();
   const adresses = useMemo(() => chargerAdresses(), []);
+  const { signalements: tous } = useSignalements();
+  const index = useMemo(() => indexerEndroits(tous), [tous]);
 
   const vide = !chargement && !erreur && !mes.length;
   return (
@@ -114,6 +119,7 @@ export default function MyAlerts() {
         const step = etapeDeLEtat(a.etat);
           const titre = LIBELLES_CATEGORIE[a.categorie];
           const badge = badgeDe(a.etat, step, P);
+          const confirmation = confirmationDuSignalement(a, index);
 
           return (
             <Pressable
@@ -121,7 +127,7 @@ export default function MyAlerts() {
               onPress={() => router.push({ pathname: '/suivi/[id]', params: { id: a.id } })}
               style={[styles.card, { marginHorizontal: 16, marginBottom: 16 }]}
               accessibilityRole="button"
-              accessibilityLabel={`${titre}, ${badge.label}. Ouvrir le suivi et l’heure de passage.`}
+              accessibilityLabel={`${titre}, ${badge.label}.${confirmation.enAttente ? ` ${ETIQUETTE_EN_ATTENTE_CONFIRMATION}. ${phraseManque(confirmation.manque)}` : ''} Ouvrir le suivi et l’heure de passage.`}
             >
               <View style={styles.cardTop}>
                 <View style={[styles.iconBox, { backgroundColor: teintePastille(a.categorie, P) }]}>
@@ -146,6 +152,12 @@ export default function MyAlerts() {
                     <Ionicons name="calendar-outline" size={15} color={P.text} />
                     <Text style={styles.detail}>Envoyé le {formaterDate(a.cree_le)}</Text>
                   </View>
+                  {confirmation.enAttente ? (
+                    <View style={styles.attente}>
+                      <Text style={[styles.badge, { color: P.onActionDoux, backgroundColor: P.actionDoux }]}>{ETIQUETTE_EN_ATTENTE_CONFIRMATION}</Text>
+                      <Text style={styles.detail}>{phraseManque(confirmation.manque)}</Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
 
@@ -288,6 +300,12 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     flexShrink: 1,
     fontSize: 13,
     color: P.text,
+  },
+
+  attente: {
+    gap: 4,
+    marginTop: 8,
+    alignItems: 'flex-start',
   },
 
   side: {

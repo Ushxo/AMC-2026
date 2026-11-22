@@ -1,8 +1,10 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useProgressionOptimisation } from '@/hooks/use-progression-optimisation';
 import { useTheme } from '@/hooks/use-theme';
 import { ETAPES_AFFICHEES, LIBELLES_ETAPE, type EtapeProgression } from '@/lib/progression';
+import type { DemandeOptimisation } from '@/types';
 import { Coche } from './coche';
 
 
@@ -37,6 +39,23 @@ export function BarreProgression({ etape, fraction }: Props) {
       </View>
     </View>
   );
+}
+
+/**
+ * Barre branchée sur la demande de calcul : le minuteur de progression vit ici, donc seule la barre se redessine
+ * pendant le calcul, pas tout l'écran qui l'affiche.
+ */
+export function BarreProgressionCalcul({
+  demande,
+  envoi,
+  tracesEnAttente,
+}: {
+  demande: DemandeOptimisation | null;
+  envoi?: boolean;
+  tracesEnAttente?: boolean;
+}) {
+  const { etape, fraction } = useProgressionOptimisation(demande, { envoi, tracesEnAttente });
+  return <BarreProgression etape={etape} fraction={fraction} />;
 }
 
 const styles = StyleSheet.create({

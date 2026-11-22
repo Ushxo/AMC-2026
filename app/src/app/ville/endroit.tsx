@@ -14,7 +14,8 @@ import { COULEUR_REPERE } from '@/components/ville/style';
 import { useSignalements } from '@/hooks/use-signalements';
 import { formaterDate } from '@/lib/format';
 import { interventionDe, lieuDeEndroit } from '@/lib/interventions';
-import { regrouper } from '@/lib/gravite';
+import { estConfirme, manquePourConfirmer, regrouper } from '@/lib/gravite';
+import { ETIQUETTE_CONFIRME, ETIQUETTE_EN_ATTENTE_CONFIRMATION, phraseManque } from '@/lib/messages-seuil';
 import { chargerAdresses } from '@/lib/officiel';
 import { LIBELLES_CATEGORIE, LIBELLES_ETAT, LIBELLES_GRAVITE, type Gravite } from '@/types';
 import { IMPORTANCE } from '../../../frontend/supervisor/InterventionsAPlanifier';
@@ -87,6 +88,10 @@ export default function Endroit() {
                 <Text style={styles.resumeSous}>
                   {endroit.nombre} signalement{endroit.nombre > 1 ? 's' : ''} au même endroit{ouverts !== endroit.nombre ? `, ${ouverts} ouvert${ouverts > 1 ? 's' : ''}` : ''}
                 </Text>
+                <Text style={styles.resumeConfirmation} accessibilityLabel={estConfirme(endroit) ? `${ETIQUETTE_CONFIRME}. ${endroit.nombre_avec_photo ?? 0} avec photo vérifiée` : `${ETIQUETTE_EN_ATTENTE_CONFIRMATION}. ${phraseManque(manquePourConfirmer(endroit))}`}>
+                  {estConfirme(endroit) ? ETIQUETTE_CONFIRME : ETIQUETTE_EN_ATTENTE_CONFIRMATION} · {endroit.nombre_avec_photo ?? 0} avec photo vérifiée
+                  {estConfirme(endroit) ? '' : `. ${phraseManque(manquePourConfirmer(endroit))}`}
+                </Text>
               </View>
               <Text style={[styles.etiquette, { backgroundColor: c.fond, color: c.plein }]} accessibilityLabel={`Importance ${LIBELLES_GRAVITE[gravite]}`} maxFontSizeMultiplier={1.2}>
                 {LIBELLES_GRAVITE[gravite]}
@@ -138,6 +143,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   vignette: { width: 60, height: 60, borderRadius: 16, backgroundColor: P.background, alignItems: 'center', justifyContent: 'center' },
   resumeTitre: { fontSize: 18, fontWeight: '700', color: P.text },
   resumeSous: { fontSize: 14, fontWeight: '500', color: P.textSecondary },
+  resumeConfirmation: { fontSize: 13, fontWeight: '700', color: P.primary },
   etiquette: { fontSize: 14, fontWeight: '700', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
   section: { fontSize: 16, fontWeight: '700', color: P.text },
   ligne: { backgroundColor: P.surface, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 64 },

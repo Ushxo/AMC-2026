@@ -37,6 +37,7 @@ import { IllustrationProbleme } from '@/components/illustration-probleme';
 import { FeuilleProbleme } from '@/components/citoyen/feuille-probleme';
 import { lieuDeEndroit } from '@/lib/interventions';
 import { chargerAdresses, chargerRegion } from '@/lib/officiel';
+import { MESSAGE_RECU_SANS_CONFIRMATION } from '@/lib/messages-seuil';
 import {
   MESSAGE_ECHEC_ENVOI,
   MESSAGE_EN_ATTENTE,
@@ -210,6 +211,8 @@ export default function Signaler() {
     if (!point || !categorie || invalides.commentaire) return;
     // Si la vérification de la photo n'est pas finie, on l'attend ; une photo refusée bloque l'envoi.
     let graviteEnvoyee = gravite;
+    // Photo vérifiée seulement si l'analyse a ACCEPTÉ la photo qui part.
+    let photoVerifiee = false;
     if (photoUri && analyseRef.current?.uri === photoUri) {
       setAttenteAnalyse(true);
       let resultat: ResultatPhoto | null;
@@ -223,6 +226,7 @@ export default function Signaler() {
         return;
       }
       graviteEnvoyee = graviteDuSignalement(resultat);
+      photoVerifiee = Boolean(resultat?.valide);
     }
     const r = await envoyer({
       latitude: point.latitude,
@@ -231,6 +235,7 @@ export default function Signaler() {
       gravite: graviteEnvoyee,
       commentaire: commentaire.trim() || undefined,
       photoUri: photoUri ?? undefined,
+      photoVerifiee,
     });
     if (r.statut === 'invalide') {
       setMessages(r.erreurs.map((e) => e.message));
@@ -238,11 +243,12 @@ export default function Signaler() {
       setMessages([r.message]);
     } else if (r.statut === 'envoye') {
       setEnvoyeId(r.signalement.id);
-      setMessages([r.sansPhoto ? MESSAGE_ENVOYE_SANS_PHOTO : MESSAGE_ENVOYE]);
+      setMessages([r.sansPhoto ? MESSAGE_ENVOYE_SANS_PHOTO : photoVerifiee ? MESSAGE_ENVOYE : MESSAGE_RECU_SANS_CONFIRMATION]);
     } else {
       setEnvoyeId(r.signalement.id);
       const base = r.sansPhoto ? MESSAGE_EN_ATTENTE_SANS_PHOTO : MESSAGE_EN_ATTENTE;
-      setMessages(r.signalement.echec_envoi ? [base, `${MESSAGE_ECHEC_ENVOI} ${r.signalement.echec_envoi}`] : [base]);
+      const suite = photoVerifiee || r.sansPhoto ? [] : [MESSAGE_RECU_SANS_CONFIRMATION];
+      setMessages(r.signalement.echec_envoi ? [base, `${MESSAGE_ECHEC_ENVOI} ${r.signalement.echec_envoi}`] : [base, ...suite]);
     }
   }
 

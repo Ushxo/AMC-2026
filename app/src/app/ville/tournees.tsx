@@ -7,7 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BandeauSource } from '@/components/ville/bandeau-source';
-import { BarreProgression } from '@/components/ville/barre-progression';
+import { BarreProgressionCalcul } from '@/components/ville/barre-progression';
 import { Bouton } from '@/components/ville/bouton';
 import { CarteTournees } from '@/components/ville/carte-tournees';
 import { Chargement, Erreur, Vide } from '@/components/ville/etat-ecran';
@@ -20,7 +20,6 @@ import { useEquipes } from '@/hooks/use-equipes';
 import { useIncidents } from '@/hooks/use-incidents';
 import { useOptimisation } from '@/hooks/use-optimisation';
 import { usePositionsEquipes } from '@/hooks/use-positions-equipes';
-import { useProgressionOptimisation } from '@/hooks/use-progression-optimisation';
 import { useSelectionEndroits } from '@/hooks/use-selection-endroits';
 import { useSessionEmploye } from '@/hooks/use-session-employe';
 import { useSource } from '@/hooks/use-source';
@@ -162,7 +161,6 @@ export function EcranTournees({
     demande?.statut === 'terminee' &&
     resultat?.demande_id === demande.id &&
     resultat.tournees.some((t) => !t.geometrie);
-  const progression = useProgressionOptimisation(demande, { envoi: enCours && !demande, tracesEnAttente });
   const montrerProgression = (enCours && !basculeSurPrecalcule) || tracesEnAttente;
   const selectionPartielle = (demande?.parametres.cles_endroits?.length ?? 0) > 0;
   // Un recalcul d'une seule équipe est partiel : on n'affiche pas le gain du plan complet à partir de cette demande.
@@ -405,7 +403,7 @@ export function EcranTournees({
           {montrerProgression ? (
             <>
               <ThemedText accessibilityLiveRegion="polite">{MESSAGE_OPTIMISATION_EN_COURS}</ThemedText>
-              <BarreProgression etape={progression.etape} fraction={progression.fraction} />
+              <BarreProgressionCalcul demande={demande} envoi={enCours && !demande} tracesEnAttente={tracesEnAttente} />
             </>
           ) : null}
             <BoutonAction

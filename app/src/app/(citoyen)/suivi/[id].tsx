@@ -12,6 +12,8 @@ import { EtiquetteNeutre } from '@/components/ville/etiquette';
 import { usePassage } from '@/hooks/use-passage';
 import { useSignalements } from '@/hooks/use-signalements';
 import { formaterDate } from '@/lib/format';
+import { confirmationDuSignalement, indexerEndroits } from '@/lib/gravite';
+import { ETIQUETTE_EN_ATTENTE_CONFIRMATION, phraseManque } from '@/lib/messages-seuil';
 import { lieuDeEndroit } from '@/lib/interventions';
 import { MESSAGE_RESULTAT_PRECALCULE } from '@/lib/messages';
 import { chargerAdresses } from '@/lib/officiel';
@@ -43,6 +45,10 @@ export default function SuiviSignalement() {
   const { signalements, rafraichir } = useSignalements();
   const signalement = useMemo(() => signalements.find((s) => s.id === id), [signalements, id]);
   const adresses = useMemo(() => chargerAdresses(), []);
+  const confirmation = useMemo(
+    () => (signalement ? confirmationDuSignalement(signalement, indexerEndroits(signalements)) : { enAttente: false, manque: 0 }),
+    [signalement, signalements],
+  );
   const etats = etatsDesEtapes(suivi.etape);
   const rejete = suivi.etape === 'rejete';
 
@@ -76,6 +82,12 @@ export default function SuiviSignalement() {
           <Vide texte="Ce signalement est introuvable." />
         ) : (
           <>
+            {confirmation.enAttente ? (
+              <View style={styles.attente} accessible accessibilityLabel={`${ETIQUETTE_EN_ATTENTE_CONFIRMATION}. ${phraseManque(confirmation.manque)}`}>
+                <EtiquetteNeutre texte={ETIQUETTE_EN_ATTENTE_CONFIRMATION} />
+                <Text style={styles.note}>{phraseManque(confirmation.manque)}</Text>
+              </View>
+            ) : null}
             {suivi.etape === 'planifie' && suivi.heure_estimee ? (
               <View style={styles.passage}>
                 <Ionicons name="time-outline" size={38} color={P.primary} />
@@ -153,6 +165,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   passageLegende: { fontSize: 14, fontWeight: '600', color: P.primary },
   passageHeure: { fontSize: 24, fontWeight: '700', color: P.primary },
   passageNote: { fontSize: 13, fontWeight: '500', color: P.textSecondary },
+  attente: { gap: 8, alignItems: 'flex-start' },
   note: { fontSize: 14, color: P.textSecondary },
   carte: { backgroundColor: P.surface, borderRadius: 22, padding: 20, gap: 12 },
   etape: { flexDirection: 'row', gap: 16 },

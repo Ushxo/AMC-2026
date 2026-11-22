@@ -104,3 +104,22 @@ export function trierEndroits(endroits: Endroit[]): Endroit[] {
       plusRecent(b) - plusRecent(a),
   );
 }
+
+/** Les endroits de tous les signalements, par clé : sert à savoir si l'endroit d'un signalement est confirmé. */
+export function indexerEndroits(signalements: Signalement[]): Map<string, Endroit> {
+  return new Map(regrouper(signalements).map((e) => [e.cle, e]));
+}
+
+/**
+ * Un signalement encore ouvert dont l'endroit n'est pas confirmé attend d'autres signalements ou une photo acceptée.
+ * Un signalement fermé, ou dont l'endroit est inconnu, n'attend rien.
+ */
+export function confirmationDuSignalement(
+  s: Pick<Signalement, 'etat' | 'grille_id' | 'latitude' | 'longitude'>,
+  index: Map<string, Endroit>,
+): { enAttente: boolean; manque: number } {
+  if (!(s.etat in AVANCEMENT_OUVERT)) return { enAttente: false, manque: 0 };
+  const e = index.get(cleEndroit(s));
+  if (!e || estConfirme(e)) return { enAttente: false, manque: 0 };
+  return { enAttente: true, manque: manquePourConfirmer(e) };
+}

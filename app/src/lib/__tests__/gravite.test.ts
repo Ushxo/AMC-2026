@@ -2,11 +2,14 @@ import {
   cleEndroit,
   graviteMax,
   graviteParNombre,
+  confirmationDuSignalement,
+  indexerEndroits,
   manquePourConfirmer,
   regrouper,
   sansNonConfirmes,
   trierEndroits,
 } from '../gravite';
+import { phraseManque } from '../messages-seuil';
 import { sig } from '../test-utils/fabrique';
 
 describe('gravite', () => {
@@ -138,5 +141,19 @@ describe('endroit confirmé selon la photo', () => {
     const ferme = sig({ grille_id: 'a', photo_verifiee: false, etat: 'regle' });
     const ok = sig({ grille_id: 'b' });
     expect(sansNonConfirmes([cache, ferme, ok])).toEqual([ferme, ok]);
+  });
+});
+
+describe('confirmation d’un signalement (écrans du citoyen)', () => {
+  it('en attente avec ce qu’il manque ; fermé ou confirmé : rien à attendre', () => {
+    const a = sig({ grille_id: 'g', photo_verifiee: false });
+    const index = indexerEndroits([a]);
+    expect(confirmationDuSignalement(a, index)).toEqual({ enAttente: true, manque: 2 });
+    const b = sig({ grille_id: 'h' });
+    expect(confirmationDuSignalement(b, indexerEndroits([b]))).toEqual({ enAttente: false, manque: 0 });
+    const ferme = sig({ grille_id: 'g', photo_verifiee: false, etat: 'regle' });
+    expect(confirmationDuSignalement(ferme, index).enAttente).toBe(false);
+    expect(phraseManque(1)).toBe('Il manque 1 signalement au même endroit, ou une photo acceptée.');
+    expect(phraseManque(2)).toBe('Il manque 2 signalements au même endroit, ou une photo acceptée.');
   });
 });

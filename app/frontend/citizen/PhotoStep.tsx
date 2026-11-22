@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { Image, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from "react";
+import { AppState, Image, StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -10,6 +10,7 @@ import { CameraView, useCameraPermissions as usePermissionCamera, type VueCamera
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
+import { MESSAGE_ASTUCE_PHOTO } from '@/lib/messages-seuil';
 import { CAMERA } from '@/components/ville/style';
 
 // Commandes de la caméra : couleurs fixes (fond sombre de l'objectif). Le reste de l'écran suit la marque.
@@ -56,8 +57,23 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
   const camera = useRef<VueCamera>(null);
   const [permission, requestPermission] = usePermissionCamera();
   const [facing, setFacing] = useState<"back" | "front">("back");
-  const [flash, setFlash] = useState(false);
+  // Éclairage voulu par la personne : lampe en continu (caméra arrière seulement), éteinte dès qu'on quitte la caméra.
+  const [eclairage, setEclairage] = useState(false);
   const [ready, setReady] = useState(false);
+
+  const arriere = facing === "back";
+  const lampe = eclairage && arriere && !photoUri;
+
+  // La lampe s'éteint : photo gardée, passage à la caméra avant, app en arrière-plan.
+  useEffect(() => {
+    if (photoUri || !arriere) setEclairage(false);
+  }, [photoUri, arriere]);
+  useEffect(() => {
+    const abonne = AppState.addEventListener?.("change", (e: string) => {
+      if (e !== "active") setEclairage(false);
+    });
+    return () => abonne?.remove?.();
+  }, []);
 
   async function capture() {
     if (photoUri) {
@@ -120,16 +136,20 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
           ref={camera}
           style={StyleSheet.absoluteFill}
           facing={facing}
-          flash={flash ? "on" : "off"}
+          flash={lampe ? "on" : "off"}
+          enableTorch={lampe}
           onCameraReady={() => setReady(true)}
         />
         <FrameCorners />
-        <Pressable accessibilityRole="button"
-          style={styles.flashButton}
-          onPress={() => setFlash((f) => !f)}
-          accessibilityLabel={flash ? "Désactiver le flash" : "Activer le flash"}
+        <Pressable
+          accessibilityRole="button"
+          disabled={!arriere}
+          style={[styles.flashButton, lampe && styles.flashAllume, !arriere && styles.flashInactif]}
+          onPress={() => setEclairage((f) => !f)}
+          accessibilityLabel={!arriere ? "Pas d'éclairage avec la caméra avant" : lampe ? "Éteindre l'éclairage" : "Allumer l'éclairage"}
+          accessibilityState={{ disabled: !arriere, selected: lampe }}
         >
-          <Ionicons name={flash ? "flash" : "flash-off"} size={22} color={C.white} />
+          <Ionicons name={lampe ? "flash" : "flash-off"} size={22} color={lampe ? C.dark : C.white} />
         </Pressable>
       </>
     );
@@ -178,6 +198,8 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
           </Pressable>
         </View>
       </View>
+
+      <Text style={styles.astuce}>{MESSAGE_ASTUCE_PHOTO}</Text>
 
       {verification ? (
         <View
@@ -298,6 +320,8 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  flashAllume: { backgroundColor: C.cream },
+  flashInactif: { opacity: 0.4 },
   permission: {
     flex: 1,
     alignItems: "center",
@@ -343,6 +367,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     borderRadius: 29,
     backgroundColor: C.cream,
   },
+  astuce: { marginHorizontal: 16, marginTop: 12, fontSize: 14, lineHeight: 20, fontWeight: "600", color: P.textSecondary },
   verification: {
     flexDirection: "row",
     alignItems: "center",
