@@ -10,7 +10,7 @@ import SupervisorApp from "./supervisor/SupervisorApp";
 // Point d'entrée : connexion réelle (comptes, mot de passe oublié, démonstration hors ligne), puis la coquille du rôle.
 // Le contenu des coquilles passe des données de maquette (DemoProvider) à nos données réelles palier par palier.
 export default function AppRoot() {
-  const { ecran, nom, deconnecter } = useAcces();
+  const { ecran, deconnecter } = useAcces();
   const logout = () => void deconnecter();
 
   return (
@@ -22,7 +22,7 @@ export default function AppRoot() {
       ) : ecran === "superviseur" ? (
         <SupervisorApp onLogout={logout} />
       ) : (
-        <StaffApp session={{ email: nom ?? "", role: "employe" }} onLogout={logout} />
+        <StaffApp onLogout={logout} />
       )}
     </DemoProvider>
   );

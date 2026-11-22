@@ -1,84 +1,41 @@
 import React from "react";
-import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, Text, View } from "react-native";
 
-import { Session } from "./auth";
-import EmployeeMap from "./employee/EmployeeMap";
+import { EcranTrajet } from "@/app/ville/trajet/[equipe]";
+import { Palette } from "@/constants/theme";
+import { Chargement } from "@/components/ville/etat-ecran";
+import { useAcces } from "@/hooks/use-acces";
+import { useMonEquipe } from "@/hooks/use-mon-equipe";
+import { EnteteCoquille } from "./components/EnteteCoquille";
 
-const C = {
-  green: "#1D3A1B",
-  cream: "#F8F4EA",
-  sage: "#DCE5CC",
-  muted: "#6E7468",
-};
-
-// Espace employé : le responsable d'équipe et sa tournée.
-export default function StaffApp({ session, onLogout }: { session: Session; onLogout: () => void }) {
-  const insets = useSafeAreaInsets();
+// Espace employé : une seule page, « Ma carte » = le trajet de l'équipe du compte (aperçu, navigation, « Arrêt fait », recalcul).
+export default function StaffApp({ onLogout }: { onLogout: () => void }) {
+  const { nom } = useAcces();
+  const { equipeId, chargement } = useMonEquipe();
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
-
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.brand}>Priorix</Text>
-          <Text style={styles.who} numberOfLines={1}>
-            {session.team ?? "Responsable d’équipe"} · {session.email}
-          </Text>
-        </View>
-        <Pressable style={styles.logout} onPress={onLogout} accessibilityLabel="Se déconnecter">
-          <Ionicons name="log-out-outline" size={22} color={C.cream} />
-          <Text style={styles.logoutText}>Déconnexion</Text>
-        </Pressable>
-      </View>
-
-
-      <View style={{ flex: 1, paddingBottom: insets.bottom }}>
-        <EmployeeMap team={session.team} />
+      <EnteteCoquille sousTitre={`Ma carte · ${nom ?? "Responsable d’équipe"}`} onLogout={onLogout} />
+      <View style={styles.corps}>
+        {chargement ? (
+          <Chargement texte="Recherche de votre équipe…" />
+        ) : equipeId ? (
+          <EcranTrajet equipe={equipeId} />
+        ) : (
+          <View style={styles.vide} accessibilityRole="alert">
+            <Text style={styles.titre}>Aucune équipe associée à ce compte</Text>
+            <Text style={styles.texte}>Demandez au superviseur d’associer votre compte à votre équipe (fiche de l’équipe, « Compte de l’équipe »).</Text>
+          </View>
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: C.cream,
-  },
-  header: {
-    backgroundColor: C.green,
-    paddingHorizontal: 20,
-    paddingBottom: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-  brand: {
-    color: C.cream,
-    fontSize: 26,
-    fontWeight: "800",
-  },
-  who: {
-    color: "#DCDACE",
-    fontSize: 13,
-    marginTop: 2,
-  },
-  logout: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  logoutText: {
-    color: C.cream,
-    fontWeight: "700",
-    fontSize: 13,
-  },
+  root: { flex: 1, backgroundColor: Palette.background },
+  corps: { flex: 1 },
+  vide: { margin: 20, padding: 20, borderRadius: 20, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, gap: 8 },
+  titre: { fontSize: 18, fontWeight: "800", color: Palette.header },
+  texte: { fontSize: 15, color: Palette.textSecondary },
 });

@@ -70,8 +70,14 @@ const ZOOM_SUIVI = 17; // Google
 const ALTITUDE_SUIVI_M = 700; // Apple Plans n'a pas de zoom : on règle l'altitude de la caméra
 const INCLINAISON_SUIVI = 55;
 
+/** Route classique : l'équipe vient de l'adresse. */
 export default function Trajet() {
   const { equipe } = useLocalSearchParams<{ equipe: string }>();
+  return <EcranTrajet equipe={equipe} />;
+}
+
+/** Le trajet d'une équipe (aperçu, navigation, « Arrêt fait »...) : utilisable aussi dans la coquille de l'employé (« Ma carte »). */
+export function EcranTrajet({ equipe }: { equipe?: string }) {
   const { bottom } = useSafeAreaInsets();
   const theme = useTheme();
   const { etat } = useSource();
