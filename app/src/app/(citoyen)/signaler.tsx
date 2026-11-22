@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -37,6 +37,7 @@ import { IllustrationProbleme } from '@/components/illustration-probleme';
 import { FeuilleProbleme } from '@/components/citoyen/feuille-probleme';
 import { lieuDeEndroit } from '@/lib/interventions';
 import { chargerAdresses, chargerRegion } from '@/lib/officiel';
+import { ecrireBrouillon, lireBrouillon, viderBrouillon } from '@/lib/brouillon-signalement';
 import { MESSAGE_RECU_SANS_CONFIRMATION } from '@/lib/messages-seuil';
 import {
   MESSAGE_ECHEC_ENVOI,
@@ -106,17 +107,20 @@ export default function Signaler() {
   // Le lieu peut venir de la carte (toucher la carte ou un regard).
   const params = useLocalSearchParams<{ lat?: string; lng?: string; categorie?: string }>();
   const categorieInitiale = CATEGORIES.find((c) => c === params.categorie) ?? null;
+  // Ouvert depuis la carte (feuille des problèmes derrière) : le retour rouvre la feuille sur la carte, et le brouillon garde la photo.
+  const depuisCarte = categorieInitiale !== null;
+  const [brouillon] = useState(() => (depuisCarte ? lireBrouillon() : null));
   const [point, setPoint] = useState<Coordonnees | null>(() => {
     const lat = Number(params.lat);
     const lng = Number(params.lng);
-    return params.lat && params.lng && Number.isFinite(lat) && Number.isFinite(lng) ? { latitude: lat, longitude: lng } : null;
+    return params.lat && params.lng && Number.isFinite(lat) && Number.isFinite(lng) ? { latitude: lat, longitude: lng } : (brouillon?.lieu ?? null);
   });
   const [demandePosition, setDemandePosition] = useState(false);
   const [texteAdresse, setTexteAdresse] = useState('');
   const [resultats, setResultats] = useState<ResultatRecherche[] | null>(null);
   const [categorie, setCategorie] = useState<Categorie | null>(categorieInitiale);
-  const [commentaire, setCommentaire] = useState('');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [commentaire, setCommentaire] = useState(brouillon?.commentaire ?? '');
+  const [photoUri, setPhotoUri] = useState<string | null>(brouillon?.photoUri ?? null);
   const [lieuOuvert, setLieuOuvert] = useState(false);
   const [etape, setEtape] = useState<Etape>(categorieInitiale ? 'photo' : 'probleme');
   const [analyse, setAnalyse] = useState<EtatAnalyse>({ statut: 'aucune' });
@@ -204,6 +208,19 @@ export default function Signaler() {
     analyseRef.current = { uri, promesse };
   }
 
+  // Fermer la feuille sans continuer : le brouillon est abandonné.
+  function abandonner() {
+    fini.current = true;
+    viderBrouillon();
+    router.back();
+  }
+
+  // Retour depuis la photo vers la carte floutée : la feuille se rouvre là-bas (problème et lieu conservés).
+  function retourVersCarte() {
+    ecrireBrouillon({ feuilleOuverte: true, categorie, lieu: point, photoUri, photoVerifiee: photoVerifieeBrouillon, commentaire });
+    router.back();
+  }
+
   async function valider() {
     setMessages([]);
     setAEssaye(true);
@@ -242,9 +259,13 @@ export default function Signaler() {
     } else if (r.statut === 'echec') {
       setMessages([r.message]);
     } else if (r.statut === 'envoye') {
+      fini.current = true;
+      viderBrouillon();
       setEnvoyeId(r.signalement.id);
       setMessages([r.sansPhoto ? MESSAGE_ENVOYE_SANS_PHOTO : photoVerifiee ? MESSAGE_ENVOYE : MESSAGE_RECU_SANS_CONFIRMATION]);
     } else {
+      fini.current = true;
+      viderBrouillon();
       setEnvoyeId(r.signalement.id);
       const base = r.sansPhoto ? MESSAGE_EN_ATTENTE_SANS_PHOTO : MESSAGE_EN_ATTENTE;
       const suite = photoVerifiee || r.sansPhoto ? [] : [MESSAGE_RECU_SANS_CONFIRMATION];
@@ -253,6 +274,29 @@ export default function Signaler() {
   }
 
   const termine = envoyeId !== null;
+
+  // Brouillon : la photo reprise est de nouveau analysée ; chaque changement est gardé pour le retour vers la carte.
+  const fini = useRef(false); // envoyé ou abandonné : le brouillon est vidé, rien à rouvrir
+  useEffect(() => {
+    const uri = brouillon?.photoUri;
+    if (!uri) return;
+    const t = setTimeout(() => changerPhoto(uri), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const photoVerifieeBrouillon = analyse.statut === 'acceptee' && analyse.uri === photoUri;
+  useEffect(() => {
+    if (!depuisCarte || fini.current) return;
+    ecrireBrouillon({ categorie, lieu: point, photoUri, photoVerifiee: photoVerifieeBrouillon, commentaire });
+  }, [depuisCarte, categorie, point, photoUri, photoVerifieeBrouillon, commentaire]);
+  // Retour par la flèche ou par le geste : la carte rouvre la feuille des problèmes, le problème déjà choisi.
+  const navigation = useNavigation() as unknown as { addListener?: (nom: string, f: () => void) => () => void };
+  useEffect(() => {
+    if (!depuisCarte) return;
+    return navigation.addListener?.('beforeRemove', () => {
+      if (!fini.current) ecrireBrouillon({ feuilleOuverte: true });
+    });
+  }, [depuisCarte, navigation]);
 
   // Étape 1 (si on arrive sans problème choisi, ou par « Changer ») : la feuille « Quel problème avez-vous observé ? ».
   // Depuis la carte, la feuille s'ouvre sur la carte elle-même (floutée derrière) et cet écran démarre à la photo.
@@ -264,7 +308,7 @@ export default function Signaler() {
           categorie={categorie}
           onChoisir={setCategorie}
           onContinuer={() => (categorie ? setEtape('photo') : setAEssaye(true))}
-          onFermer={() => router.back()}
+          onFermer={abandonner}
           erreur={erreursChamps.categorie && !categorie ? erreursChamps.categorie : null}
         />
       </View>
@@ -280,7 +324,7 @@ export default function Signaler() {
           photoUri={photoUri ?? undefined}
           onPhoto={changerPhoto}
           verification={verification}
-          onBack={() => setEtape('probleme')}
+          onBack={() => (depuisCarte ? retourVersCarte() : setEtape('probleme'))}
           onSkip={() => setEtape('formulaire')}
           onContinue={() => setEtape('formulaire')}
         />

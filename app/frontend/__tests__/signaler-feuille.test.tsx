@@ -9,6 +9,7 @@ jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   useRouter: () => ({ back: jest.fn(), replace: jest.fn(), push: jest.fn() }),
   useLocalSearchParams: () => ({ lat: '45.5', lng: '-73.57' }),
+  useNavigation: () => ({ addListener: () => () => {} }),
 }));
 jest.mock('react-native-safe-area-context', () => {
   const actual = jest.requireActual('react-native-safe-area-context');

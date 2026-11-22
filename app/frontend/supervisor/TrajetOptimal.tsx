@@ -6,14 +6,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { BarreProgression } from "@/components/ville/barre-progression";
+import { BarreProgressionCalcul } from "@/components/ville/barre-progression";
 import { CarteTournees } from "@/components/ville/carte-tournees";
 import { Chargement, Vide } from "@/components/ville/etat-ecran";
 import { couleurEquipe } from "@/components/ville/style";
 import { useEndroits } from "@/hooks/use-endroits";
 import { useEquipes } from "@/hooks/use-equipes";
 import { useOptimisation } from "@/hooks/use-optimisation";
-import { useProgressionOptimisation } from "@/hooks/use-progression-optimisation";
 import { useSessionEmploye } from "@/hooks/use-session-employe";
 import { useSource } from "@/hooks/use-source";
 import { useTournees } from "@/hooks/use-tournees";
@@ -88,7 +87,6 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
   const tourneesAvecArrets = (resultat?.tournees ?? []).filter((t) => t.arrets.length > 0);
   const actif = tourneesAvecArrets.find((t) => t.equipe_id === choix) ?? tourneesAvecArrets[0];
   const tracesEnAttente = demande?.statut === "terminee" && !!resultat && resultat.tournees.some((t) => !t.geometrie);
-  const progression = useProgressionOptimisation(demande, { envoi: enCours && !demande, tracesEnAttente });
   const echec = demande?.statut === "echec" ? (demande.message ?? MESSAGE_OPTIMISATION_ECHEC) : null;
   const calcul = (enCours && !basculeSurPrecalcule) || (peutGerer && !lance && !echec && !aucunEndroit && !delaiDepasse);
   // La raison d'un refus ou d'un échec est toujours visible, avec ou sans plan.
@@ -112,7 +110,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
         {calcul ? (
           <View style={styles.bloc} accessibilityLiveRegion="polite">
             <Text style={styles.blocTitre}>{MESSAGE_OPTIMISATION_EN_COURS}</Text>
-            <BarreProgression etape={progression.etape} fraction={progression.fraction} />
+            <BarreProgressionCalcul demande={demande} envoi={enCours && !demande} tracesEnAttente={tracesEnAttente} />
             {resultat && actif ? <Text style={styles.note}>Le plan en place est affiché tout de suite ; il sera remplacé à l&apos;arrivée du nouveau calcul.</Text> : null}
           </View>
         ) : null}
