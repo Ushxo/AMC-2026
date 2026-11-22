@@ -36,7 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   }
   const resultat: ExpoConfig = {
     ...config,
-    name: config.name ?? 'Signalement MTL',
+    name: config.name ?? 'Priorix',
     slug: config.slug ?? 'signalement-mtl',
     ios: {
       ...config.ios,

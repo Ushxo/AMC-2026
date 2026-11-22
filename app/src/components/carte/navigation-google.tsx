@@ -304,7 +304,7 @@ export function NavigationGoogle(props: Props) {
   const Fournisseur = nav.NavigationProvider;
   return (
     <Fournisseur
-      termsAndConditionsDialogOptions={{ title: "Conditions d'utilisation de la navigation", companyName: 'Signalement MTL', showOnlyDisclaimer: false }}
+      termsAndConditionsDialogOptions={{ title: "Conditions d'utilisation de la navigation", companyName: 'Priorix', showOnlyDisclaimer: false }}
       taskRemovedBehavior={nav.TaskRemovedBehavior.QUIT_SERVICE}>
       <Interieur {...props} />
     </Fournisseur>

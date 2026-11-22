@@ -72,7 +72,7 @@ export default function LoginScreen({ onLogin }: Props) {
       >
         <View style={[styles.hero, { paddingTop: insets.top + 36 }]}>
           <AppLogo />
-          <Text style={styles.brand}>Piorix</Text>
+          <Text style={styles.brand}>Priorix</Text>
           <Text style={styles.tagline}>
             Signalez les problèmes d’égouts{"\n"}et suivez vos demandes.
           </Text>

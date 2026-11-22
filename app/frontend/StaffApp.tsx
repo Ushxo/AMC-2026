@@ -23,7 +23,7 @@ export default function StaffApp({ session, onLogout }: { session: Session; onLo
 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.brand}>Piorix</Text>
+          <Text style={styles.brand}>Priorix</Text>
           <Text style={styles.who} numberOfLines={1}>
             {session.team ?? "Responsable d’équipe"} · {session.email}
           </Text>

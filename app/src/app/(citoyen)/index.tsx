@@ -72,7 +72,7 @@ export default function CarteCitoyen() {
       <SafeAreaView style={styles.fond} edges={['top']}>
         <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: bottom + 24 }]}>
           <ThemedText type="subtitle" accessibilityRole="header">
-            Signalement MTL
+            Priorix
           </ThemedText>
           <BandeauSource etat={etat} />
           <View style={styles.rangee}>
