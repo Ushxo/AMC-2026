@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AppState, Image, StyleSheet, View } from 'react-native';
+import { AppState, Image, Linking, StyleSheet, View } from 'react-native';
 import { Appuyable as Pressable } from '@/components/appuyable';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -12,12 +12,24 @@ import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
 import { MESSAGE_ASTUCE_PHOTO } from '@/lib/messages-seuil';
 import { reveillerUneFois } from '@/lib/reveil-ml';
-import { tracer } from '@/lib/trace';
+import { sansBruit, tracer } from '@/lib/trace';
 import { CAMERA } from '@/components/ville/style';
 
 // Commandes de la caméra : couleurs fixes (fond sombre de l'objectif). Le reste de l'écran suit la marque.
-const MESSAGE_CAMERA_INDISPONIBLE = "La caméra n'a pas pu s'ouvrir. Autorisez-la dans les réglages, ou choisissez une photo dans la galerie.";
-const MESSAGE_GALERIE_INDISPONIBLE = "La galerie n'a pas pu s'ouvrir. Autorisez-la dans les réglages, ou prenez la photo avec la caméra.";
+const MESSAGE_CAMERA_REFUSEE = "L'accès à l'appareil photo est refusé. Autorisez-le dans Réglages, ou continuez sans photo.";
+const MESSAGE_GALERIE_REFUSEE = "L'accès aux photos est refusé. Autorisez-le dans Réglages, ou continuez sans photo.";
+const MESSAGE_CAMERA_INDISPONIBLE = "La caméra n'a pas pu s'ouvrir. Choisissez une photo dans la galerie, ou continuez sans photo.";
+const MESSAGE_GALERIE_INDISPONIBLE = "La galerie n'a pas pu s'ouvrir. Prenez la photo avec la caméra, ou continuez sans photo.";
+
+/** Une erreur de caméra ou de galerie qui vient d'un refus d'autorisation (le réglage se change dans Réglages). */
+export function estRefusAutorisation(e: unknown): boolean {
+  return /permission|denied|refus|autoris|not allowed|access/i.test(String((e as { message?: unknown } | null)?.message ?? e));
+}
+
+/** Ouvre les réglages de l'app (sans jamais lever d'erreur). */
+function ouvrirReglages(): void {
+  sansBruit(() => Linking.openSettings(), 'réglages');
+}
 
 const C = { cream: CAMERA.creme, dark: CAMERA.sombre, white: CAMERA.blanc };
 
@@ -66,7 +78,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
   const [eclairage, setEclairage] = useState(false);
   const [ready, setReady] = useState(false);
   // Phrase d'erreur quand la caméra ou la galerie refuse de s'ouvrir (permission, appareil occupé).
-  const [erreurPhoto, setErreurPhoto] = useState<string | null>(null);
+  const [erreurPhoto, setErreurPhoto] = useState<{ texte: string; reglages: boolean } | null>(null);
 
   // Le service d'analyse se réveille dès l'ouverture de l'étape (il peut dormir).
   useEffect(() => {
@@ -105,7 +117,8 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
       if (picture?.uri) onPhoto(picture.uri);
     } catch (e) {
       tracer("photo", e);
-      setErreurPhoto(MESSAGE_CAMERA_INDISPONIBLE);
+      const refus = estRefusAutorisation(e);
+      setErreurPhoto({ texte: refus ? MESSAGE_CAMERA_REFUSEE : MESSAGE_CAMERA_INDISPONIBLE, reglages: refus });
     }
   }
 
@@ -119,7 +132,8 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
       if (!result.canceled) onPhoto(result.assets[0].uri);
     } catch (e) {
       tracer("galerie", e);
-      setErreurPhoto(MESSAGE_GALERIE_INDISPONIBLE);
+      const refus = estRefusAutorisation(e);
+      setErreurPhoto({ texte: refus ? MESSAGE_GALERIE_REFUSEE : MESSAGE_GALERIE_INDISPONIBLE, reglages: refus });
     }
   }
 
@@ -148,8 +162,15 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
           <Text style={styles.permissionText}>
             Autorisez l’accès à la caméra pour photographier le problème.
           </Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Autoriser la caméra" style={styles.permissionButton} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>Autoriser la caméra</Text>
+          {permission.canAskAgain === false ? (
+            <Text style={styles.permissionText}>L’accès à l’appareil photo est refusé. Autorisez-le dans Réglages, ou continuez sans photo.</Text>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={permission.canAskAgain === false ? "Ouvrir les réglages" : "Autoriser la caméra"}
+            style={styles.permissionButton}
+            onPress={permission.canAskAgain === false ? ouvrirReglages : requestPermission}>
+            <Text style={styles.permissionButtonText}>{permission.canAskAgain === false ? "Ouvrir les réglages" : "Autoriser la caméra"}</Text>
           </Pressable>
         </View>
       );
@@ -224,9 +245,14 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
       </View>
 
       {erreurPhoto ? (
-        <Text style={styles.erreurPhoto} accessibilityRole="alert">
-          {erreurPhoto}
-        </Text>
+        <View style={styles.blocErreur} accessibilityRole="alert">
+          <Text style={styles.erreurPhoto}>{erreurPhoto.texte}</Text>
+          {erreurPhoto.reglages ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir les réglages" style={styles.boutonReglages} onPress={ouvrirReglages}>
+              <Text style={styles.boutonReglagesTexte}>Ouvrir les réglages</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
 
       {/* Pas de promesse quand l'analyse est impossible ou que la photo est refusée : le message de vérification parle seul. */}
@@ -398,7 +424,10 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     borderRadius: 29,
     backgroundColor: C.cream,
   },
-  erreurPhoto: { marginHorizontal: 16, marginTop: 12, fontSize: 14, lineHeight: 20, fontWeight: "700", color: P.danger },
+  blocErreur: { marginHorizontal: 16, marginTop: 12, gap: 8, alignItems: "flex-start" },
+  erreurPhoto: { fontSize: 14, lineHeight: 20, fontWeight: "700", color: P.danger },
+  boutonReglages: { minHeight: 48, borderRadius: 22, paddingHorizontal: 16, justifyContent: "center", backgroundColor: P.backgroundSelected },
+  boutonReglagesTexte: { color: P.primary, fontWeight: "800", fontSize: 15 },
   astuce: { marginHorizontal: 16, marginTop: 12, fontSize: 14, lineHeight: 20, fontWeight: "600", color: P.textSecondary },
   verification: {
     flexDirection: "row",

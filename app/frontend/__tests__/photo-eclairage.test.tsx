@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { AppState } from 'react-native';
+import { AppState, Linking } from 'react-native';
 
 import PhotoStep from '../citizen/PhotoStep';
 
@@ -10,6 +10,7 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 const mockGalerie = jest.fn();
 jest.mock('expo-image-picker', () => ({ launchCameraAsync: jest.fn(), launchImageLibraryAsync: (...a: unknown[]) => mockGalerie(...a) }));
 const mockProps: Record<string, unknown>[] = [];
+const mockPermission: { etat: { granted: boolean; canAskAgain?: boolean } } = { etat: { granted: true } };
 jest.mock('@/lib/camera-optionnelle', () => {
   const React = jest.requireActual('react');
   return {
@@ -17,7 +18,7 @@ jest.mock('@/lib/camera-optionnelle', () => {
       mockProps.push(props);
       return null;
     }),
-    useCameraPermissions: () => [{ granted: true }, jest.fn()],
+    useCameraPermissions: () => [mockPermission.etat, jest.fn()],
   };
 });
 
@@ -93,7 +94,7 @@ describe('ligne « avec une photo, tout de suite sur la carte »', () => {
 
 describe('caméra ou galerie refusée', () => {
   it('la galerie qui refuse de s’ouvrir donne une phrase, sans rejet ni bouton mort', async () => {
-    mockGalerie.mockRejectedValue(new Error('permission refusée'));
+    mockGalerie.mockRejectedValue(new Error('panne du sélecteur'));
     const onPhoto = jest.fn();
     await render(<PhotoStep onPhoto={onPhoto} onBack={jest.fn()} onSkip={jest.fn()} onContinue={jest.fn()} />);
     await fireEvent.press(screen.getByLabelText('Choisir dans la galerie'));
@@ -103,5 +104,30 @@ describe('caméra ou galerie refusée', () => {
     await fireEvent.press(screen.getByLabelText('Choisir dans la galerie'));
     await waitFor(() => expect(onPhoto).toHaveBeenCalledWith('file:///g.jpg'));
     expect(screen.queryByText(/La galerie n'a pas pu/)).toBeNull();
+  });
+
+  it('autorisation refusée : phrase claire, bouton vers les réglages, et « Passer » reste possible', async () => {
+    const ouvrir = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
+    mockGalerie.mockRejectedValue(new Error('Missing photo library permission: denied'));
+    const onSkip = jest.fn();
+    await render(<PhotoStep onPhoto={jest.fn()} onBack={jest.fn()} onSkip={onSkip} onContinue={jest.fn()} />);
+    await fireEvent.press(screen.getByLabelText('Choisir dans la galerie'));
+    expect(await screen.findByText(/L'accès aux photos est refusé. Autorisez-le dans Réglages, ou continuez sans photo./)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Ouvrir les réglages'));
+    expect(ouvrir).toHaveBeenCalledTimes(1);
+    await fireEvent.press(screen.getByLabelText('Passer la photo'));
+    expect(onSkip).toHaveBeenCalled();
+    ouvrir.mockRestore();
+  });
+
+  it('caméra refusée pour de bon : le bouton ouvre les réglages au lieu de ne rien faire', async () => {
+    const ouvrir = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
+    mockPermission.etat = { granted: false, canAskAgain: false };
+    await render(<PhotoStep onPhoto={jest.fn()} onBack={jest.fn()} onSkip={jest.fn()} onContinue={jest.fn()} />);
+    expect(screen.getByText(/L’accès à l’appareil photo est refusé/)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Ouvrir les réglages'));
+    expect(ouvrir).toHaveBeenCalledTimes(1);
+    mockPermission.etat = { granted: true };
+    ouvrir.mockRestore();
   });
 });

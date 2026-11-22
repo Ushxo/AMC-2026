@@ -42,7 +42,7 @@ const INCLINAISON_SUIVI = 55;
  * Pose un repère. Si son image n'est pas dans la build (« Failed to load image from the provided path »), on le pose avec le repère
  * par défaut de la carte : il reste visible et touchable, et aucune promesse rejetée ne traîne (une par repère auparavant).
  */
-function poserRepere(c: Nav.MapViewController, options: Parameters<Nav.MapViewController['addMarker']>[0]): void {
+export function poserRepere(c: Nav.MapViewController, options: Parameters<Nav.MapViewController['addMarker']>[0]): void {
   void Promise.resolve(c.addMarker(options)).catch(() => {
     const { imgPath: _image, ...sansImage } = options as typeof options & { imgPath?: string };
     return Promise.resolve(c.addMarker(sansImage as typeof options)).catch(() => {});

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { abonnerMesIds, lireMesIds } from '../lib/mes-signalements';
+import { abonnerMesIds, lireMesIds, mesIdsNonGardes } from '../lib/mes-signalements';
 import type { Signalement } from '../types';
 import { useSignalements } from './use-signalements';
 
@@ -10,11 +10,17 @@ export function useMesSignalements(): {
   chargement: boolean;
   erreur: string | null;
   rafraichir: () => Promise<void>;
+  /** Vrai quand le téléphone n'a pas pu garder la liste : elle disparaît à la fermeture de l'app. */
+  nonGardes: boolean;
 } {
   const { signalements, chargement, erreur, rafraichir } = useSignalements();
   const [ids, setIds] = useState<string[] | null>(null);
+  const [nonGardes, setNonGardes] = useState(false);
 
-  const lire = useCallback(async () => setIds(await lireMesIds()), []);
+  const lire = useCallback(async () => {
+    setIds(await lireMesIds());
+    setNonGardes(mesIdsNonGardes());
+  }, []);
   useEffect(() => {
     const t = setTimeout(() => void lire(), 0);
     const arret = abonnerMesIds(() => void lire());
@@ -30,5 +36,5 @@ export function useMesSignalements(): {
     return ids.map((id) => parId.get(id)).filter((s): s is Signalement => !!s);
   }, [ids, signalements]);
 
-  return { mes, chargement: chargement || ids === null, erreur, rafraichir };
+  return { mes, chargement: chargement || ids === null, erreur, rafraichir, nonGardes };
 }

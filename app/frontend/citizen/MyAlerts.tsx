@@ -95,7 +95,7 @@ export default function MyAlerts() {
   const styles = useStyles(creerStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { mes, chargement, erreur, rafraichir } = useMesSignalements();
+  const { mes, chargement, erreur, rafraichir, nonGardes } = useMesSignalements();
   const adresses = useMemo(() => chargerAdresses(), []);
   const { signalements: tous } = useSignalements();
   const index = useMemo(() => indexerEndroits(tous), [tous]);
@@ -114,6 +114,7 @@ export default function MyAlerts() {
         <View style={styles.headerWave} />
         <Text style={styles.title}>Mes alertes</Text>
         <Text style={styles.subtitle}>Suivez l’évolution de vos signalements.</Text>
+        {nonGardes ? <Text style={styles.noteNonGardes}>Ce signalement ne sera plus listé après la fermeture de l’app.</Text> : null}
       </View>
       }
       renderItem={({ item: a }) => {
@@ -220,6 +221,12 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     color: P.onHeader,
     fontSize: 34,
     fontWeight: '800',
+  },
+
+  noteNonGardes: {
+    color: P.onHeader,
+    fontSize: 13,
+    marginTop: 8,
   },
 
   subtitle: {

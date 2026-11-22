@@ -1,4 +1,4 @@
-import { essayerSansBruit, sansBruit, tracer } from '../trace';
+import { essayerSansBruit, installerGestionnaires, reinitialiserGestionnaires, sansBruit, tracer } from '../trace';
 
 describe('trace des erreurs sans bruit', () => {
   let avertir: jest.SpyInstance;
@@ -35,5 +35,26 @@ describe('trace des erreurs sans bruit', () => {
       throw new Error('x');
     }, 'sync');
     expect(avertir).toHaveBeenCalledTimes(1);
+  });
+
+  it('gestionnaires globaux : installés une seule fois, non fatal avalé, fatal transmis', () => {
+    const precedent = jest.fn();
+    let installe: ((e: unknown, fatal?: boolean) => void) | null = null;
+    const utilitaires = {
+      getGlobalHandler: jest.fn(() => precedent),
+      setGlobalHandler: jest.fn((h: (e: unknown, fatal?: boolean) => void) => {
+        installe = h;
+      }),
+    };
+    (globalThis as unknown as { ErrorUtils: unknown }).ErrorUtils = utilitaires;
+    reinitialiserGestionnaires();
+    installerGestionnaires();
+    installerGestionnaires();
+    expect(utilitaires.setGlobalHandler).toHaveBeenCalledTimes(1);
+    installe!(new Error('non fatal'), false);
+    expect(precedent).not.toHaveBeenCalled();
+    installe!(new Error('fatal'), true);
+    expect(precedent).toHaveBeenCalledTimes(1);
+    delete (globalThis as unknown as { ErrorUtils?: unknown }).ErrorUtils;
   });
 });
