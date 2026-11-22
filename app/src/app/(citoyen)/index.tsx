@@ -1,6 +1,6 @@
-import EcranCarteCitoyen from '@/components/citoyen/ecran-carte';
+import AppRoot from '../../../frontend/AppRoot';
 
-/** Accueil citoyen classique (sans la coquille de l'app) : la carte des signalements. */
-export default function CarteCitoyen() {
-  return <EcranCarteCitoyen />;
+/** Racine de l'app : connexion, puis la coquille du rôle (citoyen, superviseur, employé). */
+export default function Racine() {
+  return <AppRoot />;
 }

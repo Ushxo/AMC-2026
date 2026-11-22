@@ -1,18 +1,6 @@
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { Redirect } from 'expo-router';
 
-import { useAcces } from '@/hooks/use-acces';
-import AuthFlow from '../../frontend/auth/AuthFlow';
-
-/** Connexion unique : citoyen, employé ou superviseur. Une session déjà ouverte renvoie directement à son écran. */
+/** La connexion est la racine de l'app : sans session, « / » montre l'écran de connexion. */
 export default function Connexion() {
-  const router = useRouter();
-  const { ecran } = useAcces();
-
-  useEffect(() => {
-    if (ecran === 'citoyen') router.replace('/');
-    else if (ecran) router.replace('/ville');
-  }, [ecran, router]);
-
-  return <AuthFlow onConnecte={() => {}} />;
+  return <Redirect href="/" />;
 }

@@ -38,11 +38,13 @@ type Props = {
   onForgot: () => void;
   /** Entrée « Démonstration hors ligne » (seulement quand la base n'est pas joignable). */
   onDemo?: () => void;
+  /** « Continuer sans compte » : signaler et suivre sans se connecter. */
+  onGuest?: () => void;
   /** Message déjà connu (session expirée, par exemple). */
   notice?: string | null;
 };
 
-export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, notice }: Props) {
+export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGuest, notice }: Props) {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -160,6 +162,11 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, notic
           <Pressable style={styles.secondary} onPress={onSignup} accessibilityRole="button">
             <Text style={styles.secondaryText}>Créer un compte</Text>
           </Pressable>
+          {onGuest ? (
+            <Pressable style={[styles.secondary, { marginTop: 12 }]} onPress={onGuest} accessibilityRole="button">
+              <Text style={styles.secondaryText}>Continuer sans compte</Text>
+            </Pressable>
+          ) : null}
           {onDemo ? (
             <Pressable style={[styles.secondary, { marginTop: 12 }]} onPress={onDemo} accessibilityRole="button">
               <Text style={styles.secondaryText}>Démonstration hors ligne (simulée)</Text>

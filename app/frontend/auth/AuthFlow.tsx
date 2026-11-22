@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useSessionEmploye } from "@/hooks/use-session-employe";
 import { useSource } from "@/hooks/use-source";
 import { creerCompteCitoyen, ouvrirSession, type EcranRole } from "@/lib/connexion";
+import { definirCitoyen } from "@/lib/session";
 import LoginScreen from "../citizen/LoginScreen";
 import ResetScreen from "./ResetScreen";
 import SignupScreen from "./SignupScreen";
@@ -36,6 +37,11 @@ export default function AuthFlow({ onConnecte }: { onConnecte: (ecran: EcranRole
           return null;
         }
         return r.message;
+      }}
+      onGuest={() => {
+        // Sans compte : on peut signaler et suivre ses alertes sur ce téléphone.
+        definirCitoyen({ user_id: "invite", nom: "Invité", courriel: "" });
+        onConnecte("citoyen");
       }}
       onSignup={() => setVue("inscription")}
       onForgot={() => setVue("oubli")}

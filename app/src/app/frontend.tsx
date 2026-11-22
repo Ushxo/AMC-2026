@@ -1,5 +1,6 @@
-import AppRoot from '../../frontend/AppRoot';
+import { Redirect } from 'expo-router';
 
-export default function HomeScreen() {
-  return <AppRoot />;
+/** Ancienne adresse du frontend : il est maintenant la racine de l'app. */
+export default function Frontend() {
+  return <Redirect href="/" />;
 }
