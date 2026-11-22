@@ -1,13 +1,7 @@
-import type { Categorie, ErreurValidation, Gravite, NouveauSignalement } from '../types';
+import { CATEGORIES_TOUTES, type Categorie, type ErreurValidation, type Gravite, type NouveauSignalement } from '../types';
 import { dansMontreal } from './geo';
 
-const CATEGORIES: Categorie[] = [
-  'grille_bouchee',
-  'eau_accumulee',
-  'eau_douteuse',
-  'absence_eau',
-  'autre',
-];
+const CATEGORIES: Categorie[] = CATEGORIES_TOUTES;
 const GRAVITES: Gravite[] = ['faible', 'moyenne', 'elevee'];
 
 export const COMMENTAIRE_MAX = 500;

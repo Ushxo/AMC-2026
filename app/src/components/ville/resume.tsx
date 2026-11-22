@@ -2,10 +2,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
-import { LIBELLES_CATEGORIE, LIBELLES_ETAT, type Categorie, type Etat, type ResumeVille } from '@/types';
+import { CATEGORIES_TOUTES, LIBELLES_CATEGORIE, LIBELLES_ETAT, type Categorie, type Etat, type ResumeVille } from '@/types';
 
 const ETATS: Etat[] = ['nouveau', 'pris_en_charge', 'regle', 'rejete'];
-const CATEGORIES: Categorie[] = ['grille_bouchee', 'eau_accumulee', 'eau_douteuse', 'absence_eau', 'autre'];
+const CATEGORIES: Categorie[] = CATEGORIES_TOUTES;
 
 export function Resume({ resume }: { resume: ResumeVille }) {
   const theme = useTheme();

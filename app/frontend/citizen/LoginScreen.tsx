@@ -1,15 +1,6 @@
 import React, { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import { Texte as Text, ChampTexte as TextInput } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -34,7 +25,8 @@ export const isValidEmail = (email: string) => COURRIEL.test(email.trim());
 type Props = {
   /** Tente la connexion ; rend un message d'erreur lisible, ou null si elle a réussi. */
   onLogin: (email: string, password: string) => Promise<string | null>;
-  onSignup: () => void;
+  /** Création de compte (non proposée au citoyen : le code reste, le parcours ne l'affiche pas). */
+  onSignup?: () => void;
   onForgot: () => void;
   /** Entrée « Démonstration hors ligne » (seulement quand la base n'est pas joignable). */
   onDemo?: () => void;
@@ -42,9 +34,11 @@ type Props = {
   onGuest?: () => void;
   /** Message déjà connu (session expirée, par exemple). */
   notice?: string | null;
+  /** Retour à la carte. */
+  onBack?: () => void;
 };
 
-export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGuest, notice }: Props) {
+export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGuest, notice, onBack }: Props) {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -81,15 +75,20 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
         bounces={false}
       >
         <View style={[styles.hero, { paddingTop: insets.top + 36 }]}>
+          {onBack ? (
+            <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Retour à la carte" style={{ position: "absolute", left: 20, top: insets.top + 16, minWidth: 44, minHeight: 44, justifyContent: "center" }}>
+              <Ionicons name="arrow-back" size={30} color={C.cream} />
+            </Pressable>
+          ) : null}
           <AppLogo />
           <Text style={styles.brand}>Priorix</Text>
           <Text style={styles.tagline}>
-            Signalez les problèmes d’égouts{"\n"}et suivez vos demandes.
+            Accès du personnel de la Ville{"\n"}(employés, superviseurs).
           </Text>
         </View>
 
         <View style={[styles.card, { paddingBottom: insets.bottom + 28 }]}>
-          <Text style={styles.title}>Connexion</Text>
+          <Text style={styles.title} accessibilityRole="header">Connexion du personnel</Text>
 
           <View style={[styles.field, error && !isValidEmail(email) && styles.fieldError]}>
             <Ionicons name="mail-outline" size={24} color={C.text} />
@@ -153,15 +152,19 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
             <Text style={styles.primaryText}>{busy ? "Connexion…" : "Se connecter"}</Text>
           </Pressable>
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          {onSignup || onGuest || onDemo ? (
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          ) : null}
 
-          <Pressable style={styles.secondary} onPress={onSignup} accessibilityRole="button">
-            <Text style={styles.secondaryText}>Créer un compte</Text>
-          </Pressable>
+          {onSignup ? (
+            <Pressable style={styles.secondary} onPress={onSignup} accessibilityRole="button">
+              <Text style={styles.secondaryText}>Créer un compte</Text>
+            </Pressable>
+          ) : null}
           {onGuest ? (
             <Pressable style={[styles.secondary, { marginTop: 12 }]} onPress={onGuest} accessibilityRole="button">
               <Text style={styles.secondaryText}>Continuer sans compte</Text>

@@ -64,7 +64,14 @@ export default function Tournees() {
 }
 
 /** L'écran des tournées ; dans la coquille de l'app (barre d'onglets dessous), la marge du bas est déjà prise par la barre. */
-export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean }) {
+export function EcranTournees({
+  dansCoquille = false,
+  clesInitiales,
+}: {
+  dansCoquille?: boolean;
+  /** Sélection de départ (venue de « Interventions à planifier »). */
+  clesInitiales?: string[];
+}) {
   const { bottom: bas } = useSafeAreaInsets();
   const bottom = dansCoquille ? 0 : bas;
   const router = useRouter();
@@ -79,7 +86,7 @@ export function EcranTournees({ dansCoquille = false }: { dansCoquille?: boolean
   const { endroits, signalements } = useEndroits();
   const zones = useZonesSignalements(signalements);
   const ouverts = useMemo(() => endroitsOuverts(endroits), [endroits]);
-  const selection = useSelectionEndroits(ouverts);
+  const selection = useSelectionEndroits(ouverts, clesInitiales);
   const [point, setPoint] = useState<{ latitude: number; longitude: number } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [equipeActive, setEquipeActive] = useState<string | null>(null);

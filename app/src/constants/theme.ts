@@ -97,3 +97,22 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+/** Polices de l'interface : une famille par graisse (Montserrat). Le texte courant est en 500 ; les titres en 700 ou 800. */
+export const Polices = {
+  normal: 'Montserrat_400Regular',
+  moyenne: 'Montserrat_500Medium',
+  semi: 'Montserrat_600SemiBold',
+  grasse: 'Montserrat_700Bold',
+  extra: 'Montserrat_800ExtraBold',
+} as const;
+
+/** Famille qui correspond à une graisse CSS (« 700 », « bold », 800…). Sans graisse : texte courant, 500. */
+export function famillePolice(graisse?: string | number): string {
+  const n = graisse === 'bold' ? 700 : graisse === 'normal' || graisse === undefined ? 0 : Number(graisse);
+  if (n >= 800) return Polices.extra;
+  if (n >= 700) return Polices.grasse;
+  if (n >= 600) return Polices.semi;
+  if (n >= 400 && n < 500 && graisse !== undefined && graisse !== 'normal') return Polices.normal;
+  return Polices.moyenne;
+}

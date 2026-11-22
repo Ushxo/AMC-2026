@@ -46,3 +46,14 @@ describe('urlPhotoSure', () => {
     expect(urlPhotoSure(null)).toBeNull();
   });
 });
+
+describe('catégorie pas encore acceptée par la base (migration 0008)', () => {
+  it('reste dans la file : ni refus définitif, ni perte', () => {
+    expect(analyserErreurEnvoi({ code: '22P02', message: 'invalid input value for enum categorie: "affaissement"' }).permanent).toBe(false);
+    expect(analyserErreurEnvoi({ code: '23514', message: 'new row violates check constraint "signalements_categorie_check"' }).permanent).toBe(false);
+    expect(analyserErreurEnvoi({ status: 400, message: 'violates check constraint categorie' }).permanent).toBe(false);
+  });
+  it('un autre refus de la base reste définitif', () => {
+    expect(analyserErreurEnvoi({ code: '23505', message: 'doublon' }).permanent).toBe(true);
+  });
+});

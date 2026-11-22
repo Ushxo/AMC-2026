@@ -11,6 +11,11 @@ export function analyserErreurEnvoi(e: unknown): { permanent: boolean; motif: st
   const message = typeof err.message === 'string' ? err.message : '';
   const statut = Number(err.statusCode ?? err.status);
   const code = typeof err.code === 'string' ? err.code : '';
+  // Nouvelle catégorie pas encore acceptée par la base (migration 0008 pas lancée) : ce n'est pas un refus définitif.
+  // Le signalement reste dans la file du téléphone et repart tout seul quand la base l'accepte.
+  if ((code === '22P02' || code === '23514' || statut === 400) && /categorie|enum|check constraint/i.test(message)) {
+    return { permanent: false, motif: '' };
+  }
   if (statut === 413 || /exceeded the maximum|too large|payload too large/i.test(message)) {
     return { permanent: true, motif: MESSAGE_PHOTO_TROP_LOURDE };
   }

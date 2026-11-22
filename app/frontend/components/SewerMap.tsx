@@ -1,11 +1,7 @@
 
 import React from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Texte as Text } from '@/components/texte';
 
 import { SEWERS } from "../data/mockData";
 import { useDemo } from "../context/DemoContext";

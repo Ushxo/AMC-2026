@@ -4,7 +4,8 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Texte as Text } from '@/components/texte';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ErreurML, jugerPhoto, type ResultatPhoto } from '@/lib/ml';

@@ -1,13 +1,7 @@
-import type { Categorie, Etat, ResumeVille, Signalement } from '../types';
+import { CATEGORIES_TOUTES, type Categorie, type Etat, type ResumeVille, type Signalement } from '../types';
 
 const ETATS: Etat[] = ['nouveau', 'pris_en_charge', 'regle', 'rejete'];
-const CATEGORIES: Categorie[] = [
-  'grille_bouchee',
-  'eau_accumulee',
-  'eau_douteuse',
-  'absence_eau',
-  'autre',
-];
+const CATEGORIES: Categorie[] = CATEGORIES_TOUTES;
 
 export function calculerResume(signalements: Signalement[]): ResumeVille {
   const parEtat = Object.fromEntries(ETATS.map((e) => [e, 0])) as Record<Etat, number>;

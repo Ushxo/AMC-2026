@@ -1,5 +1,6 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from 'react-native';
+import { Texte as Text } from '@/components/texte';
 
 import { EcranTrajet } from "@/app/ville/trajet/[equipe]";
 import { Palette } from "@/constants/theme";

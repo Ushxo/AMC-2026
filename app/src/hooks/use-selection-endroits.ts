@@ -13,7 +13,7 @@ import type { Endroit, Gravite } from '../types';
  * Sélection des endroits à planifier. Par défaut : tous les endroits ouverts. Dès que l'utilisateur agit,
  * la sélection devient explicite (les endroits qui arrivent ensuite ne sont pas ajoutés d'office).
  */
-export function useSelectionEndroits(endroits: Endroit[]): {
+export function useSelectionEndroits(endroits: Endroit[], initiales?: string[]): {
   cles: string[];
   nombre: number;
   choisirGravite: (g: Gravite) => void;
@@ -24,7 +24,7 @@ export function useSelectionEndroits(endroits: Endroit[]): {
   vider: () => void;
   estChoisi: (cle: string) => boolean;
 } {
-  const [explicite, setExplicite] = useState<string[] | null>(null);
+  const [explicite, setExplicite] = useState<string[] | null>(initiales ?? null);
   const cles = useMemo(
     () => (explicite === null ? clesOuvertes(endroits) : nettoyerSelection(explicite, endroits)),
     [explicite, endroits],

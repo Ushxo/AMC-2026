@@ -1,4 +1,5 @@
-import React,{useState} from 'react';import {SafeAreaView,ScrollView,Pressable,Text,View,StyleSheet} from 'react-native';
+import React,{useState} from 'react';import { SafeAreaView, ScrollView, Pressable, View, StyleSheet } from 'react-native';
+import { Texte as Text } from '@/components/texte';
 import {DemoProvider} from './context/DemoContext';import CitizenMap from './citizen/CitizenMap';import MyAlerts from './citizen/MyAlerts';import SupervisorDashboard from './supervisor/SupervisorDashboard';import AlertsManagement from './supervisor/AlertsManagement';import RouteOptimization from './supervisor/RouteOptimization';import TeamManagement from './supervisor/TeamManagement';import ReportsValidation from './supervisor/ReportsValidation';import EmployeeMap from './employee/EmployeeMap';import {C} from './components/UI';
 const roles=['Citoyen','Superviseur','Employé'] as const;type Role=typeof roles[number];
 const tabs:Record<Role,string[]>={Citoyen:['Carte','Mes alertes'],Superviseur:['Tableau de bord','Alertes','Optimisation','Équipes','Rapports'],Employé:['Ma carte']};
