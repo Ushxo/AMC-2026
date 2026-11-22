@@ -1,0 +1,8 @@
+# Dépendances de l'image Docker du serveur (sans PyTorch).
+# Mêmes versions que dans ml/uv.lock.
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+onnxruntime==1.32.0
+python-multipart==0.0.34
+numpy==2.5.5
+pillow==13.0.0
