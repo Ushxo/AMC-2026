@@ -4,59 +4,79 @@ import {
   Alert,
   Platform,
   Pressable,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
-import { Page } from "../components/UI";
 import { SewerMap } from "../components/SewerMap";
 import { SEWERS } from "../data/mockData";
 import { useDemo } from "../context/DemoContext";
 import { AlertKind } from "../types/models";
 
-const colors = {
-  green: "#263425",
+const C = {
+  green: "#1D341B",
+  darkGreen: "#142B17",
   olive: "#31412F",
-  sage: "#C6D2C0",
-  orange: "#F28A33",
-  cream: "#F5F3ED",
+  cream: "#F8F5ED",
+  lightCream: "#F2F0E7",
+  sage: "#DCE5CC",
+  orange: "#E56C28",
   white: "#FFFFFF",
-  muted: "#647064",
+  gray: "#666F60",
 };
 
 const categories: {
   id: AlertKind;
   icon: string;
-  description: string;
+  label: string;
 }[] = [
   {
-    id: "Feuilles",
+    id: "Égout bouché",
     icon: "🍂",
-    description: "Feuilles",
+    label: "Égout bouché",
   },
   {
     id: "Eau accumulée",
     icon: "💧",
-    description: "Eau accumulée",
+    label: "Accumulation d’eau / Inondation",
   },
   {
-    id: "Égout bouché",
-    icon: "🚧",
-    description: "Égout bouché",
+    id: "Feuilles",
+    icon: "🕳️",
+    label: "Affaissement autour d’un égout",
   },
   {
     id: "Autre",
     icon: "⚠️",
-    description: "Autre",
+    label: "Grille d’égout endommagée",
   },
 ];
 
-export default function CitizenMap() {
-  const [selectedId, setSelectedId] = useState<string>();
+type Props = {
+  onOpenAlerts?: () => void;
+  onOpenProfile?: () => void;
+};
+
+export default function CitizenMap({
+  onOpenAlerts,
+  onOpenProfile,
+}: Props) {
+  const [selectedId, setSelectedId] =
+    useState<string | undefined>();
+
   const [selectedKind, setSelectedKind] =
-    useState<AlertKind>("Feuilles");
+    useState<AlertKind>("Égout bouché");
+
+  const [search, setSearch] = useState("");
+  const [showReport, setShowReport] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [confirmation, setConfirmation] = useState(false);
+  const [photoTaken, setPhotoTaken] = useState(false);
 
   const { report } = useDemo();
 
@@ -66,15 +86,27 @@ export default function CitizenMap() {
 
   function handleSelect(id: string) {
     setSelectedId(id);
-    setSelectedKind("Feuilles");
+    setSelectedKind("Égout bouché");
     setConfirmation(false);
+    setShowReport(true);
+    setShowCamera(false);
   }
 
-  function handleReport() {
+  function handleContinue() {
+    if (!selectedId) return;
+    setShowReport(false);
+    setShowCamera(true);
+  }
+
+  function handleSubmit() {
     if (!selectedId) return;
 
     report(selectedId, selectedKind);
+
+    setShowCamera(false);
+    setShowReport(false);
     setSelectedId(undefined);
+    setPhotoTaken(false);
     setConfirmation(true);
 
     if (Platform.OS !== "web") {
@@ -85,444 +117,588 @@ export default function CitizenMap() {
     }
   }
 
+  function handleClose() {
+    setShowReport(false);
+    setShowCamera(false);
+    setSelectedId(undefined);
+    setPhotoTaken(false);
+  }
+
   return (
-    <Page>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+
+      {/* EN-TÊTE */}
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>
-          ESPACE CITOYEN
-        </Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>
+            Carte des égouts
+          </Text>
 
-        <Text style={styles.title}>
-          Carte des égouts
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Repère un égout sur la carte et signale un
-          problème en quelques secondes.
-        </Text>
-      </View>
-
-      <View style={styles.mapCard}>
-        <View style={styles.mapHeader}>
-          <View>
-            <Text style={styles.mapTitle}>
-              Montréal
-            </Text>
-
-            <Text style={styles.mapDescription}>
-              Réseau d'égouts
-            </Text>
-          </View>
-
-          <View style={styles.mapBadge}>
-            <Text style={styles.mapBadgeText}>
-              CARTE
-            </Text>
-          </View>
+          <Pressable
+            style={styles.profileButton}
+            onPress={onOpenProfile}
+          >
+            <Text style={styles.profileIcon}>♙</Text>
+          </Pressable>
         </View>
 
+        {/* RECHERCHE */}
+        <View style={styles.searchContainer}>
+          <Text style={styles.searchIcon}>⌕</Text>
+
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher une adresse à Montréal"
+            placeholderTextColor={C.olive}
+            value={search}
+            onChangeText={setSearch}
+          />
+
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch("")}>
+              <Text style={styles.clearSearch}>×</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+
+      {/* CARTE */}
+      <View style={styles.mapContainer}>
         <SewerMap
           selected={selectedId}
           onSelect={handleSelect}
         />
 
-        <View style={styles.legend}>
-          <View style={styles.legendItem}>
-            <View style={styles.orangeDot} />
-            <Text style={styles.legendText}>
-              Égout
-            </Text>
-          </View>
+        {/* LOCALISATION SIMULÉE */}
+        <Pressable style={styles.locationButton}>
+          <Text style={styles.locationIcon}>◎</Text>
+        </Pressable>
 
-          <View style={styles.legendItem}>
-            <View style={styles.redDot} />
-            <Text style={styles.legendText}>
-              Signalements
-            </Text>
-          </View>
-        </View>
-      </View>
+        {/* MESSAGE DE CONFIRMATION */}
+        {confirmation && (
+          <View style={styles.successCard}>
+            <Text style={styles.successIcon}>✓</Text>
 
-      {confirmation && (
-        <View style={styles.successCard}>
-          <Text style={styles.successIcon}>✓</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.successTitle}>
-              Alerte envoyée !
-            </Text>
-            <Text style={styles.successText}>
-              Tu peux suivre son avancement dans
-              « Mes alertes ».
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {selectedSewer && (
-        <View style={styles.reportCard}>
-          <View style={styles.reportHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.sectionEyebrow}>
-                NOUVEAU SIGNALEMENT
+              <Text style={styles.successTitle}>
+                Signalement envoyé !
               </Text>
-
-              <Text style={styles.reportTitle}>
-                {selectedSewer.label}
-              </Text>
-
-              <Text style={styles.reportSubtitle}>
-                Quel problème as-tu remarqué ?
+              <Text style={styles.successText}>
+                Consultez Mes alertes pour suivre
+                votre demande.
               </Text>
             </View>
 
             <Pressable
-              onPress={() => setSelectedId(undefined)}
-              style={styles.closeButton}
+              onPress={() => setConfirmation(false)}
             >
               <Text style={styles.closeText}>×</Text>
             </Pressable>
           </View>
+        )}
+      </View>
 
-          <View style={styles.categoryGrid}>
-            {categories.map((category) => {
-              const active =
-                selectedKind === category.id;
+      {/* NAVIGATION */}
+      <View style={styles.bottomNav}>
+        <View style={styles.activeTab}>
+          <Text style={styles.navIcon}>●</Text>
+          <Text style={styles.activeNavText}>Carte</Text>
+        </View>
 
-              return (
-                <Pressable
-                  key={category.id}
-                  onPress={() =>
-                    setSelectedKind(category.id)
-                  }
-                  style={[
-                    styles.categoryButton,
-                    active && styles.categorySelected,
-                  ]}
-                >
-                  <Text style={styles.categoryIcon}>
-                    {category.icon}
-                  </Text>
+        <Pressable
+          style={styles.inactiveTab}
+          onPress={onOpenAlerts}
+        >
+          <Text style={styles.listIcon}>☷</Text>
+          <Text style={styles.navText}>Mes alertes</Text>
+        </Pressable>
+      </View>
 
-                  <Text
+      {/* PANNEAU DE SIGNALEMENT */}
+      {showReport && selectedSewer && (
+        <View style={styles.overlay}>
+          <Pressable
+            style={styles.backdrop}
+            onPress={handleClose}
+          />
+
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+
+            <Text style={styles.sheetTitle}>
+              Quel problème avez-vous observé ?
+            </Text>
+
+            <Text style={styles.sewerLabel}>
+              📍 {selectedSewer.label}
+            </Text>
+
+            <View style={styles.categoryGrid}>
+              {categories.map((category) => {
+                const active =
+                  selectedKind === category.id;
+
+                return (
+                  <Pressable
+                    key={category.id}
+                    onPress={() =>
+                      setSelectedKind(category.id)
+                    }
                     style={[
-                      styles.categoryText,
-                      active && styles.categoryTextActive,
+                      styles.categoryCard,
+                      active && styles.categoryActive,
                     ]}
                   >
-                    {category.description}
-                  </Text>
+                    <Text style={styles.categoryIcon}>
+                      {category.icon}
+                    </Text>
 
-                  {active && (
-                    <Text style={styles.check}>✓</Text>
-                  )}
-                </Pressable>
-              );
-            })}
+                    <Text style={styles.categoryText}>
+                      {category.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Pressable
+              style={styles.continueButton}
+              onPress={handleContinue}
+            >
+              <Text style={styles.continueText}>
+                Continuer
+              </Text>
+            </Pressable>
           </View>
+        </View>
+      )}
 
-          <View style={styles.photoPlaceholder}>
-            <Text style={styles.photoIcon}>📷</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.photoTitle}>
-                Ajouter une photo
+      {/* CAMÉRA SIMULÉE TEMPORAIRE */}
+      {showCamera && (
+        <View style={styles.overlay}>
+          <View style={styles.cameraSheet}>
+            <Pressable onPress={handleClose}>
+              <Text style={styles.cameraBack}>←</Text>
+            </Pressable>
+
+            <Text style={styles.cameraTitle}>
+              Prendre une photo
+            </Text>
+
+            <Text style={styles.cameraSubtitle}>
+              Ajoutez une photo du problème pour
+              aider les équipes municipales.
+            </Text>
+
+            <View style={styles.cameraPreview}>
+              <Text style={styles.cameraEmoji}>📷</Text>
+
+              <Text style={styles.cameraHint}>
+                {photoTaken
+                  ? "Photo capturée ✓"
+                  : "Simulation de caméra"}
               </Text>
-              <Text style={styles.photoSubtitle}>
-                Disponible prochainement
-              </Text>
+
+              <Pressable
+                style={styles.captureButton}
+                onPress={() => setPhotoTaken(true)}
+              >
+                <View style={styles.captureInner} />
+              </Pressable>
+            </View>
+
+            <View style={styles.cameraActions}>
+              <Pressable
+                style={styles.skipButton}
+                onPress={handleSubmit}
+              >
+                <Text style={styles.skipText}>
+                  Passer
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.cameraContinue}
+                onPress={handleSubmit}
+              >
+                <Text style={styles.continueText}>
+                  Continuer
+                </Text>
+              </Pressable>
             </View>
           </View>
-
-          <Pressable
-            style={styles.submitButton}
-            onPress={handleReport}
-          >
-            <Text style={styles.submitText}>
-              Envoyer l'alerte
-            </Text>
-            <Text style={styles.submitArrow}>→</Text>
-          </Pressable>
         </View>
       )}
-
-      {!selectedSewer && !confirmation && (
-        <View style={styles.infoCard}>
-          <Text style={styles.infoIcon}>📍</Text>
-          <Text style={styles.infoText}>
-            Sélectionne un marqueur sur la carte pour
-            signaler un problème.
-          </Text>
-        </View>
-      )}
-
-      <Text style={styles.demoNote}>
-        Données géographiques fictives pour la démonstration.
-      </Text>
-    </Page>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: C.cream,
+  },
+
   header: {
-    backgroundColor: colors.green,
-    borderRadius: 22,
-    padding: 23,
-    marginBottom: 18,
+    backgroundColor: C.green,
+    paddingHorizontal: 22,
+    paddingTop: 35,
+    paddingBottom: 23,
+    borderBottomLeftRadius: 38,
+    borderBottomRightRadius: 38,
+    zIndex: 2,
   },
-  eyebrow: {
-    color: colors.sage,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 2,
-    marginBottom: 12,
-  },
-  title: {
-    color: colors.white,
-    fontSize: 29,
-    fontWeight: "800",
-  },
-  subtitle: {
-    color: colors.sage,
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 9,
-  },
-  mapCard: {
-    backgroundColor: colors.white,
-    borderRadius: 20,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#E4E9DF",
-  },
-  mapHeader: {
+
+  headerRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 21,
+  },
+
+  headerTitle: {
+    fontSize: 29,
+    fontWeight: "900",
+    color: C.white,
+  },
+
+  profileButton: {
+    width: 48,
+    height: 48,
+    borderWidth: 2,
+    borderColor: C.white,
+    borderRadius: 30,
     alignItems: "center",
-    paddingHorizontal: 5,
-    paddingBottom: 12,
+    justifyContent: "center",
   },
-  mapTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: colors.green,
+
+  profileIcon: {
+    color: C.white,
+    fontSize: 32,
   },
-  mapDescription: {
-    fontSize: 12,
-    color: colors.muted,
-    marginTop: 2,
-  },
-  mapBadge: {
-    backgroundColor: "#E7EEE4",
-    borderRadius: 20,
-    paddingVertical: 7,
-    paddingHorizontal: 11,
-  },
-  mapBadgeText: {
-    color: colors.olive,
-    fontSize: 10,
-    fontWeight: "800",
-  },
-  legend: {
-    flexDirection: "row",
-    gap: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 6,
-  },
-  legendItem: {
+
+  searchContainer: {
+    height: 56,
+    backgroundColor: C.cream,
+    borderRadius: 35,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    paddingHorizontal: 18,
   },
-  legendText: {
-    color: colors.olive,
-    fontSize: 12,
+
+  searchIcon: {
+    fontSize: 35,
+    color: C.green,
+    marginRight: 10,
   },
-  orangeDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: colors.orange,
+
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: C.green,
   },
-  redDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: "#D65A31",
+
+  clearSearch: {
+    fontSize: 25,
+    color: C.gray,
   },
+
+  mapContainer: {
+    flex: 1,
+    position: "relative",
+    backgroundColor: "#E7EBDD",
+    overflow: "hidden",
+  },
+
+  locationButton: {
+    position: "absolute",
+    right: 21,
+    bottom: 30,
+    width: 60,
+    height: 60,
+    borderRadius: 35,
+    backgroundColor: C.cream,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+  },
+
+  locationIcon: {
+    fontSize: 37,
+    color: C.green,
+  },
+
+  bottomNav: {
+    backgroundColor: C.cream,
+    flexDirection: "row",
+    padding: 11,
+    paddingBottom: 18,
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+  },
+
+  activeTab: {
+    flex: 1,
+    backgroundColor: C.sage,
+    borderRadius: 30,
+    alignItems: "center",
+    paddingVertical: 11,
+  },
+
+  inactiveTab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 11,
+  },
+
+  navIcon: {
+    fontSize: 28,
+    color: C.green,
+  },
+
+  listIcon: {
+    fontSize: 31,
+    color: C.green,
+  },
+
+  activeNavText: {
+    color: C.green,
+    fontSize: 17,
+    fontWeight: "800",
+  },
+
+  navText: {
+    color: C.green,
+    fontSize: 17,
+    fontWeight: "700",
+  },
+
   successCard: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: C.white,
+    borderRadius: 19,
+    padding: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#E6F0E6",
-    borderRadius: 17,
-    padding: 18,
-    marginBottom: 16,
+    elevation: 5,
   },
+
   successIcon: {
-    color: "#377B4B",
-    fontSize: 27,
-    fontWeight: "800",
+    color: "#38834A",
+    fontSize: 30,
+    fontWeight: "900",
   },
+
   successTitle: {
-    fontSize: 16,
-    color: colors.green,
+    fontSize: 15,
     fontWeight: "800",
+    color: C.green,
   },
+
   successText: {
-    color: colors.olive,
-    fontSize: 13,
-    marginTop: 3,
+    color: C.gray,
+    fontSize: 12,
   },
-  reportCard: {
-    backgroundColor: colors.white,
-    borderRadius: 22,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "#E4E9DF",
-    marginBottom: 16,
-  },
-  reportHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 18,
-  },
-  sectionEyebrow: {
-    color: colors.orange,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    fontWeight: "800",
-    marginBottom: 6,
-  },
-  reportTitle: {
-    fontSize: 21,
-    fontWeight: "800",
-    color: colors.green,
-  },
-  reportSubtitle: {
-    fontSize: 13,
-    color: colors.muted,
-    marginTop: 5,
-  },
-  closeButton: {
-    height: 34,
-    width: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F0F1EE",
-    borderRadius: 17,
-  },
+
   closeText: {
     fontSize: 25,
-    color: colors.olive,
-    lineHeight: 28,
+    color: C.green,
   },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "flex-end",
+    zIndex: 20,
+  },
+
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.40)",
+  },
+
+  sheet: {
+    backgroundColor: C.cream,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    paddingHorizontal: 22,
+    paddingTop: 14,
+    paddingBottom: 35,
+  },
+
+  sheetHandle: {
+    width: 55,
+    height: 5,
+    backgroundColor: "#C5C4BC",
+    alignSelf: "center",
+    borderRadius: 10,
+    marginBottom: 25,
+  }
+
+  sheetTitle: {
+    fontSize: 25,
+    fontWeight: "900",
+    color: C.green,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+
+  sewerLabel: {
+    textAlign: "center",
+    color: C.gray,
+    fontSize: 13,
+    marginBottom: 20,
+  },
+
   categoryGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 13,
   },
-  categoryButton: {
+
+  categoryCard: {
     width: "48%",
-    minHeight: 100,
-    backgroundColor: "#F8F9F6",
-    borderWidth: 1,
-    borderColor: "#E1E6DC",
-    borderRadius: 16,
-    padding: 13,
-    justifyContent: "center",
+    height: 155,
+    backgroundColor: "#E9EDDF",
+    borderRadius: 27,
     alignItems: "center",
-    position: "relative",
-  },
-  categorySelected: {
-    borderColor: colors.orange,
+    justifyContent: "center",
+    padding: 12,
     borderWidth: 2,
-    backgroundColor: "#FFF3E7",
+    borderColor: "transparent",
   },
+
+  categoryActive: {
+    backgroundColor: "#FFF0DA",
+    borderColor: C.orange,
+  },
+
   categoryIcon: {
-    fontSize: 25,
-    marginBottom: 8,
+    fontSize: 53,
+    marginBottom: 9,
   },
+
   categoryText: {
-    color: colors.olive,
-    fontSize: 12,
-    fontWeight: "700",
+    color: C.green,
+    fontSize: 15,
     textAlign: "center",
+    fontWeight: "800",
   },
-  categoryTextActive: {
-    color: colors.green,
-  },
-  check: {
-    position: "absolute",
-    top: 7,
-    right: 10,
-    color: colors.orange,
-    fontWeight: "900",
-  },
-  photoPlaceholder: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 15,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#E4E8E1",
-    marginTop: 20,
-    marginBottom: 18,
-  },
-  photoIcon: {
-    fontSize: 24,
-  },
-  photoTitle: {
-    color: colors.green,
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  photoSubtitle: {
-    color: colors.muted,
-    fontSize: 11,
-    marginTop: 3,
-  },
-  submitButton: {
-    backgroundColor: colors.orange,
-    minHeight: 54,
-    borderRadius: 15,
-    flexDirection: "row",
+
+  continueButton: {
+    height: 62,
+    backgroundColor: C.orange,
+    borderRadius: 35,
     alignItems: "center",
     justifyContent: "center",
-    gap: 15,
+    marginTop: 28,
   },
-  submitText: {
-    color: colors.white,
+
+  continueText: {
+    color: C.white,
+    fontSize: 21,
     fontWeight: "800",
-    fontSize: 16,
   },
-  submitArrow: {
-    color: colors.white,
-    fontSize: 23,
+
+  cameraSheet: {
+    backgroundColor: C.cream,
+    height: "95%",
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+    padding: 22,
   },
-  infoCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 17,
-    borderRadius: 15,
-    backgroundColor: "#E8EEE4",
+
+  cameraBack: {
+    color: C.green,
+    fontSize: 36,
   },
-  infoIcon: {
-    fontSize: 22,
+
+  cameraTitle: {
+    fontSize: 29,
+    fontWeight: "900",
+    color: C.green,
+    marginTop: 8,
   },
-  infoText: {
+
+  cameraSubtitle: {
+    fontSize: 15,
+    color: C.gray,
+    marginTop: 7,
+    marginBottom: 20,
+  },
+
+  cameraPreview: {
     flex: 1,
-    color: colors.olive,
-    fontSize: 13,
-    lineHeight: 19,
+    backgroundColor: "#252923",
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  demoNote: {
-    textAlign: "center",
-    fontSize: 11,
-    color: "#788475",
-    marginBottom: 10,
+
+  cameraEmoji: {
+    fontSize: 70,
+  },
+
+  cameraHint: {
+    color: C.white,
+    fontSize: 16,
+    marginTop: 15,
+  },
+
+  captureButton: {
+    position: "absolute",
+    bottom: 22,
+    width: 72,
+    height: 72,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: C.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  captureInner: {
+    width: 55,
+    height: 55,
+    borderRadius: 30,
+    backgroundColor: C.white,
+  },
+
+  cameraActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 20,
+  },
+
+  skipButton: {
+    flex: 1,
+    height: 61,
+    backgroundColor: "#E7E9DF",
+    borderRadius: 35,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  skipText: {
+    color: C.green,
+    fontWeight: "800",
+    fontSize: 19,
+  },
+
+  cameraContinue: {
+    flex: 1.4,
+    height: 61,
+    backgroundColor: C.orange,
+    borderRadius: 35,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
-
