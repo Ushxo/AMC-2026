@@ -1,6 +1,6 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
-import { lireMonEquipe } from '../lib/equipe-compte';
+import { lireMonEquipePartagee } from '../lib/equipe-compte';
 import { abonnerEmploye, employeCourant, estEmployeDemo } from '../lib/session';
 import { etatSource } from '../lib/source';
 
@@ -14,6 +14,7 @@ export function useMonEquipe(): { equipeId: string | null; disponible: boolean; 
     echec: false,
   });
   const [essai, setEssai] = useState(0);
+  const forcer = useRef(false); // vrai après « Réessayer » : la prochaine lecture ne passe pas par le cache
   const reel = !!employe && !estEmployeDemo(employe);
   const identifiant = employe?.user_id ?? null;
 
@@ -24,8 +25,15 @@ export function useMonEquipe(): { equipeId: string | null; disponible: boolean; 
         if (actif) setEtat({ equipeId: null, disponible: false, chargement: false, echec: false });
         return;
       }
-      const r = await lireMonEquipe();
-      if (actif) setEtat({ ...r, chargement: false, echec: r.echec });
+      // Lecture partagée : la connexion, la coquille de l'employé et l'écran du trajet ne font qu'une requête ; « Réessayer » relit.
+      const relire = forcer.current;
+      forcer.current = false;
+      try {
+        const r = await lireMonEquipePartagee(identifiant, relire);
+        if (actif) setEtat({ ...r, chargement: false, echec: r.echec });
+      } catch {
+        if (actif) setEtat({ equipeId: null, disponible: false, chargement: false, echec: true });
+      }
     }, 0);
     return () => {
       actif = false;
@@ -33,5 +41,5 @@ export function useMonEquipe(): { equipeId: string | null; disponible: boolean; 
     };
   }, [reel, identifiant, essai]);
 
-  return { ...etat, reessayer: () => { setEtat((e) => ({ ...e, chargement: true, echec: false })); setEssai((n) => n + 1); } };
+  return { ...etat, reessayer: () => { forcer.current = true; setEtat((e) => ({ ...e, chargement: true, echec: false })); setEssai((n) => n + 1); } };
 }

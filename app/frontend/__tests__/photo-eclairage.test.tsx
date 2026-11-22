@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AppState } from 'react-native';
 
 import PhotoStep from '../citizen/PhotoStep';
@@ -7,7 +7,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
-jest.mock('expo-image-picker', () => ({ launchCameraAsync: jest.fn(), launchImageLibraryAsync: jest.fn() }));
+const mockGalerie = jest.fn();
+jest.mock('expo-image-picker', () => ({ launchCameraAsync: jest.fn(), launchImageLibraryAsync: (...a: unknown[]) => mockGalerie(...a) }));
 const mockProps: Record<string, unknown>[] = [];
 jest.mock('@/lib/camera-optionnelle', () => {
   const React = jest.requireActual('react');
@@ -78,14 +79,29 @@ describe('ligne « avec une photo, tout de suite sur la carte »', () => {
   it('montrée sans vérification ou photo acceptée ; cachée quand l’analyse est impossible ou la photo refusée (aucune contradiction)', async () => {
     const { unmount } = await rendre();
     expect(screen.getByText(/apparaît tout de suite sur la carte/)).toBeTruthy();
-    unmount();
+    await unmount();
     const b = await rendre({ statut: 'acceptee', message: 'Photo acceptée' });
     expect(screen.getByText(/apparaît tout de suite sur la carte/)).toBeTruthy();
-    b.unmount();
+    await b.unmount();
     const c = await rendre({ statut: 'impossible', message: 'La photo n’a pas pu être vérifiée' });
     expect(screen.queryByText(/apparaît tout de suite sur la carte/)).toBeNull();
-    c.unmount();
+    await c.unmount();
     await rendre({ statut: 'refusee', message: 'Pas un égout' });
     expect(screen.queryByText(/apparaît tout de suite sur la carte/)).toBeNull();
+  });
+});
+
+describe('caméra ou galerie refusée', () => {
+  it('la galerie qui refuse de s’ouvrir donne une phrase, sans rejet ni bouton mort', async () => {
+    mockGalerie.mockRejectedValue(new Error('permission refusée'));
+    const onPhoto = jest.fn();
+    await render(<PhotoStep onPhoto={onPhoto} onBack={jest.fn()} onSkip={jest.fn()} onContinue={jest.fn()} />);
+    await fireEvent.press(screen.getByLabelText('Choisir dans la galerie'));
+    expect(await screen.findByText(/La galerie n'a pas pu s'ouvrir/)).toBeTruthy();
+    expect(onPhoto).not.toHaveBeenCalled();
+    mockGalerie.mockResolvedValue({ canceled: false, assets: [{ uri: 'file:///g.jpg' }] });
+    await fireEvent.press(screen.getByLabelText('Choisir dans la galerie'));
+    await waitFor(() => expect(onPhoto).toHaveBeenCalledWith('file:///g.jpg'));
+    expect(screen.queryByText(/La galerie n'a pas pu/)).toBeNull();
   });
 });

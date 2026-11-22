@@ -12,9 +12,13 @@ import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
 import { MESSAGE_ASTUCE_PHOTO } from '@/lib/messages-seuil';
 import { reveillerUneFois } from '@/lib/reveil-ml';
+import { tracer } from '@/lib/trace';
 import { CAMERA } from '@/components/ville/style';
 
 // Commandes de la caméra : couleurs fixes (fond sombre de l'objectif). Le reste de l'écran suit la marque.
+const MESSAGE_CAMERA_INDISPONIBLE = "La caméra n'a pas pu s'ouvrir. Autorisez-la dans les réglages, ou choisissez une photo dans la galerie.";
+const MESSAGE_GALERIE_INDISPONIBLE = "La galerie n'a pas pu s'ouvrir. Autorisez-la dans les réglages, ou prenez la photo avec la caméra.";
+
 const C = { cream: CAMERA.creme, dark: CAMERA.sombre, white: CAMERA.blanc };
 
 /** Vérification de la photo par l'analyse : en cours, acceptée (égout), refusée (pas un égout) ou impossible. */
@@ -61,6 +65,8 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
   // Éclairage voulu par la personne : lampe en continu (caméra arrière seulement), éteinte dès qu'on quitte la caméra.
   const [eclairage, setEclairage] = useState(false);
   const [ready, setReady] = useState(false);
+  // Phrase d'erreur quand la caméra ou la galerie refuse de s'ouvrir (permission, appareil occupé).
+  const [erreurPhoto, setErreurPhoto] = useState<string | null>(null);
 
   // Le service d'analyse se réveille dès l'ouverture de l'étape (il peut dormir).
   useEffect(() => {
@@ -86,23 +92,35 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
       onPhoto(undefined);
       return;
     }
-    if (!CameraView) {
-      // Pas de caméra intégrée : appareil photo du système.
-      const r = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.75 });
-      if (!r.canceled) onPhoto(r.assets[0].uri);
-      return;
+    setErreurPhoto(null);
+    try {
+      if (!CameraView) {
+        // Pas de caméra intégrée : appareil photo du système.
+        const r = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.75 });
+        if (!r.canceled) onPhoto(r.assets[0].uri);
+        return;
+      }
+      if (!camera.current || !ready) return;
+      const picture = await camera.current.takePictureAsync({ quality: 0.75 });
+      if (picture?.uri) onPhoto(picture.uri);
+    } catch (e) {
+      tracer("photo", e);
+      setErreurPhoto(MESSAGE_CAMERA_INDISPONIBLE);
     }
-    if (!camera.current || !ready) return;
-    const picture = await camera.current.takePictureAsync({ quality: 0.75 });
-    if (picture?.uri) onPhoto(picture.uri);
   }
 
   async function chooseFromLibrary() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.75,
-    });
-    if (!result.canceled) onPhoto(result.assets[0].uri);
+    setErreurPhoto(null);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.75,
+      });
+      if (!result.canceled) onPhoto(result.assets[0].uri);
+    } catch (e) {
+      tracer("galerie", e);
+      setErreurPhoto(MESSAGE_GALERIE_INDISPONIBLE);
+    }
   }
 
   function flipOrRetake() {
@@ -204,6 +222,12 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
           </Pressable>
         </View>
       </View>
+
+      {erreurPhoto ? (
+        <Text style={styles.erreurPhoto} accessibilityRole="alert">
+          {erreurPhoto}
+        </Text>
+      ) : null}
 
       {/* Pas de promesse quand l'analyse est impossible ou que la photo est refusée : le message de vérification parle seul. */}
       {verification?.statut === "impossible" || verification?.statut === "refusee" ? null : <Text style={styles.astuce}>{MESSAGE_ASTUCE_PHOTO}</Text>}
@@ -374,6 +398,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
     borderRadius: 29,
     backgroundColor: C.cream,
   },
+  erreurPhoto: { marginHorizontal: 16, marginTop: 12, fontSize: 14, lineHeight: 20, fontWeight: "700", color: P.danger },
   astuce: { marginHorizontal: 16, marginTop: 12, fontSize: 14, lineHeight: 20, fontWeight: "600", color: P.textSecondary },
   verification: {
     flexDirection: "row",

@@ -8,9 +8,9 @@ import { STYLE_AVIS } from './style';
 /**
  * Avis d'eau officiels : ébullition (bleu pétrole) et coupures (indigo). Un avis en ligne (ou en point) suit les rues réelles qu'il touche,
  * en trait épais avec un liseré sombre ; un secteur officiel est dessiné tel quel, sans l'arrondir ; sans tracé de rue, la forme officielle.
- * Le toucher se fait sur la carte (voir elementTouche), pas sur le dessin.
+ * Le toucher passe par trois chemins à la fois (le dessin, le repère au milieu, le test sur le toucher de la carte), dédoublonnés par le parent.
  */
-export function AvisEau({ avis }: { avis: AvisEauType[] }) {
+export function AvisEau({ avis, onPress }: { avis: AvisEauType[]; onPress?: (a: AvisEauType) => void }) {
   return (
     <>
       {avis.flatMap((f) => {
@@ -18,8 +18,8 @@ export function AvisEau({ avis }: { avis: AvisEauType[] }) {
         const traces = tracesAvis(f);
         if (traces) {
           return traces.flatMap((points, i) => [
-            <Trace key={`a-${f.properties.id}-${i}-l`} id={`avis-${f.properties.id}-${i}-l`} points={points} couleur={st.liseré} epaisseur={st.largeur + 5} />,
-            <Trace key={`a-${f.properties.id}-${i}`} id={`avis-${f.properties.id}-${i}`} points={points} couleur={st.couleur} epaisseur={st.largeur} />,
+            <Trace key={`a-${f.properties.id}-${i}-l`} id={`avis-${f.properties.id}-${i}-l`} points={points} couleur={st.liseré} epaisseur={st.largeur + 5} onPress={onPress ? () => onPress(f) : undefined} />,
+            <Trace key={`a-${f.properties.id}-${i}`} id={`avis-${f.properties.id}-${i}`} points={points} couleur={st.couleur} epaisseur={st.largeur} onPress={onPress ? () => onPress(f) : undefined} />,
           ]);
         }
         const g = f.geometry;
@@ -34,6 +34,7 @@ export function AvisEau({ avis }: { avis: AvisEauType[] }) {
               contour={st.contour}
               fond={st.fond}
               epaisseur={st.epaisseur}
+              onPress={onPress ? () => onPress(f) : undefined}
             />,
           ];
         }
@@ -46,6 +47,7 @@ export function AvisEau({ avis }: { avis: AvisEauType[] }) {
             contour={st.contour}
             fond={st.fond}
             epaisseur={st.epaisseur}
+            onPress={onPress ? () => onPress(f) : undefined}
           />
         ));
       })}

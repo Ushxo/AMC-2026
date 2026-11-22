@@ -146,3 +146,20 @@ export const CAMERA = { creme: '#F8F5ED', sombre: '#23271F', blanc: '#FFFFFF', c
 export const VOILE_FEUILLE = 'rgba(0,0,0,0.4)';
 /** Coins du haut de toute feuille : rayon de l'échelle, contenu coupé aux coins, fond plein opaque, ni bordure ni ombre. */
 export const FEUILLE_BASE = { borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' } as const;
+
+/** Repères d'information de la carte (au milieu des avis, bandes d'eau, chantiers et zones inondables) : couleur et icône par genre. */
+export type GenreInfoCarte = 'ebullition' | 'coupure' | 'bande' | 'chantier' | 'zone';
+export const COULEURS_INFO: Record<GenreInfoCarte, string> = {
+  ebullition: '#287F99',
+  coupure: '#5B3FA8',
+  bande: '#1E88E5',
+  chantier: '#B84A0B',
+  zone: '#4F8FCF',
+};
+export const ICONES_INFO: Record<GenreInfoCarte, 'thermometer' | 'ban' | 'water' | 'warning' | 'water-outline'> = {
+  ebullition: 'thermometer',
+  coupure: 'ban',
+  bande: 'water',
+  chantier: 'warning',
+  zone: 'water-outline',
+};

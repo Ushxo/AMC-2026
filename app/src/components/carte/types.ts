@@ -75,7 +75,7 @@ export type VehiculeProps = {
   accessibilityLabel?: string;
 };
 
-export type TraceProps = { id: string; points: Coordonnees[]; couleur: string; epaisseur: number };
+export type TraceProps = { id: string; points: Coordonnees[]; couleur: string; epaisseur: number; /** Rend le tracé touchable. */ onPress?: () => void };
 
 export type ZoneProps = {
   id: string;
@@ -94,4 +94,14 @@ export type CercleProps = {
   fond: string;
   contour: string;
   epaisseur: number;
+  onPress?: () => void;
+};
+
+/** Petit repère d'information posé au milieu d'un avis, d'une bande d'eau, d'un chantier ou d'une zone inondable (touchable). */
+export type RepereInfoProps = {
+  id: string;
+  position: Coordonnees;
+  genre: 'ebullition' | 'coupure' | 'bande' | 'chantier' | 'zone';
+  onPress?: () => void;
+  accessibilityLabel?: string;
 };

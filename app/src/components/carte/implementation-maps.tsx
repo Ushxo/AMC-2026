@@ -4,11 +4,12 @@ import { Circle, Polygon, Polyline } from 'react-native-maps';
 
 import { CarteCommune } from '@/components/ville/carte-commune';
 import { MarqueurEgout } from '@/components/ville/marqueur-egout';
+import { MarqueurInfo } from '@/components/ville/marqueur-info';
 import { MarqueurVehicule } from '@/components/ville/marqueur-vehicule';
 import { deltasPourRayon } from '@/lib/position-citoyen';
 import { regionAutour } from '@/lib/trajet';
 
-import type { CarteProps, CercleProps, RepereGroupeProps, RepereProps, TraceProps, VehiculeProps, ZoneProps } from './types';
+import type { CarteProps, CercleProps, RepereGroupeProps, RepereInfoProps, RepereProps, TraceProps, VehiculeProps, ZoneProps } from './types';
 
 const ALTITUDE_SUIVI_M = 700; // Apple Plans n'a pas de zoom : altitude de la caméra
 const ZOOM_SUIVI = 17;
@@ -109,8 +110,12 @@ export function Vehicule({ position, cap, titre, description, accessibilityLabel
   return <MarqueurVehicule coordinate={position} cap={cap} title={titre} description={description} accessibilityLabel={accessibilityLabel} />;
 }
 
-export function Trace({ points, couleur, epaisseur }: TraceProps) {
-  return <Polyline coordinates={points} strokeColor={couleur} strokeWidth={epaisseur} lineJoin="round" lineCap="round" />;
+export function Trace({ points, couleur, epaisseur, onPress }: TraceProps) {
+  return <Polyline coordinates={points} strokeColor={couleur} strokeWidth={epaisseur} lineJoin="round" lineCap="round" tappable={!!onPress} onPress={onPress} />;
+}
+
+export function RepereInfo({ position, genre, onPress, accessibilityLabel }: RepereInfoProps) {
+  return <MarqueurInfo coordinate={position} genre={genre} onPress={onPress} accessibilityLabel={accessibilityLabel} />;
 }
 
 export function Zone({ exterieur, trous, fond, contour, epaisseur, onPress }: ZoneProps) {
@@ -128,6 +133,7 @@ export function Zone({ exterieur, trous, fond, contour, epaisseur, onPress }: Zo
   );
 }
 
+// react-native-maps n'a pas de toucher sur les cercles : le repère d'information et le toucher de la carte les couvrent.
 export function Cercle({ centre, rayonM, fond, contour, epaisseur }: CercleProps) {
   return <Circle center={centre} radius={rayonM} fillColor={fond} strokeColor={contour} strokeWidth={epaisseur} />;
 }

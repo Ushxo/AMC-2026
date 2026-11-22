@@ -4,6 +4,7 @@ import { lister, type ElementFile } from './file-attente';
 import { MESSAGE_LECTURE_ECHEC } from './messages';
 import { demarrerReleve } from './releve';
 import { reveillerUneFois } from './reveil-ml';
+import { tracer } from './trace';
 import { abonnerEmploye, citoyenCourant, employeCourant } from './session';
 import {
   abonnerChangements,
@@ -96,7 +97,7 @@ function renvoyerEnArrierePlan(): void {
     .then((envoyes) => {
       if (envoyes > 0) void rafraichirSignalements();
     })
-    .catch(() => {}) // la file reste sur le téléphone, le prochain passage réessaie
+    .catch((e) => tracer('renvoi de la file', e)) // la file reste sur le téléphone, le prochain passage réessaie
     .finally(() => {
       renvoiLance = false;
     });

@@ -1,6 +1,7 @@
 import { AppState } from 'react-native';
 
 import { abonnerStatutCanal, canalConnecte } from './canal-partage';
+import { essayerSansBruit } from './trace';
 
 export const RELEVE_LENTE_MS = 30000;
 export const RELEVE_RAPIDE_MS = 5000;
@@ -35,14 +36,14 @@ export function demarrerReleve(options: {
     if (!actif || !auPremierPlan()) return;
     minuteur = setTimeout(() => {
       minuteur = null;
-      lire();
+      essayerSansBruit(lire, 'relève');
       planifier();
     }, canalConnecte(table) ? lentMs : rapideMs);
   };
 
   const abonnement = AppState?.addEventListener?.('change', (e: string) => {
     if (e === 'active') {
-      lire(); // retour au premier plan : on relit tout de suite
+      essayerSansBruit(lire, 'relève'); // retour au premier plan : on relit tout de suite
       planifier();
     } else {
       arreter();

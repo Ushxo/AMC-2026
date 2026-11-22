@@ -1,4 +1,4 @@
-import { associerCompte, dissocierCompte, lireMonEquipe, lirePositionsEquipes, messageCompte, envoyerPosition } from '../equipe-compte';
+import { DUREE_CACHE_EQUIPE_MS, lireMonEquipePartagee, viderCacheEquipe, associerCompte, dissocierCompte, lireMonEquipe, lirePositionsEquipes, messageCompte, envoyerPosition } from '../equipe-compte';
 import { getSupabase } from '../supabase';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -75,5 +75,44 @@ describe('compte et position d’équipe', () => {
     expect(ligne).not.toHaveProperty('compte_id');
     upsert.mockResolvedValue({ error: { message: 'refus' } });
     expect(await envoyerPosition('eq-1', { latitude: 45.5, longitude: -73.57 }, null)).toBe(false);
+  });
+
+  describe('lecture partagée de mon_equipe', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      viderCacheEquipe();
+    });
+    afterEach(() => jest.useRealTimers());
+
+    it('trois écrans qui demandent en même temps : une seule requête ; ensuite le cache répond', async () => {
+      const rpc = jest.fn().mockResolvedValue({ data: 'eq-1', error: null });
+      (getSupabase as jest.Mock).mockReturnValue(client(rpc));
+      const [a, b, c] = await Promise.all([lireMonEquipePartagee('u1'), lireMonEquipePartagee('u1'), lireMonEquipePartagee('u1')]);
+      expect([a.equipeId, b.equipeId, c.equipeId]).toEqual(['eq-1', 'eq-1', 'eq-1']);
+      expect(rpc).toHaveBeenCalledTimes(1);
+      await lireMonEquipePartagee('u1');
+      expect(rpc).toHaveBeenCalledTimes(1);
+    });
+
+    it('un autre compte, « Réessayer » ou le délai dépassé relisent', async () => {
+      const rpc = jest.fn().mockResolvedValue({ data: 'eq-1', error: null });
+      (getSupabase as jest.Mock).mockReturnValue(client(rpc));
+      await lireMonEquipePartagee('u1');
+      await lireMonEquipePartagee('u2'); // changement de compte
+      expect(rpc).toHaveBeenCalledTimes(2);
+      await lireMonEquipePartagee('u2', true); // réessayer
+      expect(rpc).toHaveBeenCalledTimes(3);
+      jest.advanceTimersByTime(DUREE_CACHE_EQUIPE_MS + 100);
+      await lireMonEquipePartagee('u2');
+      expect(rpc).toHaveBeenCalledTimes(4);
+    });
+
+    it('une panne n’est jamais gardée : la lecture suivante réessaie', async () => {
+      const rpc = jest.fn().mockResolvedValueOnce({ data: null, error: { code: '500', message: 'panne' } }).mockResolvedValue({ data: 'eq-1', error: null });
+      (getSupabase as jest.Mock).mockReturnValue(client(rpc));
+      expect((await lireMonEquipePartagee('u1')).echec).toBe(true);
+      expect((await lireMonEquipePartagee('u1')).equipeId).toBe('eq-1');
+      expect(rpc).toHaveBeenCalledTimes(2);
+    });
   });
 });

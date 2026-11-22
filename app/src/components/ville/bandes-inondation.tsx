@@ -4,11 +4,11 @@ import type { BandeEau } from '@/lib/inondation';
 import { COULEUR_BANDE_EAU, EPAISSEUR_BANDE_EAU } from './style';
 
 /** Bande bleue semi-transparente le long de la rue touchée par de l'eau accumulée, sans liseré (les avis officiels en ont un). */
-export function BandesInondation({ bandes }: { bandes: BandeEau[] }) {
+export function BandesInondation({ bandes, onPress }: { bandes: BandeEau[]; onPress?: (b: BandeEau) => void }) {
   return (
     <>
       {bandes.flatMap((b) =>
-        b.traces.map((points, i) => <Trace key={`${b.id}-${i}`} id={`${b.id}-${i}`} points={points} couleur={COULEUR_BANDE_EAU} epaisseur={EPAISSEUR_BANDE_EAU} />),
+        b.traces.map((points, i) => <Trace key={`${b.id}-${i}`} id={`${b.id}-${i}`} points={points} couleur={COULEUR_BANDE_EAU} epaisseur={EPAISSEUR_BANDE_EAU} onPress={onPress ? () => onPress(b) : undefined} />),
       )}
     </>
   );

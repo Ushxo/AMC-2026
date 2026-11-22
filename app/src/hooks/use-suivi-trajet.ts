@@ -131,6 +131,9 @@ export function useSuiviTrajet(equipeId: string): {
     [arrets, estTraite],
   );
 
+  // Un changement d'état qui échoue rend un message, jamais un rejet.
+  const changerSur = useCallback((sid: string, e: 'regle' | 'pris_en_charge') => changer(sid, e).catch(() => MESSAGE_ARRET_ECHEC), [changer]);
+
   const marquerFait = useCallback(
     async (id: string): Promise<string | null> => {
       const a = arrets.find((x) => idArret(x) === id);
@@ -148,14 +151,14 @@ export function useSuiviTrajet(equipeId: string): {
         const s = signalements.find((x) => x.id === sid);
         return s ? s.etat === 'nouveau' || s.etat === 'pris_en_charge' : false;
       });
-      const reponses = await Promise.all(ouverts.map((sid) => changer(sid, 'regle')));
+      const reponses = await Promise.all(ouverts.map((sid) => changerSur(sid, 'regle')));
       const echec = reponses.some((r) => r !== null);
       noterPartiel(id, echec);
       setChoix(null);
       if (!local) void rafraichir();
       return echec ? MESSAGE_ARRET_FAIT_PARTIEL : null;
     },
-    [arrets, estFait, partiels, local, signalements, changer, rafraichir],
+    [arrets, estFait, partiels, local, signalements, changerSur, rafraichir],
   );
 
   const enregistrerResultat = useCallback(
@@ -180,7 +183,7 @@ export function useSuiviTrajet(equipeId: string): {
         });
       if (p.fait) {
         noterFaitLocal(id, mot);
-        const reponses = await Promise.all(ouverts(a.signalement_ids, ['nouveau', 'pris_en_charge']).map((sid) => changer(sid, 'regle')));
+        const reponses = await Promise.all(ouverts(a.signalement_ids, ['nouveau', 'pris_en_charge']).map((sid) => changerSur(sid, 'regle')));
         const echec = reponses.some((r) => r !== null);
         noterPartiel(id, echec);
         setChoix(null);
@@ -191,13 +194,13 @@ export function useSuiviTrajet(equipeId: string): {
       noterNonFaitLocal(id, mot);
       noterPartiel(id, false);
       if (avant === 'fait') {
-        await Promise.all(ouverts(a.signalement_ids, ['regle']).map((sid) => changer(sid, 'pris_en_charge')));
+        await Promise.all(ouverts(a.signalement_ids, ['regle']).map((sid) => changerSur(sid, 'pris_en_charge')));
       }
       setChoix(null);
       if (!local) void rafraichir();
       return { erreur: null, info: local ? MESSAGE_NON_FAIT_LOCAL : MESSAGE_NON_FAIT };
     },
-    [arrets, local, statut, signalements, changer, rafraichir],
+    [arrets, local, statut, signalements, changerSur, rafraichir],
   );
 
   return {

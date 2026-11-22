@@ -1,3 +1,4 @@
+import { sansBruit, essayerSansBruit } from './trace';
 import { getSupabase } from './supabase';
 
 // Un seul canal Realtime par table, partagé par tous les abonnés. Il s'ouvre au premier abonné et se ferme au dernier.
@@ -24,7 +25,7 @@ const entrees = new Map<string, Entree>();
 function appeler(entree: Entree): void {
   entree.minuteur = null;
   entree.dernierAppel = Date.now();
-  [...entree.rappels].forEach((f) => f());
+  [...entree.rappels].forEach((f) => essayerSansBruit(f, 'canal Realtime'));
 }
 
 function evenement(entree: Entree): void {
@@ -39,7 +40,7 @@ function definirConnecte(entree: Entree, valeur: boolean): void {
   entree.connecte = valeur;
   const retour = valeur && entree.dejaConnecte; // reconnexion : on rattrape ce qui a pu être manqué
   if (valeur) entree.dejaConnecte = true;
-  entree.statuts.forEach((f) => f());
+  entree.statuts.forEach((f) => essayerSansBruit(f, 'état du canal'));
   if (retour) evenement(entree);
 }
 
@@ -91,7 +92,7 @@ export function abonnerTable(table: string, rappel: () => void): () => void {
       if (courante.rappels.size > 0) return;
       if (entrees.get(table) === courante) entrees.delete(table);
       try {
-        void courante.client.removeChannel(courante.canal as Parameters<typeof courante.client.removeChannel>[0]);
+        sansBruit(courante.client.removeChannel(courante.canal as Parameters<typeof courante.client.removeChannel>[0]), 'fermeture du canal');
       } catch {
         // canal déjà fermé : rien à faire
       }

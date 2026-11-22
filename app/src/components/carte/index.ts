@@ -18,5 +18,6 @@ export const Vehicule = implementation.Vehicule;
 export const Trace = implementation.Trace;
 export const Zone = implementation.Zone;
 export const Cercle = implementation.Cercle;
+export const RepereInfo = implementation.RepereInfo;
 export { NAVIGATION_GOOGLE };
 export type * from './types';

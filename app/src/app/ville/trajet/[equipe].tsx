@@ -46,6 +46,7 @@ import { formaterDuree, interventionDe, lieuDeEndroit } from '@/lib/intervention
 import { useEndroits } from '@/hooks/use-endroits';
 import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Arret } from '@/types';
 import { QUESTION_ARRET_FAIT } from '@/lib/messages-resultat';
+import { sansBruit } from '@/lib/trace';
 import { useImportance } from '../../../../frontend/supervisor/InterventionsAPlanifier';
 import { formaterNombre } from '@/lib/format';
 import {
@@ -545,7 +546,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                   titre={calculEnCours ? 'Calcul…' : "Recalculer l'ordre depuis ma position"}
                   variante="discret"
                   actif={!calculEnCours}
-                  onPress={() => void recalculer()}
+                  onPress={() => sansBruit(recalculer, 'recalcul')}
                 />
               ) : null}
               {demandeCalcul?.statut === 'echec' && demandeCalcul.message ? (
@@ -563,7 +564,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                     titre={`Réessayer l'arrêt ${partiel.rang}`}
                     variante="discret"
                     actif={!occupe}
-                    onPress={() => void faire(idArret(partiel))}
+                    onPress={() => sansBruit(() => faire(idArret(partiel)), 'arrêt')}
                   />
                 </View>
               ) : null}

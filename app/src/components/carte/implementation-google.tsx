@@ -6,10 +6,10 @@ import { useThemeCarte } from '@/hooks/use-theme-carte';
 import { deltasPourRayon } from '@/lib/position-citoyen';
 import { cadrerPoints, regionDepuisCamera, zoomDepuisDelta } from '@/lib/camera';
 import { choisirIdCarte, envCarte } from '@/lib/carte-reglages';
-import { NOM_IMAGE_VEHICULE, nomImageGroupe, nomImageRepere } from '@/lib/images-reperes';
+import { NOM_IMAGE_VEHICULE, nomImageGroupe, nomImageInfo, nomImageRepere } from '@/lib/images-reperes';
 import type { Coordonnees } from '@/types';
 
-import type { CarteProps, CercleProps, RepereGroupeProps, RepereProps, TraceProps, VehiculeProps, ZoneProps } from './types';
+import type { CarteProps, CercleProps, RepereGroupeProps, RepereInfoProps, RepereProps, TraceProps, VehiculeProps, ZoneProps } from './types';
 
 /** Chargement tardif : la bibliothèque n'existe que dans une build faite avec NAVIGATION_GOOGLE=1. */
 function biblio(): typeof Nav {
@@ -28,6 +28,8 @@ const ContexteCarte = createContext<Contexte>({ controleur: null, inscrire: () =
 
 const PREFIXE_REPERE = 'r:';
 const PREFIXE_ZONE = 'z:';
+const PREFIXE_TRACE = 't:';
+const PREFIXE_CERCLE = 'c:';
 const PERIODE_RAFALE_MS = 100;
 const RAFALE_APRES_GESTE_MS = 1000;
 const PERIODE_REPOS_MS = 600;
@@ -35,6 +37,22 @@ const PERIODE_REPOS_MS = 600;
 const DELAI_RETRAIT_MS = 80;
 const ZOOM_SUIVI = 17;
 const INCLINAISON_SUIVI = 55;
+
+/**
+ * Pose un repère. Si son image n'est pas dans la build (« Failed to load image from the provided path »), on le pose avec le repère
+ * par défaut de la carte : il reste visible et touchable, et aucune promesse rejetée ne traîne (une par repère auparavant).
+ */
+function poserRepere(c: Nav.MapViewController, options: Parameters<Nav.MapViewController['addMarker']>[0]): void {
+  void Promise.resolve(c.addMarker(options)).catch(() => {
+    const { imgPath: _image, ...sansImage } = options as typeof options & { imgPath?: string };
+    return Promise.resolve(c.addMarker(sansImage as typeof options)).catch(() => {});
+  });
+}
+
+/** Une forme (tracé, secteur, cercle) qui ne peut pas être posée n'est qu'ignorée : jamais de promesse rejetée sans traitement. */
+function sansErreur(p: unknown): void {
+  void Promise.resolve(p).catch(() => {});
+}
 
 function ll(c: Coordonnees): Nav.LatLng {
   return { lat: c.latitude, lng: c.longitude };
@@ -212,6 +230,8 @@ export function Carte({ commandes, children, regionInitiale, onPress, onRegionCh
         onMarkerClick={(m) => gestionnaires.current.get(m.id)?.onPress?.()}
         onMarkerInfoWindowTapped={(m) => gestionnaires.current.get(m.id)?.onBulle?.()}
         onPolygonClick={(p) => gestionnaires.current.get(p.id)?.onPress?.()}
+        onPolylineClick={(p) => gestionnaires.current.get(p.id)?.onPress?.()}
+        onCircleClick={(c) => gestionnaires.current.get(c.id)?.onPress?.()}
       />
       ) : null}
       <ContexteCarte.Provider value={contexte}>{children as ReactNode}</ContexteCarte.Provider>
@@ -257,7 +277,7 @@ export function Repere({ id, position, couleur, etat, numero, titre, description
   useElement(
     cle,
     (c) => {
-      void c.addMarker({
+      poserRepere(c, {
         id: cle,
         position: ll(position),
         imgPath: nomImageRepere(couleur, etat, numero),
@@ -282,7 +302,7 @@ export function RepereGroupe({ id, position, couleur, nombre, pointEleve, marque
   useElement(
     cle,
     (c) => {
-      void c.addMarker({
+      poserRepere(c, {
         id: cle,
         position: ll(position),
         imgPath: nomImageGroupe(couleur, nombre, !!pointEleve),
@@ -306,7 +326,7 @@ export function Vehicule({ id, position, cap, titre, description }: VehiculeProp
   useElement(
     cle,
     (c) => {
-      void c.addMarker({
+      poserRepere(c, {
         id: cle,
         position: ll(position),
         imgPath: NOM_IMAGE_VEHICULE,
@@ -323,16 +343,40 @@ export function Vehicule({ id, position, cap, titre, description }: VehiculeProp
   return null;
 }
 
-export function Trace({ id, points, couleur, epaisseur }: TraceProps) {
-  const cle = `t:${id}`;
+export function Trace({ id, points, couleur, epaisseur, onPress }: TraceProps) {
+  const { inscrire } = useContext(ContexteCarte);
+  const cle = `${PREFIXE_TRACE}${id}`;
   useElement(
     cle,
     (c) => {
-      void c.addPolyline({ id: cle, points: points.map(ll), color: couleur, width: epaisseur });
+      sansErreur(c.addPolyline({ id: cle, points: points.map(ll), color: couleur, width: epaisseur, clickable: !!onPress }));
     },
     (c) => c.removePolyline(cle),
-    [points, couleur, epaisseur],
+    [points, couleur, epaisseur, !!onPress],
   );
+  useEffect(() => {
+    inscrire(cle, { onPress });
+    return () => inscrire(cle, null);
+  }, [inscrire, cle, onPress]);
+  return null;
+}
+
+/** Petit repère d'information (image embarquée par genre) : le plus sûr des chemins de toucher, comme les repères de signalement. */
+export function RepereInfo({ id, position, genre, onPress }: RepereInfoProps) {
+  const { inscrire } = useContext(ContexteCarte);
+  const cle = `${PREFIXE_REPERE}${id}`;
+  useElement(
+    cle,
+    (c) => {
+      poserRepere(c, { id: cle, position: ll(position), imgPath: nomImageInfo(genre), anchor: { u: 0.5, v: 75 / 84 } });
+    },
+    (c) => c.removeMarker(cle),
+    [position.latitude, position.longitude, genre],
+  );
+  useEffect(() => {
+    inscrire(cle, { onPress });
+    return () => inscrire(cle, null);
+  }, [inscrire, cle, onPress]);
   return null;
 }
 
@@ -342,7 +386,7 @@ export function Zone({ id, exterieur, trous, fond, contour, epaisseur, onPress }
   useElement(
     cle,
     (c) => {
-      void c.addPolygon({
+      sansErreur(c.addPolygon({
         id: cle,
         points: exterieur.map(ll),
         holes: (trous ?? []).map((t) => t.map(ll)),
@@ -350,7 +394,7 @@ export function Zone({ id, exterieur, trous, fond, contour, epaisseur, onPress }
         strokeColor: contour,
         strokeWidth: epaisseur,
         clickable: !!onPress,
-      });
+      }));
     },
     (c) => c.removePolygon(cle),
     [exterieur, trous, fond, contour, epaisseur],
@@ -362,15 +406,20 @@ export function Zone({ id, exterieur, trous, fond, contour, epaisseur, onPress }
   return null;
 }
 
-export function Cercle({ id, centre, rayonM, fond, contour, epaisseur }: CercleProps) {
-  const cle = `c:${id}`;
+export function Cercle({ id, centre, rayonM, fond, contour, epaisseur, onPress }: CercleProps) {
+  const { inscrire } = useContext(ContexteCarte);
+  const cle = `${PREFIXE_CERCLE}${id}`;
   useElement(
     cle,
     (c) => {
-      void c.addCircle({ id: cle, center: ll(centre), radius: rayonM, fillColor: fond, strokeColor: contour, strokeWidth: epaisseur });
+      sansErreur(c.addCircle({ id: cle, center: ll(centre), radius: rayonM, fillColor: fond, strokeColor: contour, strokeWidth: epaisseur, clickable: !!onPress }));
     },
     (c) => c.removeCircle(cle),
-    [centre.latitude, centre.longitude, rayonM, fond, contour, epaisseur],
+    [centre.latitude, centre.longitude, rayonM, fond, contour, epaisseur, !!onPress],
   );
+  useEffect(() => {
+    inscrire(cle, { onPress });
+    return () => inscrire(cle, null);
+  }, [inscrire, cle, onPress]);
   return null;
 }

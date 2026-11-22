@@ -103,10 +103,15 @@ export function chargerRegards(): RegardEgout[] {
   return cacheRegards;
 }
 
+let cacheDemo: Signalement[] | null = null;
+
+/** Signalements de démonstration (copie locale), reconstruits une seule fois : chaque lecture hors ligne les réutilise. */
 export function chargerSignalementsDemo(): Signalement[] {
+  if (cacheDemo) return cacheDemo;
   const v = essayer(() => require('../donnees/signalements-demo.json'));
   if (!Array.isArray(v)) return [];
-  return (v as Signalement[]).map((s) => ({ ...s, origine: 'citoyen' as const }));
+  cacheDemo = (v as Signalement[]).map((s) => ({ ...s, origine: 'citoyen' as const }));
+  return cacheDemo;
 }
 
 export function chargerRegion(): Region {

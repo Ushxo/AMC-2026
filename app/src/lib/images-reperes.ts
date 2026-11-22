@@ -27,6 +27,11 @@ export function nomImageRepere(couleur: string, etat: EtatRepere = 'normal', num
 
 export const NOM_IMAGE_VEHICULE = 'vehicule';
 
+/** Image d'un repère d'information (avis d'ébullition, coupure, eau accumulée, chantier, zone inondable) : info_<genre>. */
+export function nomImageInfo(genre: 'ebullition' | 'coupure' | 'bande' | 'chantier' | 'zone'): string {
+  return `info_${genre}`;
+}
+
 const NOMBRE_GROUPE_MAX = 99;
 
 /**

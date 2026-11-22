@@ -44,3 +44,14 @@ describe('officiel', () => {
     expect(c.zonesInondables.features.length).toBeGreaterThan(0);
   });
 });
+
+describe('signalements de démonstration', () => {
+  it('sont reconstruits une seule fois, puis réutilisés à chaque lecture hors ligne', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { chargerSignalementsDemo } = require('../officiel') as typeof import('../officiel');
+    const a = chargerSignalementsDemo();
+    expect(a.length).toBeGreaterThan(0);
+    expect(a[0].origine).toBe('citoyen');
+    expect(chargerSignalementsDemo()).toBe(a);
+  });
+});

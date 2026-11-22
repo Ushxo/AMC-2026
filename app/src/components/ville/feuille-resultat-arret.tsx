@@ -7,6 +7,7 @@ import { BoutonAction } from '@/components/bouton-action';
 import { ChampTexte as TextInput, Texte as Text } from '@/components/texte';
 import { useStyles } from '@/marque/utiliser';
 import type { Jetons } from '@/marque/jetons';
+import { sansBruit, tracer } from '@/lib/trace';
 import { erreurCommentaire, LIMITE_COMMENTAIRE, QUESTION_ARRET_FAIT, RAISONS_NON_FAIT } from '@/lib/messages-resultat';
 
 import { Bouton } from './bouton';
@@ -49,7 +50,13 @@ function Contenu({ rang, choixInitial, commentaireInitial = '', onEnregistrer, o
       return;
     }
     setOccupe(true);
-    const refus = await onEnregistrer({ fait: choix === 'oui', commentaire: texte });
+    let refus: string | null;
+    try {
+      refus = await onEnregistrer({ fait: choix === 'oui', commentaire: texte });
+    } catch (e) {
+      tracer('résultat de l’arrêt', e);
+      refus = "L'enregistrement n'a pas pu se faire. Réessayez.";
+    }
     setOccupe(false);
     if (refus) setErreur(refus);
     else onFermer();
@@ -115,7 +122,7 @@ function Contenu({ rang, choixInitial, commentaireInitial = '', onEnregistrer, o
               ) : null}
             </View>
           ) : null}
-          <BoutonAction titre={occupe ? 'Enregistrement…' : 'Enregistrer'} actif={!!choix} occupe={occupe} onPress={() => void enregistrer()} />
+          <BoutonAction titre={occupe ? 'Enregistrement…' : 'Enregistrer'} actif={!!choix} occupe={occupe} onPress={() => sansBruit(enregistrer, 'résultat de l’arrêt')} />
           <Bouton titre="Annuler" variante="discret" pleineLargeur onPress={onFermer} actif={!occupe} />
         </ScrollView>
       </View>

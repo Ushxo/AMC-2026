@@ -11,7 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { BandeauSource } from '@/components/ville/bandeau-source';
 import { Bouton } from '@/components/ville/bouton';
 import { MESSAGE_RECHERCHE_INDISPONIBLE, useRechercheAdresse } from '@/hooks/use-recherche-adresse';
-import { Carte, Cercle, Repere, Zone, type CarteCommandes } from '@/components/carte';
+import { Carte, Cercle, Repere, RepereInfo, Zone, type CarteCommandes } from '@/components/carte';
 import { AvisEau } from '@/components/ville/avis-eau';
 import { ReperesEndroits } from '@/components/ville/reperes-endroits';
 import { Chargement, Erreur } from '@/components/ville/etat-ecran';
@@ -33,12 +33,15 @@ import { sansNonConfirmes } from '@/lib/gravite';
 import { abonnerBrouillon, ecrireBrouillon, lireBrouillon, viderBrouillon } from '@/lib/brouillon-signalement';
 import { chargerRegion } from '@/lib/officiel';
 import { libelleBande } from '@/lib/inondation';
+import { creerGardeToucher, ficheBande, reperesInfo } from '@/lib/reperes-info';
 import {
   avisVisibles,
   basculerCouche,
   COUCHES_CARTE,
   COUCHES_PAR_DEFAUT,
   ficheAvis,
+  ficheChantier,
+  ficheZoneInondable,
   LIBELLES_COUCHE,
   verifierAvis,
   elementTouche,
@@ -85,6 +88,7 @@ export default function CarteCitoyen({ coquille }: Props) {
   const bandes = useBandesInondation(useMemo(() => sansNonConfirmes(signalements), [signalements]));
   const deltaRegion = useRef<number | undefined>(undefined);
   const [options, setOptions] = useState(false);
+  const [garde] = useState(() => creerGardeToucher(300));
   const [hauteurEntete, setHauteurEntete] = useState(200);
   // Retour depuis la photo : la feuille « Quel problème ? » se rouvre sur la carte, avec le problème et le lieu déjà choisis.
   const [feuille, setFeuille] = useState<{ point: { latitude: number; longitude: number } | null } | null>(() => (lireBrouillon().feuilleOuverte ? { point: lireBrouillon().lieu } : null));
@@ -119,6 +123,17 @@ export default function CarteCitoyen({ coquille }: Props) {
   const carte = useRef<CarteCommandes>(null);
   const { position: maPosition, statut: statutPosition, actualiser } = usePositionCarte();
   const avis = useMemo(() => avisVisibles(couches.avisEau, coucheVisible), [couches.avisEau, coucheVisible]);
+  // Un petit repère touchable au milieu de chaque avis, bande d'eau, chantier et zone inondable affichés : le chemin de toucher le plus sûr.
+  const infos = useMemo(
+    () =>
+      reperesInfo({
+        avis,
+        bandes: coucheVisible.eauAccumulee ? bandes : [],
+        chantiers: coucheVisible.chantiers ? couches.chantiers.features : null,
+        zones: coucheVisible.zonesInondables ? couches.zonesInondables.features : null,
+      }),
+    [avis, bandes, coucheVisible, couches.chantiers, couches.zonesInondables],
+  );
   // Position du téléphone : on le dit seulement si elle est sous un avis (sinon, rien à signaler de plus).
   const verifPosition = useMemo(() => (maPosition ? verifierAvis(maPosition, couches.avisEau, 'position') : null), [maPosition, couches.avisEau]);
   // Ouverture sur le citoyen : la carte attend un instant sa dernière position connue (jamais la fenêtre de permission),
@@ -160,6 +175,8 @@ export default function CarteCitoyen({ coquille }: Props) {
   // Toucher la carte : un élément officiel (avis, chantier, zone inondable) touché N'IMPORTE OÙ dans son tracé (ou tout près) ouvre sa fiche,
   // le plus petit gagnant quand ils se chevauchent ; sinon on signale à cet endroit. Le test se fait ici, pas sur le polygone de la carte.
   function toucherCarte(c: { latitude: number; longitude: number }) {
+    // Un élément (repère, tracé, secteur) vient de répondre : ce toucher de carte en est l'écho, on l'ignore.
+    if (garde.recent()) return;
     const element = elementTouche(
       c,
       {
@@ -169,8 +186,16 @@ export default function CarteCitoyen({ coquille }: Props) {
       },
       toleranceToucherM(deltaRegion.current),
     );
+    garde.marquer();
     if (element) return setFiche({ element, point: c });
     signalerIci(c);
+  }
+
+  // Un élément de la carte (repère d'information, tracé, secteur) ouvre sa fiche : une seule fiche par toucher, quel que soit le chemin
+  // (le dessin natif, le repère ou le toucher de la carte) qui a répondu en premier.
+  function ouvrirFiche(element: ElementCarte) {
+    if (!garde.prendre()) return;
+    setFiche({ element, point: null });
   }
 
   // Toucher un regard lance le signalement à cet endroit.
@@ -222,7 +247,7 @@ export default function CarteCitoyen({ coquille }: Props) {
           }}
           onPress={toucherCarte}
           accessibilityLabel="Carte des signalements et des avis d'eau. Touchez la carte pour signaler un problème à cet endroit, ou un avis pour voir sa fiche.">
-          <AvisEau avis={avis} />
+          <AvisEau avis={avis} onPress={(a) => ouvrirFiche(ficheAvis(a))} />
           {coucheVisible.zonesInondables
             ? couches.zonesInondables.features.flatMap((f) => {
                 const anneaux = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
@@ -234,6 +259,7 @@ export default function CarteCitoyen({ coquille }: Props) {
                     fond={STYLE_ZONE_INONDABLE.fond}
                     contour={STYLE_ZONE_INONDABLE.contour}
                     epaisseur={STYLE_ZONE_INONDABLE.epaisseur}
+                    onPress={() => ouvrirFiche(ficheZoneInondable(f))}
                   />
                 ));
               })
@@ -249,11 +275,15 @@ export default function CarteCitoyen({ coquille }: Props) {
                     fond={STYLE_CHANTIER.fond}
                     contour={STYLE_CHANTIER.contour}
                     epaisseur={STYLE_CHANTIER.epaisseur}
+                    onPress={() => ouvrirFiche(ficheChantier(f))}
                   />
                 ) : null,
               )
             : null}
-          {coucheVisible.eauAccumulee ? <BandesInondation bandes={bandes} /> : null}
+          {coucheVisible.eauAccumulee ? <BandesInondation bandes={bandes} onPress={(b) => ouvrirFiche(ficheBande(b))} /> : null}
+          {infos.map((r) => (
+            <RepereInfo key={r.id} id={r.id} position={r.position} genre={r.genre} accessibilityLabel={`${r.libelle}. Ouvrir la fiche.`} onPress={() => ouvrirFiche(r.fiche)} />
+          ))}
           {(coucheVisible.regards ? bouches : []).map((b) => (
             <Repere
               key={`b-${b.id}`}
@@ -261,7 +291,9 @@ export default function CarteCitoyen({ coquille }: Props) {
               position={b.position}
               couleur={COULEUR_REPERE.existant}
               zIndex={1}
-              onPress={() => signalerIci(b.position)}
+              onPress={() => {
+                if (garde.prendre()) signalerIci(b.position);
+              }}
               accessibilityLabel={`Regard d'égout, sans signalement${b.adresse ? `, ${b.adresse}` : ''}. Toucher pour le signaler.`}
             />
           ))}
@@ -280,6 +312,7 @@ export default function CarteCitoyen({ coquille }: Props) {
                   titre={`Gravité ${LIBELLES_GRAVITE[e.gravite_affichee]}`}
                   description={nombre}
                   accessibilityLabel={`${nombre}, gravité ${LIBELLES_GRAVITE[e.gravite_affichee]}. Voir le suivi.`}
+                  onPress={() => garde.marquer()}
                   onBulle={() => router.push({ pathname: '/suivi/[id]', params: { id: premierSignalement(e) } })}
                 />
               );

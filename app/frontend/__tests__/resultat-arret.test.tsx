@@ -67,6 +67,19 @@ describe('feuille de résultat d’un arrêt', () => {
   });
 });
 
+describe('feuille de résultat : enregistrement qui plante', () => {
+  it('une exception donne une phrase d’erreur, la saisie reste et le bouton se libère', async () => {
+    const onEnregistrer = jest.fn(async () => {
+      throw new Error('panne');
+    });
+    await feuille(onEnregistrer as never, 'non', 'Accès impossible');
+    await fireEvent.press(screen.getByLabelText('Enregistrer'));
+    expect(await screen.findByText("L'enregistrement n'a pas pu se faire. Réessayez.")).toBeTruthy();
+    expect(screen.getByDisplayValue('Accès impossible')).toBeTruthy();
+    expect(screen.getByLabelText('Enregistrer').props.accessibilityState.busy).toBe(false);
+  });
+});
+
 describe('liste des arrêts de la tournée', () => {
   const arret = (rang: number): Arret => ({
     id: `A${rang}`, rang, cle_endroit: `c${rang}`, signalement_ids: ['s'], position: { latitude: 45.5, longitude: -73.57 },

@@ -39,6 +39,7 @@ import { lieuDeEndroit } from '@/lib/interventions';
 import { chargerAdresses, chargerRegion } from '@/lib/officiel';
 import { ecrireBrouillon, lireBrouillon, viderBrouillon } from '@/lib/brouillon-signalement';
 import { MESSAGE_GARDE_HORS_LIGNE, MESSAGE_RECU_SANS_CONFIRMATION, MESSAGE_RECU_SIMPLE, MESSAGE_RECU_SUR_CARTE } from '@/lib/messages-seuil';
+import { sansBruit } from '@/lib/trace';
 import { colonnePhotoManquante } from '@/lib/source';
 import {
   MESSAGE_ECHEC_ENVOI,
@@ -393,18 +394,18 @@ export default function Signaler() {
               Où est le problème ?
             </ThemedText>
             <View style={styles.rangee}>
-              <Bouton titre="Utiliser ma position" variante="discret" onPress={() => void maPosition()} />
+              <Bouton titre="Utiliser ma position" variante="discret" onPress={() => sansBruit(maPosition, 'position')} />
             </View>
             {permission === 'refusee' ? <ThemedText type="small">{MESSAGE_POSITION_REFUSEE}</ThemedText> : null}
             <Champ
               etiquette="Ou cherchez une adresse"
               value={texteAdresse}
               onChangeText={setTexteAdresse}
-              onSubmitEditing={() => void lancerRecherche()}
+              onSubmitEditing={() => sansBruit(lancerRecherche, 'recherche')}
               returnKeyType="search"
               autoCorrect={false}
             />
-            <Bouton titre="Chercher" variante="discret" onPress={() => void lancerRecherche()} />
+            <Bouton titre="Chercher" variante="discret" onPress={() => sansBruit(lancerRecherche, 'recherche')} />
             {resultats && resultats.length === 0 ? (
               <ThemedText type="small" themeColor="textSecondary" accessibilityRole="alert">
                 {rechercheIndisponible ? MESSAGE_RECHERCHE_INDISPONIBLE : 'Aucune adresse trouvée.'}
@@ -506,7 +507,7 @@ export default function Signaler() {
         ) : (
           <BoutonAction
             titre={attenteAnalyse ? 'Vérification de la photo…' : envoiEnCours ? 'Envoi…' : 'Envoyer le signalement'}
-            onPress={() => void valider()}
+            onPress={() => sansBruit(valider, 'envoi')}
             occupe={envoiEnCours || attenteAnalyse}
           />
         )}

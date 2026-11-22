@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { Couches } from '../../src/types';
 import CarteCitoyen from '../../src/components/citoyen/ecran-carte';
@@ -12,11 +12,19 @@ jest.mock('@/components/ville/selecteur-carte', () => ({ SelecteurCarte: () => n
 jest.mock('@/components/ville/liste-endroits', () => ({ ListeEndroits: () => null }));
 jest.mock('@/components/ville/reperes-endroits', () => ({ ReperesEndroits: () => null }));
 const mockDessines: string[] = [];
+const mockCartePress: { f: ((c: { latitude: number; longitude: number }) => void) | null } = { f: null };
 jest.mock('@/components/carte', () => {
   const { View } = jest.requireActual('react-native');
   return {
-    Carte: ({ children }: { children: unknown }) => <View>{children as never}</View>,
+    Carte: ({ children, onPress }: { children: unknown; onPress?: (c: { latitude: number; longitude: number }) => void }) => {
+      mockCartePress.f = onPress ?? null;
+      return <View>{children as never}</View>;
+    },
     Repere: () => null,
+    RepereInfo: ({ id, onPress, accessibilityLabel }: { id: string; onPress?: () => void; accessibilityLabel?: string }) => {
+      const { Pressable } = jest.requireActual('react-native');
+      return <Pressable testID={id} accessibilityLabel={accessibilityLabel} onPress={onPress} />;
+    },
     Cercle: ({ id }: { id: string }) => {
       mockDessines.push(id);
       return null;
@@ -84,5 +92,28 @@ describe('carte citoyen : avis d’eau et couches', () => {
     await fireEvent(screen.getByLabelText('Rechercher une adresse à Montréal'), 'submitEditing');
     await fireEvent.press(await screen.findByLabelText('Aller à 1 rue Test'));
     expect(screen.getByText("Cette adresse est sous un avis d'ébullition.")).toBeTruthy();
+  });
+});
+
+describe('carte citoyen : repères d’information touchables', () => {
+  it('chaque avis a son repère avec un libellé lu, qui ouvre la fiche', async () => {
+    await render(<CarteCitoyen coquille={{ espaceBas: 0, onOpenProfile: jest.fn() }} />);
+    const repere = await screen.findByTestId('info-avis-1');
+    expect(repere.props.accessibilityLabel).toMatch(/^Avis d'ébullition, .*Ouvrir la fiche\.$/);
+    expect(screen.getByTestId('info-avis-2')).toBeTruthy();
+    const avant = screen.queryAllByText("Avis d'ébullition").length;
+    await fireEvent.press(repere);
+    expect(screen.queryAllByText("Avis d'ébullition").length).toBeGreaterThan(avant); // la fiche s'est ouverte
+  });
+
+  it('un toucher = une fiche : le repère puis l’écho de la carte n’ouvrent pas la feuille « Quel problème ? »', async () => {
+    await render(<CarteCitoyen coquille={{ espaceBas: 0, onOpenProfile: jest.fn() }} />);
+    const repere = await screen.findByTestId('info-avis-1');
+    await fireEvent.press(repere);
+    const apresPremier = screen.queryAllByText("Avis d'ébullition").length;
+    await fireEvent.press(repere); // le tracé répond au même toucher : ignoré
+    await act(async () => mockCartePress.f?.({ latitude: 45.9, longitude: -73.1 })); // la carte répond aussi, loin de tout avis
+    expect(screen.queryByText('Quel problème avez-vous observé ?')).toBeNull();
+    expect(screen.queryAllByText("Avis d'ébullition").length).toBe(apresPremier); // une seule fiche, rien d'autre ne s'est ouvert
   });
 });

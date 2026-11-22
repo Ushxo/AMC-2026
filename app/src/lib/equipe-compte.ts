@@ -60,6 +60,42 @@ export async function lireMonEquipe(): Promise<{ equipeId: string | null; dispon
   }
 }
 
+type ResultatMonEquipe = Awaited<ReturnType<typeof lireMonEquipe>>;
+
+/** Une réponse réussie reste valable ce temps : la connexion et l'écran du trajet ne redemandent pas l'équipe. */
+export const DUREE_CACHE_EQUIPE_MS = 30000;
+
+let cacheEquipe: { compte: string; resultat: ResultatMonEquipe; le: number } | null = null;
+let lectureEquipe: { compte: string; promesse: Promise<ResultatMonEquipe> } | null = null;
+
+/**
+ * Équipe du compte, lue une seule fois pour tous les écrans : une lecture en cours est partagée, une réponse réussie est gardée
+ * 30 s, et le cache est vidé quand le compte change. `forcer` (bouton « Réessayer ») relit toujours. Une panne n'est jamais gardée.
+ */
+export function lireMonEquipePartagee(compte: string | null, forcer = false): Promise<ResultatMonEquipe> {
+  const cle = compte ?? '';
+  if (!forcer && cacheEquipe && cacheEquipe.compte === cle && Date.now() - cacheEquipe.le < DUREE_CACHE_EQUIPE_MS) {
+    return Promise.resolve(cacheEquipe.resultat);
+  }
+  if (!forcer && lectureEquipe && lectureEquipe.compte === cle) return lectureEquipe.promesse;
+  const promesse = lireMonEquipe()
+    .then((r) => {
+      if (!r.echec) cacheEquipe = { compte: cle, resultat: r, le: Date.now() };
+      else if (cacheEquipe?.compte === cle) cacheEquipe = null;
+      return r;
+    })
+    .finally(() => {
+      if (lectureEquipe?.promesse === promesse) lectureEquipe = null;
+    });
+  lectureEquipe = { compte: cle, promesse };
+  return promesse;
+}
+
+export function viderCacheEquipe(): void {
+  cacheEquipe = null;
+  lectureEquipe = null;
+}
+
 export function positionDepuisLigne(l: Record<string, unknown>): PositionEquipe {
   return {
     equipe_id: l.equipe_id as string,

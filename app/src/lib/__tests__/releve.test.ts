@@ -77,4 +77,16 @@ describe('relève périodique', () => {
     jest.advanceTimersByTime(RELEVE_LENTE_MS);
     expect(lire).toHaveBeenCalledTimes(2);
   });
+
+  it('une exception dans la lecture ne coupe pas la relève', () => {
+    const avertir = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const lire = jest.fn(() => {
+      throw new Error('boum');
+    });
+    const arret = demarrerReleve({ table: 't9', lire });
+    jest.advanceTimersByTime(RELEVE_RAPIDE_MS * 3);
+    expect(lire).toHaveBeenCalledTimes(3);
+    arret();
+    avertir.mockRestore();
+  });
 });
