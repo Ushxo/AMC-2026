@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Palette } from '@/constants/theme';
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 /** Bouton en pilule des maquettes : contour, fond sauge quand il est choisi. Le choix se dit aussi en texte (accessibilité). */
 export function Chip({
@@ -17,6 +18,7 @@ export function Chip({
   onPress: () => void;
   libelleAccessible?: string;
 }) {
+  const styles = useStyles(creerStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -32,8 +34,8 @@ export function Chip({
   );
 }
 
-const styles = StyleSheet.create({
-  chip: { minHeight: 52, paddingHorizontal: 18, borderRadius: 26, borderWidth: 2, borderColor: '#C9CFBD', backgroundColor: '#FFFFFF', justifyContent: 'center' },
-  choisi: { borderColor: Palette.primary, backgroundColor: Palette.backgroundSelected },
+const creerStyles = (P: Jetons) => StyleSheet.create({
+  chip: { minHeight: 52, paddingHorizontal: 18, borderRadius: 26, borderWidth: 2, borderColor: P.border, backgroundColor: P.surface, justifyContent: 'center' },
+  choisi: { borderColor: P.primary, backgroundColor: P.backgroundSelected },
   texte: { fontSize: 15, lineHeight: 20, fontWeight: '600' },
 });

@@ -45,7 +45,10 @@ import {
 } from '@/lib/couches-carte';
 import { dansQuartier, messagePositionCarte, RAYON_CITOYEN_M } from '@/lib/position-citoyen';
 import { LIBELLES_GRAVITE, type Categorie, type Endroit, type ResultatRecherche } from '@/types';
+import { LogoMarque } from '@/components/logo-marque';
 import { FeuilleProbleme } from './feuille-probleme';
+import { useMarque, useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 function premierSignalement(e: Endroit): string {
   const ouvert = e.signalements.find((s) => s.etat === 'nouveau' || s.etat === 'pris_en_charge');
@@ -64,8 +67,10 @@ type Props = {
 
 /** Carte des égouts : la carte plein écran, un en-tête vert avec la recherche d'adresse, un bouton de recentrage et « Signaler ». */
 export default function CarteCitoyen({ coquille }: Props) {
+  const styles = useStyles(creerStyles);
   const { top, bottom } = useSafeAreaInsets();
   const theme = useTheme();
+  const { organisation } = useMarque();
   const router = useRouter();
   const { etat } = useSource();
   const { couches } = useCouches();
@@ -242,9 +247,17 @@ export default function CarteCitoyen({ coquille }: Props) {
       {/* En-tête vert : titre, compte, recherche d'adresse. */}
       <View style={[styles.entete, { backgroundColor: theme.header, paddingTop: top + 10 }]}>
         <View style={styles.ligneTitre}>
-          <ThemedText type="subtitle" accessibilityRole="header" style={[styles.titre, { color: theme.onHeader }]} maxFontSizeMultiplier={1.3}>
-            Carte des égouts
-          </ThemedText>
+          <View style={styles.marqueTitre}>
+            <LogoMarque taille={46} />
+            <View style={{ flex: 1 }}>
+              <ThemedText style={{ color: theme.onHeaderSoft, fontSize: 14, lineHeight: 18, fontWeight: '600' }} maxFontSizeMultiplier={1.3} numberOfLines={1}>
+                {organisation.nom_app}
+              </ThemedText>
+              <ThemedText type="subtitle" accessibilityRole="header" style={[styles.titre, { color: theme.onHeader }]} maxFontSizeMultiplier={1.3}>
+                Carte des égouts
+              </ThemedText>
+            </View>
+          </View>
           {coquille ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Mon compte et connexion du personnel" hitSlop={8} onPress={coquille.onOpenProfile} style={styles.compte}>
               <Ionicons name="person-circle-outline" size={44} color={theme.onHeader} />
@@ -399,7 +412,7 @@ export default function CarteCitoyen({ coquille }: Props) {
                   value={coucheVisible[c]}
                   onValueChange={() => setCoucheVisible((e) => basculerCouche(e, c))}
                   accessibilityLabel={`${LIBELLES_COUCHE[c]} : ${coucheVisible[c] ? 'affichée' : 'masquée'}`}
-                  trackColor={{ true: theme.primary, false: '#C9CFBD' }}
+                  trackColor={{ true: theme.primary, false: theme.border }}
                 />
               </View>
             ))}
@@ -454,13 +467,14 @@ export default function CarteCitoyen({ coquille }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1 },
   centre: { flex: 1, justifyContent: 'center' },
   carte: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 0 },
   entete: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: 18, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, gap: 12 },
   ligneTitre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  titre: { flex: 1, fontSize: 28, lineHeight: 36, fontWeight: '800' },
+  marqueTitre: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  titre: { fontSize: 24, lineHeight: 30, fontWeight: '800' },
   compte: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   recherche: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 28, paddingHorizontal: 16, minHeight: 52 },
   champ: { flex: 1, fontSize: 15, minHeight: 48 },
@@ -474,7 +488,7 @@ const styles = StyleSheet.create({
   avisPosition: { position: 'absolute', left: 16, right: 16, borderRadius: 16, padding: 10 },
   voile: { flex: 1 },
   ligneCouche: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
-  ligneAvis: { minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#E6E2D3' },
+  ligneAvis: { minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: P.border },
   feuille: { maxHeight: '80%', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   contenuFeuille: { padding: 20, gap: 12 },
 });

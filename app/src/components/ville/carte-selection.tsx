@@ -15,6 +15,8 @@ import { FicheZone } from './fiche-zone';
 import { COULEUR_REPERE } from './style';
 import { ReperesEndroits } from './reperes-endroits';
 import { libelleZone, ZonesSignalements } from './zones-signalements';
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 type Props = {
   endroits: Endroit[];
@@ -52,6 +54,7 @@ export function CarteSelection({
   cleFin = null,
   onChoisirFin,
 }: Props) {
+  const styles = useStyles(creerStyles);
   const { regroupement, surRegion, surTaille } = useRegroupement(endroits, region, 340);
   const carte = useRef<CarteCommandes>(null);
   const [zoneActive, setZoneActive] = useState<Zone | null>(null);
@@ -134,9 +137,9 @@ export function CarteSelection({
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   cadre: { height: 340 },
   carte: { flex: 1 },
   bulle: { position: 'absolute', left: 8, right: 8, bottom: 8, padding: 10, borderRadius: 12, gap: 6, backgroundColor: 'rgba(255,255,255,0.94)' },
-  texte: { color: '#1A1A1A' },
+  texte: { color: P.text },
 });

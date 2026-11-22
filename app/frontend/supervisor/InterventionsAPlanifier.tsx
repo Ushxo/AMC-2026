@@ -5,7 +5,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 
-import { Palette } from "@/constants/theme";
 import { hrefEndroit } from "@/components/ville/href-endroit";
 import { Chargement, Erreur, Vide } from "@/components/ville/etat-ecran";
 import { useEndroits } from "@/hooks/use-endroits";
@@ -16,6 +15,9 @@ import { AUCUN_FILTRE, clesDesInterventions, interventionsAPlanifier, lieuDeEndr
 import { clesDeZone } from "@/lib/selection";
 import { CATEGORIES_PROPOSEES, LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { IllustrationProbleme } from "@/components/illustration-probleme";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 // Couleurs d'importance de la maquette : rouge, orange, jaune. Le texte et la pastille pleine restent contrastés.
 export const IMPORTANCE: Record<Gravite, { fond: string; plein: string; icone: keyof typeof Ionicons.glyphMap }> = {
@@ -27,6 +29,8 @@ export const IMPORTANCE: Record<Gravite, { fond: string; plein: string; icone: k
 type Choix = { valeur: string | null; libelle: string };
 
 function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: keyof typeof Ionicons.glyphMap; titre: string; choix: Choix[]; valeur: string | null; onChoisir: (v: string | null) => void }) {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const [ouvert, setOuvert] = useState(false);
   const courant = choix.find((c) => c.valeur === valeur);
   const actif = valeur !== null;
@@ -38,11 +42,11 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: ke
         onPress={() => setOuvert(true)}
         style={[styles.pilule, actif && styles.piluleActive]}
       >
-        <Ionicons name={icone} size={20} color={Palette.text} />
+        <Ionicons name={icone} size={20} color={P.text} />
         <Text style={styles.piluleTexte} numberOfLines={1} maxFontSizeMultiplier={1.3}>
           {actif ? courant?.libelle : titre}
         </Text>
-        <Ionicons name="chevron-down" size={18} color={Palette.text} />
+        <Ionicons name="chevron-down" size={18} color={P.text} />
       </Pressable>
       <Modal visible={ouvert} transparent animationType="fade" onRequestClose={() => setOuvert(false)}>
         <Pressable style={styles.voile} onPress={() => setOuvert(false)} accessibilityRole="button" accessibilityLabel="Fermer la liste" />
@@ -63,7 +67,7 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: ke
                 style={styles.option}
               >
                 <Text style={[styles.optionTexte, c.valeur === valeur && { fontWeight: "800" }]}>{c.libelle}</Text>
-                {c.valeur === valeur ? <Ionicons name="checkmark" size={22} color={Palette.primary} /> : null}
+                {c.valeur === valeur ? <Ionicons name="checkmark" size={22} color={P.primary} /> : null}
               </Pressable>
             ))}
           </ScrollView>
@@ -74,6 +78,8 @@ function ListeDeroulante({ icone, titre, choix, valeur, onChoisir }: { icone: ke
 }
 
 function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir: () => void }) {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const c = IMPORTANCE[i.gravite];
   const titre = LIBELLES_CATEGORIE[i.categorie];
   return (
@@ -97,20 +103,22 @@ function Ligne({ i, lieu, onOuvrir }: { i: Intervention; lieu: string; onOuvrir:
           {titre}
         </Text>
         <View style={styles.detail}>
-          <Ionicons name="location-outline" size={15} color={Palette.text} />
+          <Ionicons name="location-outline" size={15} color={P.text} />
           <Text style={styles.detailTexte} numberOfLines={2}>
             {lieu}
           </Text>
         </View>
         <Text style={styles.detailTexte}>Signalée le {formaterDate(i.signaleeLe)}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={22} color={Palette.text} />
+      <Ionicons name="chevron-forward" size={22} color={P.text} />
     </Pressable>
   );
 }
 
 /** Page « Interventions à planifier » : liste filtrée des endroits ouverts, et le bouton qui lance notre optimisation sur cette liste. */
 export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onCalculer: (cles: string[]) => void; onTableau: () => void }) {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const router = useRouter();
   const { endroits, signalements, chargement, erreur, rafraichir } = useEndroits();
   const zones = useZonesSignalements(signalements);
@@ -136,7 +144,7 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
         <Text style={styles.sous}>Priorisées par degré d’importance pour l’optimisation du trajet.</Text>
 
         <View style={styles.filtresTitre}>
-          <Ionicons name="funnel-outline" size={22} color={Palette.text} />
+          <Ionicons name="funnel-outline" size={22} color={P.text} />
           <Text style={styles.filtresMot} accessibilityRole="header">
             Filtres
           </Text>
@@ -182,7 +190,7 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
           onPress={() => onCalculer(clesDesInterventions(liste))}
           style={[styles.calculer, liste.length === 0 && { opacity: 0.5 }]}
         >
-          <MaterialCommunityIcons name="map-marker-path" size={34} color={Palette.surface} />
+          <MaterialCommunityIcons name="map-marker-path" size={34} color={P.surface} />
           <View style={styles.separateur} />
           <View style={{ flex: 1 }}>
             <Text style={styles.calculerTitre} maxFontSizeMultiplier={1.2}>
@@ -192,43 +200,43 @@ export default function InterventionsAPlanifier({ onCalculer, onTableau }: { onC
               Générer le chemin optimisé pour ces interventions
             </Text>
           </View>
-          <Ionicons name="arrow-forward" size={28} color={Palette.surface} />
+          <Ionicons name="arrow-forward" size={28} color={P.surface} />
         </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  fond: { flex: 1, backgroundColor: Palette.background },
+const creerStyles = (P: Jetons) => StyleSheet.create({
+  fond: { flex: 1, backgroundColor: P.background },
   page: { padding: 18, gap: 12, maxWidth: 800, width: "100%", alignSelf: "center" },
   titreRangee: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
-  titre: { fontSize: 26, fontWeight: "800", color: Palette.text, flexShrink: 1 },
-  compteur: { backgroundColor: "#F3E7C3", color: Palette.header, fontWeight: "800", fontSize: 16, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, overflow: "hidden" },
-  sous: { color: Palette.textSecondary, fontSize: 15 },
+  titre: { fontSize: 26, fontWeight: "800", color: P.text, flexShrink: 1 },
+  compteur: { backgroundColor: "#F3E7C3", color: P.primary, fontWeight: "800", fontSize: 16, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, overflow: "hidden" },
+  sous: { color: P.textSecondary, fontSize: 15 },
   filtresTitre: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
-  filtresMot: { fontSize: 20, fontWeight: "800", color: Palette.text },
+  filtresMot: { fontSize: 20, fontWeight: "800", color: P.text },
   filtres: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  pilule: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1, borderColor: Palette.borderForte, backgroundColor: Palette.surface, flexShrink: 1 },
-  piluleActive: { backgroundColor: Palette.backgroundSelected },
-  piluleTexte: { color: Palette.text, fontSize: 15, flexShrink: 1 },
+  pilule: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, flexShrink: 1 },
+  piluleActive: { backgroundColor: P.backgroundSelected },
+  piluleTexte: { color: P.text, fontSize: 15, flexShrink: 1 },
   voile: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
-  feuille: { backgroundColor: Palette.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 8 },
-  feuilleTitre: { fontSize: 20, fontWeight: "800", color: Palette.text },
-  option: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderColor: Palette.border },
-  optionTexte: { fontSize: 17, color: Palette.text },
-  ligne: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Palette.surface, borderRadius: 24, padding: 10, shadowColor: "#1A261A", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  feuille: { backgroundColor: P.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 8 },
+  feuilleTitre: { fontSize: 20, fontWeight: "800", color: P.text },
+  option: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 1, borderColor: P.border },
+  optionTexte: { fontSize: 17, color: P.text },
+  ligne: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: P.surface, borderRadius: 24, padding: 10, shadowColor: "#1A261A", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   priorite: { width: 76, borderRadius: 18, alignItems: "center", paddingTop: 8, paddingBottom: 6, gap: 4 },
   prioriteTexte: { color: "#FFFFFF", fontWeight: "800", fontSize: 13, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, overflow: "hidden" },
   dessin: { width: 60, height: 52, alignItems: "center", justifyContent: "center" },
-  ligneTitre: { fontSize: 17, fontWeight: "800", color: Palette.text },
+  ligneTitre: { fontSize: 17, fontWeight: "800", color: P.text },
   detail: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
-  detailTexte: { fontSize: 13, color: Palette.text, flexShrink: 1 },
+  detailTexte: { fontSize: 13, color: P.text, flexShrink: 1 },
   lien: { minHeight: 48, alignItems: "center", justifyContent: "center" },
-  lienTexte: { color: Palette.header, fontWeight: "800", textDecorationLine: "underline", fontSize: 15 },
+  lienTexte: { color: P.primary, fontWeight: "800", textDecorationLine: "underline", fontSize: 15 },
   bas: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 14 },
-  calculer: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: "#B84A0B", borderRadius: 32, paddingHorizontal: 22, paddingVertical: 16, minHeight: 80 },
+  calculer: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: P.action, borderRadius: 32, paddingHorizontal: 22, paddingVertical: 16, minHeight: 80 },
   separateur: { width: 1, alignSelf: "stretch", backgroundColor: "rgba(255,255,255,0.5)" },
-  calculerTitre: { color: Palette.surface, fontSize: 20, fontWeight: "800" },
-  calculerSous: { color: Palette.surface, fontSize: 14, marginTop: 2 },
+  calculerTitre: { color: P.surface, fontSize: 20, fontWeight: "800" },
+  calculerSous: { color: P.surface, fontSize: 14, marginTop: 2 },
 });

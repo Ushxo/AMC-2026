@@ -57,6 +57,8 @@ import {
   resumerGain,
 } from '@/lib/tournees';
 import { LIBELLES_INCIDENT } from '@/types';
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 /** Route classique. */
 export default function Tournees() {
@@ -72,6 +74,7 @@ export function EcranTournees({
   /** Sélection de départ (venue de « Interventions à planifier »). */
   clesInitiales?: string[];
 }) {
+  const styles = useStyles(creerStyles);
   const { bottom: bas } = useSafeAreaInsets();
   const bottom = dansCoquille ? 0 : bas;
   const router = useRouter();
@@ -421,7 +424,7 @@ export function EcranTournees({
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 16, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
   barre: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: StyleSheet.hairlineWidth },
@@ -429,9 +432,9 @@ const styles = StyleSheet.create({
   carteEquipe: { padding: 14, borderRadius: 14, gap: 6 },
   entete: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pastille: { width: 16, height: 16, borderRadius: 8 },
-  carteBlanche: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, gap: 10 },
+  carteBlanche: { backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 10 },
   lienIncident: { minHeight: 48, justifyContent: 'center' },
-  lienIncidentTexte: { fontSize: 15, fontWeight: '700', color: '#1D3A1B', textDecorationLine: 'underline' },
-  relancer: { height: 60, borderRadius: 30, backgroundColor: '#B84A0B', alignItems: 'center', justifyContent: 'center' },
-  relancerTexte: { color: '#FFFFFF', fontSize: 19, lineHeight: 26, fontWeight: '700' },
+  lienIncidentTexte: { fontSize: 15, fontWeight: '700', color: P.primary, textDecorationLine: 'underline' },
+  relancer: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: 'center', justifyContent: 'center' },
+  relancerTexte: { color: P.onAction, fontSize: 19, lineHeight: 26, fontWeight: '700' },
 });

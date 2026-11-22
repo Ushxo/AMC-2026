@@ -1,21 +1,24 @@
 import React, { useState } from "react";
-import { Alert, Platform, Pressable, StatusBar, StyleSheet, View } from 'react-native';
+import { StatusBar, StyleSheet, View } from 'react-native';
 import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAcces } from "@/hooks/use-acces";
 import { EcranEquipes } from "@/app/ville/equipes";
 import { EcranTournees } from "@/app/ville/tournees";
 import { ListeAlertes } from "@/components/ville/liste-alertes";
-import { Palette } from "@/constants/theme";
 import { BarreOnglets, type Onglet } from "../components/BarreOnglets";
+import { BoutonProfil } from "../components/BoutonProfil";
 import { EnteteVert } from "../components/EnteteVert";
 import ArretsFaits from "./ArretsFaits";
 import InterventionsAPlanifier from "./InterventionsAPlanifier";
 import TableauDeBord from "./TableauDeBord";
 import TrajetOptimal from "./TrajetOptimal";
+import { LogoMarque } from "@/components/logo-marque";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 type Id = "interventions" | "alertes" | "optimisation" | "equipes" | "rapports";
 
@@ -36,23 +39,14 @@ const ENTETES: Record<Id, { titre: string; sous: string }> = {
 };
 
 // En-tête de la page « Interventions à planifier » : casque, titre, profil (déconnexion).
-function EnteteSuperviseur({ nom, onLogout, onAdministration }: { nom: string | null; onLogout: () => void; onAdministration?: () => void }) {
+function EnteteSuperviseur({ nom, onLogout, onAdministration, demoHorsLigne }: { nom: string | null; onLogout: () => void; onAdministration?: () => void; demoHorsLigne?: boolean }) {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const insets = useSafeAreaInsets();
-  function profil() {
-    if (Platform.OS === "web") {
-      if (window.confirm("Se déconnecter ?")) onLogout();
-      return;
-    }
-    Alert.alert(nom ? `Connecté : ${nom}` : "Mon compte", onAdministration ? "Que voulez-vous faire ?" : "Voulez-vous vous déconnecter ?", [
-      ...(onAdministration ? [{ text: "Espace d'administration", onPress: onAdministration }] : []),
-      { text: "Annuler", style: "cancel" as const },
-      { text: "Se déconnecter", style: "destructive" as const, onPress: onLogout },
-    ]);
-  }
   return (
     <View style={[styles.entete, { paddingTop: insets.top + 12 }]}>
       <StatusBar barStyle="light-content" />
-      <MaterialCommunityIcons name="hard-hat" size={44} color={Palette.onHeader} />
+      <LogoMarque taille={44} />
       <View style={{ flex: 1 }}>
         <Text style={styles.enteteTitre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
           Superviseur
@@ -61,16 +55,15 @@ function EnteteSuperviseur({ nom, onLogout, onAdministration }: { nom: string | 
           Tableau de bord des interventions
         </Text>
       </View>
-      <Pressable onPress={profil} accessibilityRole="button" accessibilityLabel="Mon compte et déconnexion" hitSlop={8} style={styles.profil}>
-        <Ionicons name="person-circle-outline" size={46} color={Palette.onHeader} />
-      </Pressable>
+      <BoutonProfil nom={nom} role={onAdministration ? "Administrateur" : "Superviseur"} marqueChoisie={demoHorsLigne ? "demo" : null} onAdministration={onAdministration} onDeconnexion={onLogout} />
     </View>
   );
 }
 
 // Espace superviseur : la page des interventions à planifier (avec le bouton de calcul), puis NOS écrans (alertes, optimisation, équipes, arrêts faits).
 export default function SupervisorApp({ onLogout, onAdministration }: { onLogout: () => void; onAdministration?: () => void }) {
-  const { nom } = useAcces();
+  const styles = useStyles(creerStyles);
+  const { nom, demoHorsLigne } = useAcces();
   const [onglet, setOnglet] = useState<Id>("interventions");
   const [tableau, setTableau] = useState(false);
   // Calcul demandé depuis la liste : la sélection filtrée part avec le calcul, une seule fois par demande.
@@ -82,7 +75,7 @@ export default function SupervisorApp({ onLogout, onAdministration }: { onLogout
       {onglet === "optimisation" && demande && !details ? null : onglet === "interventions" && tableau ? (
         <EnteteVert titre="Tableau de bord" sousTitre="Vue d'ensemble de la journée" onBack={() => setTableau(false)} libelleRetour="Retour aux interventions" />
       ) : onglet === "interventions" && !tableau ? (
-        <EnteteSuperviseur nom={nom} onLogout={onLogout} onAdministration={onAdministration} />
+        <EnteteSuperviseur nom={nom} onLogout={onLogout} onAdministration={onAdministration} demoHorsLigne={demoHorsLigne} />
       ) : (
         <EnteteVert titre={ENTETES[onglet].titre} sousTitre={ENTETES[onglet].sous} />
       )}
@@ -132,13 +125,12 @@ export default function SupervisorApp({ onLogout, onAdministration }: { onLogout
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Palette.background },
+const creerStyles = (P: Jetons) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: P.background },
   corps: { flex: 1 },
-  entete: { backgroundColor: Palette.header, paddingHorizontal: 20, paddingBottom: 22, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
-  enteteTitre: { color: Palette.onHeader, fontSize: 28, fontWeight: "800" },
-  enteteSous: { color: "#DCDACE", fontSize: 15 },
-  creer: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, marginHorizontal: 16, marginTop: 10, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: Palette.borderForte, backgroundColor: Palette.surface },
-  creerTexte: { color: Palette.header, fontWeight: "800", fontSize: 15 },
-  profil: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
+  entete: { backgroundColor: P.header, paddingHorizontal: 20, paddingBottom: 22, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  enteteTitre: { color: P.onHeader, fontSize: 28, fontWeight: "800" },
+  enteteSous: { color: P.onHeaderSoft, fontSize: 15 },
+  creer: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, marginHorizontal: 16, marginTop: 10, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface },
+  creerTexte: { color: P.primary, fontWeight: "800", fontSize: 15 },
 });

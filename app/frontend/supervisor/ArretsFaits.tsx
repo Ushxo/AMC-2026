@@ -3,7 +3,6 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Texte as Text } from "@/components/texte";
 
-import { Palette } from "@/constants/theme";
 import { Chargement, Vide } from "@/components/ville/etat-ecran";
 import { couleurEquipe } from "@/components/ville/style";
 import { useEndroits } from "@/hooks/use-endroits";
@@ -12,10 +11,15 @@ import { interventionDe, lieuDeEndroit } from "@/lib/interventions";
 import { chargerAdresses } from "@/lib/officiel";
 import { formaterHeure } from "@/lib/temps";
 import { LIBELLES_CATEGORIE } from "@/types";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 // « Arrêts faits » du superviseur : par équipe, les arrêts déjà faits (heure réelle) puis le prochain à venir. Lecture seule :
 // un arrêt fait règle tout de suite ses signalements, il n'y a pas de rapport à approuver.
 export default function ArretsFaits() {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const { resultat, chargement } = useTournees();
   const { endroits } = useEndroits();
   const adresses = useMemo(() => chargerAdresses(), []);
@@ -25,7 +29,7 @@ export default function ArretsFaits() {
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.note}>
-        <Ionicons name="information-circle-outline" size={26} color={Palette.header} />
+        <Ionicons name="information-circle-outline" size={26} color={P.primary} />
         <Text style={styles.noteTexte}>Un arrêt fait règle tout de suite les signalements de l’endroit.</Text>
       </View>
       {chargement ? (
@@ -64,12 +68,12 @@ export default function ArretsFaits() {
                       <View key={a.rang}>
                         {n > 0 ? <View style={styles.separateur} /> : null}
                         <View style={styles.ligne} accessible accessibilityLabel={`Arrêt ${a.rang}, ${titre}, ${detail}, ${heure}`}>
-                          <Text style={[styles.numero, { backgroundColor: a.fait ? "#2F7D32" : "#8A9480" }]}>{a.rang}</Text>
+                          <Text style={[styles.numero, { backgroundColor: a.fait ? P.success : P.borderForte }]}>{a.rang}</Text>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.ligneTitre}>{titre}</Text>
                             <Text style={styles.ligneDetail}>{detail}</Text>
                           </View>
-                          <Text style={[styles.heure, !a.fait && { color: Palette.textSecondary }]}>{heure}</Text>
+                          <Text style={[styles.heure, !a.fait && { color: P.textSecondary }]}>{heure}</Text>
                         </View>
                       </View>
                     );
@@ -85,21 +89,21 @@ export default function ArretsFaits() {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   page: { padding: 20, gap: 16, maxWidth: 800, width: "100%", alignSelf: "center" },
-  note: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#DDEBD3", borderRadius: 20, padding: 14 },
-  noteTexte: { flex: 1, fontSize: 14, fontWeight: "500", color: Palette.header, lineHeight: 20 },
+  note: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.bandeau, borderRadius: 20, padding: 14 },
+  noteTexte: { flex: 1, fontSize: 14, fontWeight: "500", color: P.primary, lineHeight: 20 },
   equipe: { flexDirection: "row", alignItems: "center", gap: 10 },
   point: { width: 14, height: 14, borderRadius: 7 },
-  equipeNom: { flex: 1, fontSize: 17, fontWeight: "700", color: Palette.text },
-  pastille: { backgroundColor: "#DDEBD3", color: Palette.header, fontSize: 14, fontWeight: "700", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden" },
-  carte: { backgroundColor: "#FFFFFF", borderRadius: 22, padding: 16 },
-  separateur: { height: 1, backgroundColor: "#E6E2D3", marginVertical: 10 },
+  equipeNom: { flex: 1, fontSize: 17, fontWeight: "700", color: P.text },
+  pastille: { backgroundColor: P.bandeau, color: P.primary, fontSize: 14, fontWeight: "700", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden" },
+  carte: { backgroundColor: P.surface, borderRadius: 22, padding: 16 },
+  separateur: { height: 1, backgroundColor: P.border, marginVertical: 10 },
   ligne: { flexDirection: "row", alignItems: "center", gap: 12 },
   numero: { width: 32, height: 32, borderRadius: 16, textAlign: "center", lineHeight: 32, color: "#FFFFFF", fontWeight: "700", fontSize: 15, overflow: "hidden" },
-  ligneTitre: { fontSize: 15, fontWeight: "700", color: Palette.text },
-  ligneDetail: { fontSize: 13, fontWeight: "500", color: "#5E5548" },
-  heure: { fontSize: 14, fontWeight: "700", color: Palette.header },
-  vide: { fontSize: 14, fontWeight: "500", color: Palette.textSecondary },
-  sous: { color: Palette.textSecondary, fontSize: 14 },
+  ligneTitre: { fontSize: 15, fontWeight: "700", color: P.text },
+  ligneDetail: { fontSize: 13, fontWeight: "500", color: P.textSecondary },
+  heure: { fontSize: 14, fontWeight: "700", color: P.primary },
+  vide: { fontSize: 14, fontWeight: "500", color: P.textSecondary },
+  sous: { color: P.textSecondary, fontSize: 14 },
 });

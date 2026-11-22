@@ -46,7 +46,8 @@ describe('espace d’administration', () => {
     await fireEvent.press(screen.getByText('Équipes'));
     expect(screen.getByText('Écran des équipes')).toBeTruthy();
     await fireEvent.press(screen.getByText('Marque'));
-    expect(await screen.findByText('Égouts Montréal')).toBeTruthy();
+    expect(await screen.findByText('Aperçu en direct')).toBeTruthy();
+    expect(screen.getByText('Ville de Montréal')).toBeTruthy();
     await fireEvent.press(screen.getByText('Superviseur'));
     expect(screen.getByText('Espace superviseur')).toBeTruthy();
     await fireEvent.press(screen.getByText('Espace superviseur')); // retour à l'administration

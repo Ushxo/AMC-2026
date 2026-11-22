@@ -6,7 +6,6 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Palette } from "@/constants/theme";
 import { BarreProgression } from "@/components/ville/barre-progression";
 import { CarteTournees } from "@/components/ville/carte-tournees";
 import { Chargement, Vide } from "@/components/ville/etat-ecran";
@@ -34,12 +33,17 @@ import { dateProchainQuart } from "@/lib/temps";
 import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { IllustrationProbleme } from "@/components/illustration-probleme";
 import { IMPORTANCE } from "./InterventionsAPlanifier";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 /**
  * Écran « Trajet optimal » : lance notre optimisation sur la sélection de la liste, puis montre le trajet de chaque équipe
  * (tracé, arrêts numérotés, interventions dans l'ordre). Le détail complet du calcul reste dans l'onglet Optimisation.
  */
 export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: string[]; onRetour: () => void; onDetails: () => void }) {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { etat } = useSource();
@@ -79,7 +83,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
       <View style={[styles.entete, { paddingTop: insets.top + 12 }]}>
         <StatusBar barStyle="light-content" />
         <Pressable onPress={onRetour} accessibilityRole="button" accessibilityLabel="Retour à la liste des interventions" hitSlop={8} style={styles.retour}>
-          <Ionicons name="arrow-back" size={30} color={Palette.onHeader} />
+          <Ionicons name="arrow-back" size={30} color={P.onHeader} />
         </Pressable>
         <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
           Trajet optimal
@@ -103,7 +107,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
         ) : (
           <>
             <View style={styles.genere}>
-              <MaterialCommunityIcons name="map-marker-path" size={36} color={Palette.header} />
+              <MaterialCommunityIcons name="map-marker-path" size={36} color={P.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.genereTitre} maxFontSizeMultiplier={1.3}>
                   Trajet généré
@@ -113,7 +117,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
                 </Text>
               </View>
               <View style={styles.duree} accessibilityLabel={`Durée estimée ${formaterDuree(actif.duree_s)}`}>
-                <Ionicons name="time-outline" size={20} color={Palette.text} />
+                <Ionicons name="time-outline" size={20} color={P.text} />
                 <Text style={styles.dureeTexte}>{formaterDuree(actif.duree_s)}</Text>
               </View>
             </View>
@@ -141,7 +145,7 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
                       accessibilityRole="radio"
                       accessibilityState={{ selected: sel }}
                       onPress={() => setChoix(t.equipe_id)}
-                      style={[styles.chip, sel && { backgroundColor: Palette.backgroundSelected }]}
+                      style={[styles.chip, sel && { backgroundColor: P.backgroundSelected }]}
                     >
                       <View style={[styles.pastille, { backgroundColor: couleurEquipe(i) }]} />
                       <Text style={styles.chipTexte}>{t.equipe_nom}</Text>
@@ -240,12 +244,12 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
             onPress={() => router.push({ pathname: "/ville/trajet/[equipe]", params: { equipe: actif.equipe_id } })}
             style={styles.suivre}
           >
-            <MaterialCommunityIcons name="navigation-variant-outline" size={30} color={Palette.surface} />
+            <MaterialCommunityIcons name="navigation-variant-outline" size={30} color={P.surface} />
             <View style={styles.separateur} />
             <Text style={styles.suivreTexte} maxFontSizeMultiplier={1.2}>
               Suivre ce trajet
             </Text>
-            <Ionicons name="arrow-forward" size={28} color={Palette.surface} />
+            <Ionicons name="arrow-forward" size={28} color={P.surface} />
           </Pressable>
         </View>
       ) : null}
@@ -253,45 +257,45 @@ export default function TrajetOptimal({ cles, onRetour, onDetails }: { cles: str
   );
 }
 
-const styles = StyleSheet.create({
-  fond: { flex: 1, backgroundColor: Palette.background },
-  entete: { backgroundColor: Palette.header, paddingHorizontal: 18, paddingBottom: 22, flexDirection: "row", alignItems: "center", gap: 14, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+const creerStyles = (P: Jetons) => StyleSheet.create({
+  fond: { flex: 1, backgroundColor: P.background },
+  entete: { backgroundColor: P.header, paddingHorizontal: 18, paddingBottom: 22, flexDirection: "row", alignItems: "center", gap: 14, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
   retour: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
-  titre: { color: Palette.onHeader, fontSize: 28, fontWeight: "800" },
+  titre: { color: P.onHeader, fontSize: 28, fontWeight: "800" },
   page: { padding: 16, gap: 12, paddingBottom: 130, maxWidth: 800, width: "100%", alignSelf: "center" },
-  bloc: { backgroundColor: Palette.surface, borderRadius: 22, padding: 16, gap: 10 },
-  blocTitre: { fontSize: 17, fontWeight: "800", color: Palette.text },
-  alerte: { fontSize: 16, color: Palette.danger, fontWeight: "700" },
-  genere: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#DCEBD3", borderRadius: 22, padding: 14 },
-  genereTitre: { fontSize: 22, fontWeight: "800", color: Palette.header },
-  genereSous: { fontSize: 14, color: Palette.text },
-  duree: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Palette.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 },
-  dureeTexte: { fontWeight: "800", fontSize: 16, color: Palette.text },
-  note: { fontSize: 13, color: Palette.textSecondary },
+  bloc: { backgroundColor: P.surface, borderRadius: 22, padding: 16, gap: 10 },
+  blocTitre: { fontSize: 17, fontWeight: "800", color: P.text },
+  alerte: { fontSize: 16, color: P.danger, fontWeight: "700" },
+  genere: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: P.bandeau, borderRadius: 22, padding: 14 },
+  genereTitre: { fontSize: 22, fontWeight: "800", color: P.primary },
+  genereSous: { fontSize: 14, color: P.text },
+  duree: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: P.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 },
+  dureeTexte: { fontWeight: "800", fontSize: 16, color: P.text },
+  note: { fontSize: 13, color: P.textSecondary },
   avisPrecalcule: { backgroundColor: "#FAF0C4", borderRadius: 16, padding: 12, gap: 2 },
-  avisTitre: { fontSize: 14, fontWeight: "700", color: Palette.text },
+  avisTitre: { fontSize: 14, fontWeight: "700", color: P.text },
   ligneNonServi: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
-  raison: { fontSize: 12, fontWeight: "600", color: "#5E5548" },
+  raison: { fontSize: 12, fontWeight: "600", color: P.textSecondary },
   equipes: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1, borderColor: Palette.borderForte, backgroundColor: Palette.surface },
-  chipTexte: { fontSize: 15, color: Palette.text, fontWeight: "700" },
+  chip: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface },
+  chipTexte: { fontSize: 15, color: P.text, fontWeight: "700" },
   pastille: { width: 14, height: 14, borderRadius: 7 },
-  carteCadre: { borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: Palette.border },
-  sousTitre: { fontSize: 22, fontWeight: "800", color: Palette.text, marginTop: 4 },
-  liste: { backgroundColor: Palette.surface, borderRadius: 24, paddingVertical: 6, paddingHorizontal: 10 },
+  carteCadre: { borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: P.border },
+  sousTitre: { fontSize: 22, fontWeight: "800", color: P.text, marginTop: 4 },
+  liste: { backgroundColor: P.surface, borderRadius: 24, paddingVertical: 6, paddingHorizontal: 10 },
   ligne: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 78 },
   colNum: { width: 40, alignSelf: "stretch", alignItems: "center", justifyContent: "center" },
   trait: { position: "absolute", width: 3, top: "50%", bottom: -39 },
   num: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   numTexte: { color: "#FFFFFF", fontWeight: "800", fontSize: 18 },
   dessin: { width: 60, height: 52, alignItems: "center", justifyContent: "center" },
-  ligneTitre: { fontSize: 16, fontWeight: "800", color: Palette.text },
-  ligneLieu: { fontSize: 13, color: Palette.text },
+  ligneTitre: { fontSize: 16, fontWeight: "800", color: P.text },
+  ligneLieu: { fontSize: 13, color: P.text },
   etiquette: { fontWeight: "800", fontSize: 14, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
   lien: { minHeight: 48, alignItems: "center", justifyContent: "center" },
-  lienTexte: { color: Palette.header, fontWeight: "800", textDecorationLine: "underline", fontSize: 14, textAlign: "center" },
+  lienTexte: { color: P.primary, fontWeight: "800", textDecorationLine: "underline", fontSize: 14, textAlign: "center" },
   bas: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 14 },
-  suivre: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: "#B84A0B", borderRadius: 32, paddingHorizontal: 22, minHeight: 72 },
+  suivre: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: P.action, borderRadius: 32, paddingHorizontal: 22, minHeight: 72 },
   separateur: { width: 1, alignSelf: "stretch", marginVertical: 14, backgroundColor: "rgba(255,255,255,0.5)" },
-  suivreTexte: { flex: 1, color: Palette.surface, fontSize: 21, fontWeight: "800" },
+  suivreTexte: { flex: 1, color: P.surface, fontSize: 21, fontWeight: "800" },
 });

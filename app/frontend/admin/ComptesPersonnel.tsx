@@ -4,13 +4,17 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Texte as Text } from "@/components/texte";
 
 import { Chargement, Erreur, Vide } from "@/components/ville/etat-ecran";
-import { Palette } from "@/constants/theme";
 import { libelleRoleCompte, listerComptes, type ListeComptes } from "@/lib/comptes-admin";
 import { definirOrganisationCompte, lireOrganisations, type Organisation } from "@/lib/organisations";
 import { AuthButton, AuthField, AuthMessage } from "../auth/AuthShell";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 // Comptes du personnel : la liste (rôle, organisation et équipe quand la base les donne), la création, et le changement d'organisation.
 export default function ComptesPersonnel({ onCreer }: { onCreer: () => void }) {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const [liste, setListe] = useState<ListeComptes | null>(null);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -75,7 +79,7 @@ export default function ComptesPersonnel({ onCreer }: { onCreer: () => void }) {
           {liste.comptes.map((c) => (
             <View key={c.id} style={styles.carte} accessible accessibilityLabel={`${c.nom}, ${libelleRoleCompte(c)}${c.organisation ? `, organisation ${c.organisation}` : ""}${c.equipe ? `, équipe ${c.equipe}` : ""}`}>
               <View style={styles.rond}>
-                <Ionicons name={c.role === "admin" ? "shield-checkmark-outline" : c.poste === "superviseur" ? "clipboard-outline" : "people-outline"} size={22} color={Palette.header} />
+                <Ionicons name={c.role === "admin" ? "shield-checkmark-outline" : c.poste === "superviseur" ? "clipboard-outline" : "people-outline"} size={22} color={P.primary} />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.nom}>{c.nom}</Text>
@@ -108,16 +112,16 @@ export default function ComptesPersonnel({ onCreer }: { onCreer: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   page: { padding: 20, gap: 12, maxWidth: 800, width: "100%", alignSelf: "center" },
-  titre: { fontSize: 18, fontWeight: "700", color: Palette.text, marginTop: 8 },
-  note: { fontSize: 13, color: Palette.textSecondary, lineHeight: 19 },
-  carte: { backgroundColor: Palette.surface, borderRadius: 20, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 },
-  rond: { width: 44, height: 44, borderRadius: 22, backgroundColor: Palette.backgroundSelected, alignItems: "center", justifyContent: "center" },
-  nom: { fontSize: 16, fontWeight: "700", color: Palette.text },
-  detail: { fontSize: 13, fontWeight: "500", color: Palette.textSecondary },
+  titre: { fontSize: 18, fontWeight: "700", color: P.text, marginTop: 8 },
+  note: { fontSize: 13, color: P.textSecondary, lineHeight: 19 },
+  carte: { backgroundColor: P.surface, borderRadius: 20, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 },
+  rond: { width: 44, height: 44, borderRadius: 22, backgroundColor: P.backgroundSelected, alignItems: "center", justifyContent: "center" },
+  nom: { fontSize: 16, fontWeight: "700", color: P.text },
+  detail: { fontSize: 13, fontWeight: "500", color: P.textSecondary },
   rangee: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
-  chip: { minHeight: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: Palette.borderForte, backgroundColor: Palette.surface, justifyContent: "center" },
-  chipActif: { backgroundColor: Palette.backgroundSelected, borderWidth: 2, borderColor: Palette.primary },
-  chipTexte: { fontSize: 15, fontWeight: "700", color: Palette.text },
+  chip: { minHeight: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, justifyContent: "center" },
+  chipActif: { backgroundColor: P.backgroundSelected, borderWidth: 2, borderColor: P.primary },
+  chipTexte: { fontSize: 15, fontWeight: "700", color: P.text },
 });

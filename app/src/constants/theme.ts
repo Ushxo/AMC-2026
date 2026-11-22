@@ -25,6 +25,9 @@ export const Colors = {
     /** Orange : accent (pastilles, repères d'action), jamais un fond de texte courant. */
     accent: '#EE5F12',
     accentDoux: '#F28A33',
+    /** Fond des boutons d'action (orange foncé, texte blanc lisible). */
+    action: '#B84A0B',
+    onAction: '#FFFFFF',
     /** Fond des en-têtes de la coquille (même vert que primary, plus profond en sombre). */
     header: '#1D3A1B',
     onHeader: '#F8F4EA',
@@ -45,6 +48,8 @@ export const Colors = {
     onPrimary: '#FFFFFF',
     accent: '#F28A33',
     accentDoux: '#F28A33',
+    action: '#E0631C',
+    onAction: '#000000',
     header: '#0F140F',
     onHeader: '#F8F4EA',
     surface: '#212B20',

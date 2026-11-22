@@ -6,13 +6,14 @@ import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CameraView, useCameraPermissions as usePermissionCamera, type VueCamera } from "@/lib/camera-optionnelle";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
+// Commandes de la caméra : couleurs fixes (fond sombre de l'objectif). Le reste de l'écran suit la marque.
 const C = {
-  green: "#1D341B",
   cream: "#F8F5ED",
-  orange: "#E56C28",
   dark: "#23271F",
-  skip: "#E4E6DA",
   white: "#FFFFFF",
 };
 
@@ -29,15 +30,15 @@ type Props = {
   verification?: VerificationPhoto | null;
 };
 
-const COULEUR_VERIFICATION: Record<VerificationPhoto["statut"], string> = {
-  en_cours: C.dark,
-  acceptee: C.green,
-  refusee: "#B3261E",
-  impossible: C.dark,
-};
+function couleurVerification(statut: VerificationPhoto["statut"], P: Jetons): string {
+  if (statut === "acceptee") return P.primary;
+  if (statut === "refusee") return P.danger;
+  return P.text;
+}
 
 // Coins blancs qui encadrent la zone à photographier.
 function FrameCorners() {
+  const styles = useStyles(creerStyles);
   return (
     <View pointerEvents="none" style={styles.frame}>
       <View style={[styles.corner, styles.topLeft]} />
@@ -49,6 +50,8 @@ function FrameCorners() {
 }
 
 export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinue, verification }: Props) {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   // Tant que la photo est en vérification, on ne peut pas continuer ; une photo refusée est déjà retirée.
   const peutContinuer = !!photoUri && verification?.statut !== "en_cours";
   const insets = useSafeAreaInsets();
@@ -142,7 +145,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
         <View style={styles.headerWave} />
         <View style={styles.headerRow}>
           <Pressable onPress={onBack} hitSlop={10} accessibilityLabel="Retour">
-            <Ionicons name="arrow-back" size={30} color={C.cream} />
+            <Ionicons name="arrow-back" size={30} color={P.onHeader} />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Prendre une photo</Text>
@@ -183,7 +186,7 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
         <View
           accessibilityRole="alert"
           accessibilityLiveRegion="polite"
-          style={[styles.verification, { borderColor: COULEUR_VERIFICATION[verification.statut] }]}
+          style={[styles.verification, { borderColor: couleurVerification(verification.statut, P) }]}
         >
           <Ionicons
             name={
@@ -196,9 +199,9 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
                     : "information-circle-outline"
             }
             size={22}
-            color={COULEUR_VERIFICATION[verification.statut]}
+            color={couleurVerification(verification.statut, P)}
           />
-          <Text style={[styles.verificationText, { color: COULEUR_VERIFICATION[verification.statut] }]}>
+          <Text style={[styles.verificationText, { color: couleurVerification(verification.statut, P) }]}>
             {verification.message}
           </Text>
         </View>
@@ -222,13 +225,13 @@ export default function PhotoStep({ photoUri, onPhoto, onBack, onSkip, onContinu
 
 const CORNER = 34;
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: C.cream,
+    backgroundColor: P.background,
   },
   header: {
-    backgroundColor: C.green,
+    backgroundColor: P.header,
     paddingHorizontal: 22,
     paddingBottom: 64,
     overflow: "hidden",
@@ -248,7 +251,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   title: {
-    color: C.cream,
+    color: P.onHeader,
     fontSize: 28,
     fontWeight: "800",
   },
@@ -311,7 +314,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   permissionButton: {
-    backgroundColor: C.orange,
+    backgroundColor: P.action,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 24,
@@ -368,26 +371,26 @@ const styles = StyleSheet.create({
   skipButton: {
     flex: 1,
     height: 60,
-    backgroundColor: C.skip,
+    backgroundColor: P.backgroundSelected,
     borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
   },
   skipText: {
-    color: C.green,
+    color: P.primary,
     fontWeight: "800",
     fontSize: 18,
   },
   continueButton: {
     flex: 1.4,
     height: 60,
-    backgroundColor: C.orange,
+    backgroundColor: P.action,
     borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
   },
   continueText: {
-    color: C.white,
+    color: P.onAction,
     fontSize: 20,
     fontWeight: "800",
   },

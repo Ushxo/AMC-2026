@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Palette } from "@/constants/theme";
 import { useEquipes } from "@/hooks/use-equipes";
 import {
   creerComptePersonnel,
@@ -11,12 +10,15 @@ import {
   type RolePersonnel,
 } from "@/lib/compte-personnel";
 import { AuthButton, AuthField, AuthMessage, AuthShell } from "../auth/AuthShell";
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 const ROLES: RolePersonnel[] = ["equipe", "superviseur", "admin"];
 
 // Création d'un compte du personnel, réservée aux administrateurs (le serveur le vérifie aussi) :
 // identité, mot de passe provisoire, rôle, et pour un employé d'équipe l'équipe à associer tout de suite (facultatif).
 export default function CreerComptePersonnel({ onBack }: { onBack: () => void }) {
+  const styles = useStyles(creerStyles);
   const { equipes } = useEquipes();
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
@@ -117,11 +119,11 @@ export default function CreerComptePersonnel({ onBack }: { onBack: () => void })
   );
 }
 
-const styles = StyleSheet.create({
-  titre: { fontSize: 17, fontWeight: "800", color: Palette.text, marginTop: 8, marginBottom: 6 },
+const creerStyles = (P: Jetons) => StyleSheet.create({
+  titre: { fontSize: 17, fontWeight: "800", color: P.text, marginTop: 8, marginBottom: 6 },
   rangee: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
-  chip: { minHeight: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: Palette.borderForte, backgroundColor: Palette.surface, justifyContent: "center" },
-  chipActif: { backgroundColor: Palette.backgroundSelected, borderWidth: 2, borderColor: Palette.primary },
-  chipTexte: { fontSize: 15, fontWeight: "700", color: Palette.text },
-  erreur: { color: Palette.danger, fontSize: 14, marginBottom: 6 },
+  chip: { minHeight: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: P.borderForte, backgroundColor: P.surface, justifyContent: "center" },
+  chipActif: { backgroundColor: P.backgroundSelected, borderWidth: 2, borderColor: P.primary },
+  chipTexte: { fontSize: 15, fontWeight: "700", color: P.text },
+  erreur: { color: P.danger, fontSize: 14, marginBottom: 6 },
 });

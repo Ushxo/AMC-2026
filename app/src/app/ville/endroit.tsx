@@ -10,7 +10,6 @@ import { Texte as Text } from '@/components/texte';
 import { Bouton } from '@/components/ville/bouton';
 import { Chargement, Erreur, Vide } from '@/components/ville/etat-ecran';
 import { COULEUR_REPERE } from '@/components/ville/style';
-import { Palette } from '@/constants/theme';
 import { useSignalements } from '@/hooks/use-signalements';
 import { formaterDate } from '@/lib/format';
 import { interventionDe, lieuDeEndroit } from '@/lib/interventions';
@@ -18,9 +17,14 @@ import { regrouper } from '@/lib/gravite';
 import { chargerAdresses } from '@/lib/officiel';
 import { LIBELLES_CATEGORIE, LIBELLES_ETAT, LIBELLES_GRAVITE, type Gravite } from '@/types';
 import { IMPORTANCE } from '../../../frontend/supervisor/InterventionsAPlanifier';
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 /** Fiche d'un endroit : carte centrée, problème et importance, liste de ses signalements (chacun ouvre sa fiche, où l'on change l'état). */
 export default function Endroit() {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const { bottom, top } = useSafeAreaInsets();
   const { cle } = useLocalSearchParams<{ cle: string }>();
   const router = useRouter();
@@ -39,7 +43,7 @@ export default function Endroit() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.entete, { paddingTop: top + 14 }]}>
         <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Retour aux interventions" hitSlop={8} style={styles.retour}>
-          <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={28} color={P.onHeader} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
@@ -109,7 +113,7 @@ export default function Endroit() {
                     {s.exemple_demo ? ' · exemple de démo' : ''}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={22} color={Palette.text} />
+                <Ionicons name="chevron-forward" size={22} color={P.text} />
               </Pressable>
             ))}
             <Bouton titre="Retour" variante="discret" pleineLargeur onPress={() => router.back()} />
@@ -120,23 +124,23 @@ export default function Endroit() {
   );
 }
 
-const styles = StyleSheet.create({
-  fond: { flex: 1, backgroundColor: Palette.background },
-  entete: { backgroundColor: Palette.header, paddingHorizontal: 18, paddingBottom: 22, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+const creerStyles = (P: Jetons) => StyleSheet.create({
+  fond: { flex: 1, backgroundColor: P.background },
+  entete: { backgroundColor: P.header, paddingHorizontal: 18, paddingBottom: 22, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  titre: { color: '#FFFFFF', fontSize: 26, fontWeight: '700' },
-  sousTitre: { color: '#DCE5CC', fontSize: 15, fontWeight: '500' },
+  titre: { color: P.onHeader, fontSize: 26, fontWeight: '700' },
+  sousTitre: { color: P.bandeau, fontSize: 15, fontWeight: '500' },
   contenu: { padding: 20, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  carteCadre: { height: 150, borderRadius: 22, overflow: 'hidden', backgroundColor: '#DCE5CC' },
+  carteCadre: { height: 150, borderRadius: 22, overflow: 'hidden', backgroundColor: P.bandeau },
   carte: { flex: 1 },
-  resume: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  vignette: { width: 60, height: 60, borderRadius: 16, backgroundColor: Palette.background, alignItems: 'center', justifyContent: 'center' },
-  resumeTitre: { fontSize: 18, fontWeight: '700', color: Palette.text },
-  resumeSous: { fontSize: 14, fontWeight: '500', color: '#5E5548' },
+  resume: { backgroundColor: P.surface, borderRadius: 22, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  vignette: { width: 60, height: 60, borderRadius: 16, backgroundColor: P.background, alignItems: 'center', justifyContent: 'center' },
+  resumeTitre: { fontSize: 18, fontWeight: '700', color: P.text },
+  resumeSous: { fontSize: 14, fontWeight: '500', color: P.textSecondary },
   etiquette: { fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
-  section: { fontSize: 16, fontWeight: '700', color: Palette.text },
-  ligne: { backgroundColor: '#FFFFFF', borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 64 },
-  ligneDate: { fontSize: 15, fontWeight: '600', color: Palette.text },
-  ligneDetail: { fontSize: 14, fontWeight: '500', color: '#5E5548', lineHeight: 20 },
-  ligneEtat: { fontSize: 13, fontWeight: '700', color: Palette.header },
+  section: { fontSize: 16, fontWeight: '700', color: P.text },
+  ligne: { backgroundColor: P.surface, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 64 },
+  ligneDate: { fontSize: 15, fontWeight: '600', color: P.text },
+  ligneDetail: { fontSize: 14, fontWeight: '500', color: P.textSecondary, lineHeight: 20 },
+  ligneEtat: { fontSize: 13, fontWeight: '700', color: P.primary },
 });

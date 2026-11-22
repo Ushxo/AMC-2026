@@ -4,18 +4,15 @@ import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Palette } from "@/constants/theme";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 export type CitizenTab = "carte" | "alertes";
 
 // Hauteur de la barre sans la zone de sécurité du bas.
 export const BOTTOM_NAV_HEIGHT = 92;
 
-const C = {
-  green: Palette.header,
-  cream: Palette.onHeader,
-  sage: Palette.backgroundSelected,
-};
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -31,6 +28,8 @@ type Props = {
 };
 
 export function BottomNav({ active, onChange }: Props) {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const insets = useSafeAreaInsets();
 
   return (
@@ -45,7 +44,7 @@ export function BottomNav({ active, onChange }: Props) {
             accessibilityState={{ selected }}
             style={[styles.tab, selected && styles.tabActive]}
           >
-            <Ionicons name={selected ? tab.iconActive : tab.icon} size={30} color={C.green} />
+            <Ionicons name={selected ? tab.iconActive : tab.icon} size={30} color={P.primary} />
             <Text style={[styles.label, selected && styles.labelActive]} maxFontSizeMultiplier={1.3}>{tab.label}</Text>
           </Pressable>
         );
@@ -54,7 +53,7 @@ export function BottomNav({ active, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   nav: {
     position: "absolute",
     left: 0,
@@ -62,7 +61,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: "row",
     gap: 12,
-    backgroundColor: C.cream,
+    backgroundColor: P.onHeader,
     paddingHorizontal: 16,
     paddingTop: 12,
     borderTopLeftRadius: 32,
@@ -82,12 +81,12 @@ const styles = StyleSheet.create({
     borderRadius: 26,
   },
   tabActive: {
-    backgroundColor: C.sage,
+    backgroundColor: P.backgroundSelected,
   },
   label: {
     fontSize: 17,
     fontWeight: "600",
-    color: C.green,
+    color: P.primary,
   },
   labelActive: {
     fontWeight: "700",

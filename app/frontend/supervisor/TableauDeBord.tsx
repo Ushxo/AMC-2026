@@ -4,7 +4,6 @@ import { Texte as Text } from "@/components/texte";
 import { Pressable } from "react-native";
 import { useRouter } from "expo-router";
 
-import { Palette } from "@/constants/theme";
 import { Chargement, Erreur } from "@/components/ville/etat-ecran";
 import { Resume } from "@/components/ville/resume";
 import { couleurEquipe } from "@/components/ville/style";
@@ -17,11 +16,16 @@ import { gravitesDisponibles } from "@/lib/selection";
 import { estPartiel, resumerGain } from "@/lib/tournees";
 import { LIBELLES_GRAVITE, type Gravite } from "@/types";
 import { IMPORTANCE } from "./InterventionsAPlanifier";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 const GRAVITES: Gravite[] = ["elevee", "moyenne", "faible"];
 
 // Tableau de bord du superviseur : à traiter et réglés, plan des équipes, répartition par importance, gain du dernier calcul.
 export default function TableauDeBord() {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const router = useRouter();
   const { resume, chargement, erreur } = useResumeVille();
   const { resultat } = useTournees();
@@ -43,12 +47,12 @@ export default function TableauDeBord() {
           <View style={styles.deux}>
             <View style={styles.tuile} accessible accessibilityLabel={`${ouverts} endroits à traiter`}>
               <Text style={styles.tuileLegende}>À traiter</Text>
-              <Text style={[styles.tuileChiffre, { color: "#7A2F05" }]}>{ouverts}</Text>
+              <Text style={[styles.tuileChiffre, { color: P.action }]}>{ouverts}</Text>
               <Text style={styles.tuileNote}>endroits signalés</Text>
             </View>
             <View style={styles.tuile} accessible accessibilityLabel={`${resume.parEtat.regle} signalements réglés`}>
               <Text style={styles.tuileLegende}>Réglés</Text>
-              <Text style={[styles.tuileChiffre, { color: "#1F5E23" }]}>{resume.parEtat.regle}</Text>
+              <Text style={[styles.tuileChiffre, { color: P.success }]}>{resume.parEtat.regle}</Text>
               <Text style={styles.tuileNote}>signalements</Text>
             </View>
           </View>
@@ -99,7 +103,7 @@ export default function TableauDeBord() {
                   <Text style={[styles.etiquette, { backgroundColor: c.fond, color: c.plein }]} maxFontSizeMultiplier={1.2}>
                     {LIBELLES_GRAVITE[g]}
                   </Text>
-                  <View style={[styles.piste, { flex: 1, height: 10, backgroundColor: "#F0EBDD" }]}>
+                  <View style={[styles.piste, { flex: 1, height: 10, backgroundColor: P.backgroundElement }]}>
                     <View style={[styles.remplissage, { width: `${pct}%`, height: 10, backgroundColor: c.plein }]} />
                   </View>
                   <Text style={styles.compte}>{parGravite[g]}</Text>
@@ -130,28 +134,28 @@ export default function TableauDeBord() {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   page: { padding: 20, gap: 16, maxWidth: 800, width: "100%", alignSelf: "center" },
   deux: { flexDirection: "row", gap: 12 },
-  tuile: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 22, padding: 18, gap: 6 },
-  tuileLegende: { fontSize: 14, fontWeight: "600", color: "#5E5548" },
+  tuile: { flex: 1, backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 6 },
+  tuileLegende: { fontSize: 14, fontWeight: "600", color: P.textSecondary },
   tuileChiffre: { fontSize: 36, lineHeight: 46, fontWeight: "700" },
-  tuileNote: { fontSize: 13, fontWeight: "500", color: "#5E5548" },
-  plan: { backgroundColor: "#DDEBD3", borderRadius: 22, padding: 18, gap: 12 },
+  tuileNote: { fontSize: 13, fontWeight: "500", color: P.textSecondary },
+  plan: { backgroundColor: P.bandeau, borderRadius: 22, padding: 18, gap: 12 },
   planEntete: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  planTitre: { fontSize: 17, fontWeight: "700", color: Palette.header },
-  planNote: { fontSize: 14, fontWeight: "500", color: "#3C4A36", lineHeight: 20 },
-  pastille: { backgroundColor: "#FFFFFF", color: Palette.header, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
+  planTitre: { fontSize: 17, fontWeight: "700", color: P.primary },
+  planNote: { fontSize: 14, fontWeight: "500", color: P.textSecondary, lineHeight: 20 },
+  pastille: { backgroundColor: P.surface, color: P.primary, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: "hidden" },
   equipeLigne: { flexDirection: "row", alignItems: "center", gap: 10 },
   point: { width: 14, height: 14, borderRadius: 7 },
-  equipeNom: { fontSize: 15, fontWeight: "600", flex: 1, color: Palette.header },
-  equipeDetail: { fontSize: 14, fontWeight: "500", color: "#3C4A36" },
-  piste: { height: 8, borderRadius: 4, backgroundColor: "#FFFFFF", overflow: "hidden" },
-  remplissage: { height: 8, borderRadius: 4, backgroundColor: Palette.header },
+  equipeNom: { fontSize: 15, fontWeight: "600", flex: 1, color: P.primary },
+  equipeDetail: { fontSize: 14, fontWeight: "500", color: P.textSecondary },
+  piste: { height: 8, borderRadius: 4, backgroundColor: P.surface, overflow: "hidden" },
+  remplissage: { height: 8, borderRadius: 4, backgroundColor: P.header },
   lien: { minHeight: 48, justifyContent: "center" },
-  lienTexte: { fontSize: 15, fontWeight: "700", color: Palette.header, textDecorationLine: "underline" },
-  bloc: { backgroundColor: "#FFFFFF", borderRadius: 22, padding: 18, gap: 12 },
+  lienTexte: { fontSize: 15, fontWeight: "700", color: P.primary, textDecorationLine: "underline" },
+  bloc: { backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 12 },
   etiquette: { fontSize: 13, fontWeight: "700", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden", width: 88, textAlign: "center" },
-  compte: { fontSize: 14, fontWeight: "700", minWidth: 28, textAlign: "right", color: Palette.text },
-  gain: { fontSize: 15, fontWeight: "500", color: "#5E5548", lineHeight: 21 },
+  compte: { fontSize: 14, fontWeight: "700", minWidth: 28, textAlign: "right", color: P.text },
+  gain: { fontSize: 15, fontWeight: "500", color: P.textSecondary, lineHeight: 21 },
 });

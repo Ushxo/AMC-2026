@@ -6,26 +6,16 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IllustrationProbleme } from '@/components/illustration-probleme';
-import { Palette } from '@/constants/theme';
 import { useMesSignalements } from '@/hooks/use-mes-signalements';
 import { formaterDate } from '@/lib/format';
 import { chargerAdresses } from '@/lib/officiel';
 import { adressePlusProche } from '@/lib/recherche';
 import { LIBELLES_CATEGORIE, LIBELLES_ETAT, type Categorie, type Etat, type Signalement } from '@/types';
 import { BOTTOM_NAV_HEIGHT } from '../components/BottomNav';
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
-// Couleurs : jetons du thème. « greenDone », « card » et « track » sont des teintes de la même palette.
-const C = {
-  green: Palette.header,
-  greenDone: Palette.success,
-  cream: Palette.background,
-  card: Palette.surface,
-  orange: Palette.accent,
-  orangeSoft: '#FBDCC4',
-  sage: Palette.backgroundSelected,
-  track: Palette.border,
-  text: Palette.text,
-};
 
 const STEPS = ['Soumis', 'Pris en\ncharge', 'Terminé'];
 
@@ -33,15 +23,9 @@ const STEPS = ['Soumis', 'Pris en\ncharge', 'Terminé'];
 const FILL = ['22%', '58%', '100%'] as const;
 
 // Teinte de la pastille de chaque catégorie (l'illustration vient des images fournies).
-const TEINTE_PASTILLE: Record<Categorie, string> = {
-  grille_bouchee: C.orangeSoft,
-  eau_accumulee: C.sage,
-  affaissement: '#FCE6C9',
-  grille_endommagee: '#FCE6C9',
-  eau_douteuse: '#FCE6C9',
-  absence_eau: '#FCE6C9',
-  autre: '#FCE6C9',
-};
+function teintePastille(c: Categorie, P: Jetons): string {
+  return c === 'eau_accumulee' ? P.backgroundSelected : P.actionDoux;
+}
 
 /** Étape de la ligne de progression : 0 = soumis, 1 = pris en charge, 2 = terminé (réglé ou rejeté). */
 export function etapeDeLEtat(etat: Etat): 0 | 1 | 2 {
@@ -50,21 +34,21 @@ export function etapeDeLEtat(etat: Etat): 0 | 1 | 2 {
   return 0;
 }
 
-function badgeDe(etat: Etat, step: number) {
-  if (etat === 'rejete') return { label: 'Rejeté', color: Palette.danger, bg: C.orangeSoft };
-  return BADGES[step];
+// Étiquettes d'état : texte de la couleur de l'en-tête (contraste élevé sur le fond doux).
+function badgeDe(etat: Etat, step: number, P: Jetons) {
+  if (etat === 'rejete') return { label: 'Rejeté', color: P.danger, bg: P.actionDoux };
+  return [
+    { label: 'En cours', color: P.onActionDoux, bg: P.actionDoux },
+    { label: 'Pris en charge', color: P.onActionDoux, bg: P.actionDoux },
+    { label: 'Terminé', color: P.onBandeau, bg: P.bandeau },
+  ][step];
 }
 
-// Texte des étiquettes : vert forêt (contraste élevé) ; l'orange seul sur fond orange pâle n'atteint pas 4,5 pour 1.
-const BADGES = [
-  { label: 'En cours', color: C.green, bg: C.orangeSoft },
-  { label: 'Pris en charge', color: C.green, bg: C.orangeSoft },
-  { label: 'Terminé', color: C.greenDone, bg: C.sage },
-];
-
 function Progress({ step }: { step: number }) {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const done = step === 2;
-  const active = done ? C.greenDone : C.orange;
+  const active = done ? P.success : P.accent;
 
   return (
     <View style={styles.progress}>
@@ -81,7 +65,7 @@ function Progress({ step }: { step: number }) {
                 styles.dot,
                 reached
                   ? { backgroundColor: active, borderColor: active }
-                  : { backgroundColor: C.card, borderColor: C.track },
+                  : { backgroundColor: P.surface, borderColor: P.border },
               ]}
             >
               {reached && <Ionicons name="checkmark" size={16} color="white" />}
@@ -101,6 +85,8 @@ function lieuDe(s: Signalement, adresses: ReturnType<typeof chargerAdresses>): s
 }
 
 export default function MyAlerts() {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { mes, chargement, erreur, rafraichir } = useMesSignalements();
@@ -126,14 +112,14 @@ export default function MyAlerts() {
           <View style={styles.card} accessibilityRole="alert">
             <Text style={styles.cardTitle}>{erreur}</Text>
             <Pressable onPress={() => void rafraichir()} accessibilityRole="button" style={{ marginTop: 10 }}>
-              <Text style={[styles.detail, { fontWeight: '800', color: C.green, textDecorationLine: 'underline' }]}>Réessayer</Text>
+              <Text style={[styles.detail, { fontWeight: '800', color: P.primary, textDecorationLine: 'underline' }]}>Réessayer</Text>
             </Pressable>
           </View>
         ) : null}
         {mes.map(a => {
           const step = etapeDeLEtat(a.etat);
           const titre = LIBELLES_CATEGORIE[a.categorie];
-          const badge = badgeDe(a.etat, step);
+          const badge = badgeDe(a.etat, step, P);
 
           return (
             <Pressable
@@ -144,7 +130,7 @@ export default function MyAlerts() {
               accessibilityLabel={`${titre}, ${badge.label}. Ouvrir le suivi et l’heure de passage.`}
             >
               <View style={styles.cardTop}>
-                <View style={[styles.iconBox, { backgroundColor: TEINTE_PASTILLE[a.categorie] }]}>
+                <View style={[styles.iconBox, { backgroundColor: teintePastille(a.categorie, P) }]}>
                   <IllustrationProbleme categorie={a.categorie} taille={46} />
                 </View>
 
@@ -155,15 +141,15 @@ export default function MyAlerts() {
                       <Text style={[styles.badge, { color: badge.color, backgroundColor: badge.bg }]}>
                         {badge.label}
                       </Text>
-                      <Ionicons name="chevron-forward" size={22} color={C.text} />
+                      <Ionicons name="chevron-forward" size={22} color={P.text} />
                     </View>
                   </View>
                   <View style={styles.detailRow}>
-                    <Ionicons name="location-outline" size={16} color={C.text} />
+                    <Ionicons name="location-outline" size={16} color={P.text} />
                     <Text style={styles.detail}>{lieuDe(a, adresses)}</Text>
                   </View>
                   <View style={styles.detailRow}>
-                    <Ionicons name="calendar-outline" size={15} color={C.text} />
+                    <Ionicons name="calendar-outline" size={15} color={P.text} />
                     <Text style={styles.detail}>Envoyé le {formaterDate(a.cree_le)}</Text>
                   </View>
                 </View>
@@ -189,14 +175,14 @@ export default function MyAlerts() {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: C.cream,
+    backgroundColor: P.background,
   },
 
   header: {
-    backgroundColor: C.green,
+    backgroundColor: P.header,
     paddingHorizontal: 26,
     paddingBottom: 72,
     overflow: 'hidden',
@@ -213,13 +199,13 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: 'white',
+    color: P.onHeader,
     fontSize: 34,
     fontWeight: '800',
   },
 
   subtitle: {
-    color: '#EDEBDF',
+    color: P.onHeader,
     fontSize: 16,
     marginTop: 8,
   },
@@ -231,7 +217,7 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: C.card,
+    backgroundColor: P.surface,
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 16,
@@ -283,7 +269,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '800',
-    color: C.green,
+    color: P.primary,
     marginTop: 4,
   },
 
@@ -297,7 +283,7 @@ const styles = StyleSheet.create({
   detail: {
     flexShrink: 1,
     fontSize: 13,
-    color: C.text,
+    color: P.text,
   },
 
   side: {
@@ -328,7 +314,7 @@ const styles = StyleSheet.create({
     right: '16.66%',
     height: 3,
     borderRadius: 2,
-    backgroundColor: C.track,
+    backgroundColor: P.border,
   },
 
   trackFill: {
@@ -352,7 +338,7 @@ const styles = StyleSheet.create({
 
   stepText: {
     fontSize: 13,
-    color: C.text,
+    color: P.text,
     marginTop: 6,
     textAlign: 'center',
   },

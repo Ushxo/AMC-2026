@@ -4,19 +4,10 @@ import { Texte as Text, ChampTexte as TextInput } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Palette } from "@/constants/theme";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
-// Couleurs : les jetons du thème (constants/theme.ts), jamais des hex locaux.
-const C = {
-  green: Palette.header,
-  cream: Palette.onHeader,
-  orange: Palette.accent,
-  border: Palette.border,
-  text: Palette.text,
-  muted: Palette.textSecondary,
-  white: Palette.surface,
-  error: Palette.danger,
-};
 
 const COURRIEL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const isValidEmail = (email: string) => COURRIEL.test(email.trim());
@@ -38,6 +29,8 @@ type Props = {
 };
 
 export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGuest, notice, onBack }: Props) {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -69,7 +62,7 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
       <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
         {onBack ? (
           <Pressable onPress={onBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="Retour à la carte" style={styles.retour}>
-            <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={28} color={P.onHeader} />
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }}>
@@ -84,7 +77,7 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
 
       <ScrollView contentContainerStyle={[styles.corps, { paddingBottom: insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" bounces={false}>
         <View style={styles.note}>
-          <Ionicons name="information-circle-outline" size={28} color={C.green} />
+          <Ionicons name="information-circle-outline" size={28} color={P.primary} />
           <Text style={styles.noteTexte}>Pas besoin de compte pour signaler un problème : revenez à la carte.</Text>
         </View>
 
@@ -93,7 +86,7 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
           <TextInput
             style={[styles.champ, champErreurEmail && styles.champErreur]}
             placeholder="prenom.nom@montreal.ca"
-            placeholderTextColor={C.muted}
+            placeholderTextColor={P.textSecondary}
             accessibilityLabel="Courriel"
             value={email}
             onChangeText={(v) => {
@@ -115,7 +108,7 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
             <TextInput
               style={styles.champDedans}
               placeholder="Votre mot de passe"
-              placeholderTextColor={C.muted}
+              placeholderTextColor={P.textSecondary}
               accessibilityLabel="Mot de passe"
               value={password}
               onChangeText={(v) => {
@@ -130,7 +123,7 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
               onSubmitEditing={() => void handleLogin()}
             />
             <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={10} accessibilityRole="button" accessibilityLabel={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"} style={styles.oeil}>
-              <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={24} color={C.text} />
+              <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={24} color={P.text} />
             </Pressable>
           </View>
           <Pressable style={styles.forgot} onPress={onForgot} accessibilityRole="button">
@@ -173,30 +166,30 @@ export default function LoginScreen({ onLogin, onSignup, onForgot, onDemo, onGue
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Palette.background },
-  hero: { backgroundColor: C.green, paddingHorizontal: 18, paddingBottom: 26, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+const creerStyles = (P: Jetons) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: P.background },
+  hero: { backgroundColor: P.header, paddingHorizontal: 18, paddingBottom: 26, flexDirection: "row", alignItems: "center", gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
-  heroTitre: { color: "#FFFFFF", fontSize: 26, fontWeight: "700" },
-  heroSous: { color: "#DCE5CC", fontSize: 15, fontWeight: "500" },
+  heroTitre: { color: P.onHeader, fontSize: 26, fontWeight: "700" },
+  heroSous: { color: P.bandeau, fontSize: 15, fontWeight: "500" },
   corps: { padding: 24, gap: 20, flexGrow: 1 },
-  note: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: "#DCE5CC", borderRadius: 20, padding: 16 },
-  noteTexte: { flex: 1, fontSize: 14, fontWeight: "500", color: C.text, lineHeight: 20 },
+  note: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: P.bandeau, borderRadius: 20, padding: 16 },
+  noteTexte: { flex: 1, fontSize: 14, fontWeight: "500", color: P.text, lineHeight: 20 },
   groupe: { gap: 8 },
-  etiquette: { fontSize: 15, fontWeight: "600", color: C.text },
-  champ: { minHeight: 54, borderWidth: 2, borderColor: Palette.borderForte, borderRadius: 16, paddingHorizontal: 16, fontSize: 16, backgroundColor: "#FFFFFF", color: C.text },
-  champLigne: { minHeight: 54, borderWidth: 2, borderColor: Palette.borderForte, borderRadius: 16, backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", paddingLeft: 16 },
-  champDedans: { flex: 1, fontSize: 16, color: C.text, minHeight: 50 },
-  champErreur: { borderColor: C.error },
+  etiquette: { fontSize: 15, fontWeight: "600", color: P.text },
+  champ: { minHeight: 54, borderWidth: 2, borderColor: P.borderForte, borderRadius: 16, paddingHorizontal: 16, fontSize: 16, backgroundColor: P.surface, color: P.text },
+  champLigne: { minHeight: 54, borderWidth: 2, borderColor: P.borderForte, borderRadius: 16, backgroundColor: P.surface, flexDirection: "row", alignItems: "center", paddingLeft: 16 },
+  champDedans: { flex: 1, fontSize: 16, color: P.text, minHeight: 50 },
+  champErreur: { borderColor: P.danger },
   oeil: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
   forgot: { alignSelf: "flex-end", minHeight: 48, justifyContent: "center" },
-  forgotText: { fontSize: 15, fontWeight: "600", color: C.green, textDecorationLine: "underline" },
-  error: { color: C.error, fontSize: 14, fontWeight: "600" },
-  primary: { height: 60, borderRadius: 30, backgroundColor: "#B84A0B", alignItems: "center", justifyContent: "center" },
-  primaryText: { color: "#FFFFFF", fontSize: 19, fontWeight: "700" },
-  secondary: { minHeight: 52, borderRadius: 26, borderWidth: 2, borderColor: C.green, alignItems: "center", justifyContent: "center" },
-  secondaryText: { color: C.green, fontSize: 16, fontWeight: "700" },
-  demo: { borderTopWidth: 1, borderTopColor: "#C9CFBD", paddingTop: 16, alignItems: "center", gap: 6, marginTop: 8 },
-  demoNote: { fontSize: 13, fontWeight: "500", color: Palette.textSecondary, textAlign: "center" },
+  forgotText: { fontSize: 15, fontWeight: "600", color: P.primary, textDecorationLine: "underline" },
+  error: { color: P.danger, fontSize: 14, fontWeight: "600" },
+  primary: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: "center", justifyContent: "center" },
+  primaryText: { color: P.onAction, fontSize: 19, fontWeight: "700" },
+  secondary: { minHeight: 52, borderRadius: 26, borderWidth: 2, borderColor: P.primary, alignItems: "center", justifyContent: "center" },
+  secondaryText: { color: P.primary, fontSize: 16, fontWeight: "700" },
+  demo: { borderTopWidth: 1, borderTopColor: P.border, paddingTop: 16, alignItems: "center", gap: 6, marginTop: 8 },
+  demoNote: { fontSize: 13, fontWeight: "500", color: P.textSecondary, textAlign: "center" },
   demoLien: { minHeight: 48, justifyContent: "center" },
 });

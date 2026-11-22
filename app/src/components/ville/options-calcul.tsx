@@ -1,7 +1,6 @@
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Palette } from '@/constants/theme';
 import {
   aidePosition,
   finIncomplete,
@@ -15,6 +14,9 @@ import type { Equipe, PositionEquipe } from '@/types';
 
 import { Chip } from './chip';
 import { couleurEquipe } from './style';
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 type Props = {
   options: Options;
@@ -33,6 +35,8 @@ const COURT_DEPART: Record<'garage' | 'position', string> = { garage: 'garage', 
 
 /** Options du calcul : une carte « Équipes » (départ et arrivée de chaque équipe, modifiables) et la bascule « Répartir le travail ». */
 export function OptionsCalcul({ options, onChanger, equipes, positions, texteFin, maintenant, onGerer }: Props) {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const [horloge] = useState(() => Date.now());
   const [ouvertes, setOuvertes] = useState<Record<string, boolean>>({});
   const ms = maintenant ?? horloge;
@@ -152,7 +156,7 @@ export function OptionsCalcul({ options, onChanger, equipes, positions, texteFin
           value={options.repartir}
           onValueChange={(v) => onChanger({ ...options, repartir: v })}
           accessibilityLabel="Répartir le travail entre les équipes"
-          trackColor={{ true: Palette.primary, false: '#C9CFBD' }}
+          trackColor={{ true: P.primary, false: P.border }}
         />
       </View>
 
@@ -171,26 +175,26 @@ export function OptionsCalcul({ options, onChanger, equipes, positions, texteFin
           value={options.finEndroit}
           onValueChange={(v) => onChanger({ ...options, finEndroit: v })}
           accessibilityLabel="Finir à un endroit"
-          trackColor={{ true: Palette.primary, false: '#C9CFBD' }}
+          trackColor={{ true: P.primary, false: P.border }}
         />
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   bloc: { gap: 12 },
-  carte: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, gap: 12 },
-  carteBascule: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  carte: { backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 12 },
+  carteBascule: { backgroundColor: P.surface, borderRadius: 22, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
   entete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   titre: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
   lien: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 4 },
-  lienTexte: { fontSize: 15, fontWeight: '700', color: Palette.header, textDecorationLine: 'underline' },
+  lienTexte: { fontSize: 15, fontWeight: '700', color: P.primary, textDecorationLine: 'underline' },
   ligne: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
   point: { width: 14, height: 14, borderRadius: 7 },
   nom: { fontSize: 15, lineHeight: 22, fontWeight: '700' },
-  detail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: '#5E5548' },
-  separateur: { height: 1, backgroundColor: '#E6E2D3', marginVertical: 4 },
+  detail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: P.textSecondary },
+  separateur: { height: 1, backgroundColor: P.border, marginVertical: 4 },
   choix: { gap: 8, paddingBottom: 8 },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

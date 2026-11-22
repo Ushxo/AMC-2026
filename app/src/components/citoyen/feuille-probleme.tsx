@@ -6,6 +6,8 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { BlurView } from '@/lib/flou-optionnel';
 import { CATEGORIES_PROPOSEES, LIBELLES_CATEGORIE, type Categorie } from '@/types';
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 const TITRE_CARTE: Partial<Record<Categorie, string>> = {
   grille_bouchee: 'Égout bouché',
@@ -31,6 +33,7 @@ export function FeuilleProbleme({
   onFermer: () => void;
   erreur?: string | null;
 }) {
+  const styles = useStyles(creerStyles);
   const { bottom } = useSafeAreaInsets();
   const theme = useTheme();
   return (
@@ -92,7 +95,7 @@ export function FeuilleProbleme({
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   plein: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   teinte: { backgroundColor: 'rgba(248, 244, 234, 0.35)' },
   voile: { backgroundColor: 'rgba(248, 244, 234, 0.72)' },

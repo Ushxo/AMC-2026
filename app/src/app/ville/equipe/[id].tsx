@@ -24,8 +24,13 @@ import {
   MESSAGE_EQUIPES_LECTURE_SEULE,
 } from '@/lib/messages';
 import { formaterDuree, formaterHeure, formaterKm } from '@/lib/temps';
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 export default function FicheEquipe() {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const { bottom } = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -142,7 +147,7 @@ export default function FicheEquipe() {
               {lectureSeule ? <ThemedText type="small">{MESSAGE_EQUIPES_LECTURE_SEULE}</ThemedText> : null}
               <View style={styles.carte}>
                 <View style={styles.lieuLigne}>
-                  <View style={[styles.rond, { backgroundColor: '#1D3A1B' }]} />
+                  <View style={[styles.rond, { backgroundColor: P.primary }]} />
                   <View style={{ flex: 1 }}>
                     <ThemedText style={styles.legende}>Départ</ThemedText>
                     <ThemedText style={styles.valeur}>Garage de l&apos;équipe</ThemedText>
@@ -150,7 +155,7 @@ export default function FicheEquipe() {
                   </View>
                 </View>
                 <View style={styles.lieuLigne}>
-                  <View style={[styles.rond, { backgroundColor: '#B84A0B' }]} />
+                  <View style={[styles.rond, { backgroundColor: P.action }]} />
                   <View style={{ flex: 1 }}>
                     <ThemedText style={styles.legende}>Arrivée</ThemedText>
                     <ThemedText style={styles.valeur}>{equipe.arrivee ? 'Autre adresse' : 'Retour au garage'}</ThemedText>
@@ -176,7 +181,7 @@ export default function FicheEquipe() {
 
               <View style={styles.carteVerte}>
                 <View style={styles.lieuLigne}>
-                  <ThemedText style={[styles.titreCarte, { flex: 1, color: '#1D3A1B' }]} accessibilityRole="header">
+                  <ThemedText style={[styles.titreCarte, { flex: 1, color: P.primary }]} accessibilityRole="header">
                     Trajet du jour
                   </ThemedText>
                   {tournee ? <ThemedText style={styles.pastille}>{formaterDuree(tournee.duree_s)}</ThemedText> : null}
@@ -308,21 +313,21 @@ export default function FicheEquipe() {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 20, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  carte: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, gap: 10 },
-  carteVerte: { backgroundColor: '#DDEBD3', borderRadius: 22, padding: 18, gap: 10 },
+  carte: { backgroundColor: P.surface, borderRadius: 22, padding: 18, gap: 10 },
+  carteVerte: { backgroundColor: P.bandeau, borderRadius: 22, padding: 18, gap: 10 },
   lieuLigne: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rond: { width: 14, height: 14, borderRadius: 7 },
-  legende: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: '#5E5548' },
+  legende: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: P.textSecondary },
   valeur: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
-  detail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: '#5E5548' },
+  detail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: P.textSecondary },
   titreCarte: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
-  pastille: { backgroundColor: '#FFFFFF', color: '#1D3A1B', fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
-  piste: { height: 8, borderRadius: 4, backgroundColor: '#FFFFFF', overflow: 'hidden' },
-  remplissage: { height: 8, borderRadius: 4, backgroundColor: '#1D3A1B' },
+  pastille: { backgroundColor: P.surface, color: P.primary, fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
+  piste: { height: 8, borderRadius: 4, backgroundColor: P.surface, overflow: 'hidden' },
+  remplissage: { height: 8, borderRadius: 4, backgroundColor: P.primary },
   pied: { paddingHorizontal: 20, paddingTop: 8 },
-  suivre: { height: 60, borderRadius: 30, backgroundColor: '#B84A0B', alignItems: 'center', justifyContent: 'center' },
-  suivreTexte: { color: '#FFFFFF', fontSize: 19, lineHeight: 26, fontWeight: '700' },
+  suivre: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: 'center', justifyContent: 'center' },
+  suivreTexte: { color: P.onAction, fontSize: 19, lineHeight: 26, fontWeight: '700' },
 });

@@ -65,6 +65,9 @@ import { proposerRecalcul } from '@/lib/reordre';
 import { formaterHeure } from '@/lib/temps';
 import { cibleFinTournee, libelleArriveePlan, libelleDepartPlan } from '@/lib/tournees';
 import { arretSurPlace, idArret, messageApresRecalcul, peutMarquerFait, peutPublierPosition, regionAutour } from '@/lib/trajet';
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 const ECART_ROUTE_VALABLE_M = 150;
 const NOM_GARAGE: DestinationNommee = { arrivee: 'au garage', direction: 'du garage' };
@@ -81,6 +84,8 @@ export default function Trajet() {
 
 /** Le trajet d'une équipe (aperçu, navigation, « Arrêt fait »...) : utilisable aussi dans la coquille de l'employé (« Ma carte »). */
 export function EcranTrajet({ equipe }: { equipe?: string }) {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const { bottom } = useSafeAreaInsets();
   const { etat } = useSource();
   const { demoHorsLigne, peutGerer } = useSessionEmploye();
@@ -473,7 +478,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                   </View>
                   <View style={styles.deuxBoutons}>
                     <Pressable accessibilityRole="button" onPress={() => setListe(true)} style={[styles.bouton, styles.boutonContour]}>
-                      <ThemedText style={[styles.boutonTexte, { color: '#1D3A1B' }]} maxFontSizeMultiplier={1.2}>
+                      <ThemedText style={[styles.boutonTexte, { color: P.primary }]} maxFontSizeMultiplier={1.2}>
                         Voir les {restants.length} arrêts
                       </ThemedText>
                     </Pressable>
@@ -722,34 +727,34 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 16, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  piste: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: '#FFFFFF' },
+  piste: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: P.surface },
   remplissage: { height: 8, borderRadius: 4 },
-  progression: { backgroundColor: '#DDEBD3', borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  progressionTitre: { fontSize: 15, lineHeight: 22, fontWeight: '700', color: '#1D3A1B' },
-  dureePastille: { backgroundColor: '#FFFFFF', color: '#1D3A1B', fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
-  carteArretBlanche: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, gap: 12 },
+  progression: { backgroundColor: P.bandeau, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  progressionTitre: { fontSize: 15, lineHeight: 22, fontWeight: '700', color: P.primary },
+  dureePastille: { backgroundColor: P.surface, color: P.primary, fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, overflow: 'hidden' },
+  carteArretBlanche: { backgroundColor: P.surface, borderRadius: 22, padding: 16, gap: 12 },
   arretLigne: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   arretNum: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   arretNumTexte: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '700' },
-  arretLegende: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: '#5E5548' },
+  arretLegende: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: P.textSecondary },
   arretTitre: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
-  arretLieu: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: '#5E5548' },
+  arretLieu: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: P.textSecondary },
   arretEtiquette: { fontSize: 13, fontWeight: '700', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: 'hidden' },
   deuxBoutons: { flexDirection: 'row', gap: 10 },
   bouton: { flex: 1, minHeight: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  boutonContour: { borderWidth: 2, borderColor: '#1D3A1B', backgroundColor: '#FFFFFF' },
-  boutonPlein: { backgroundColor: '#1F5E23' },
+  boutonContour: { borderWidth: 2, borderColor: P.primary, backgroundColor: P.surface },
+  boutonPlein: { backgroundColor: P.success },
   boutonTexte: { fontSize: 15, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
   pied: { paddingHorizontal: 20, paddingTop: 8 },
-  demarrer: { height: 60, borderRadius: 30, backgroundColor: '#B84A0B', alignItems: 'center', justifyContent: 'center' },
-  demarrerTexte: { color: '#FFFFFF', fontSize: 19, lineHeight: 26, fontWeight: '700' },
+  demarrer: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: 'center', justifyContent: 'center' },
+  demarrerTexte: { color: P.onAction, fontSize: 19, lineHeight: 26, fontWeight: '700' },
   carte: { height: 380 },
   carteArret: { padding: 14, borderRadius: 14, gap: 10 },
-  avisSecours: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.94)', color: '#1A1A1A' },
+  avisSecours: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.94)', color: P.text },
   superposition: { position: 'absolute', top: 8, left: 8, right: 8 },
   commandesCarte: { position: 'absolute', right: 8, bottom: 8, gap: 8, alignItems: 'flex-end' },
 });

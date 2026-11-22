@@ -51,6 +51,8 @@ import {
   type Coordonnees,
   type ResultatRecherche,
 } from '@/types';
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 const CATEGORIES: Categorie[] = CATEGORIES_PROPOSEES;
 
@@ -87,6 +89,8 @@ function verificationAffichee(a: EtatAnalyse): VerificationPhoto | null {
 type Etape = 'probleme' | 'photo' | 'formulaire';
 
 export default function Signaler() {
+  const P = useTheme();
+  const styles = useStyles(creerStyles);
   const { bottom, top } = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
@@ -285,7 +289,7 @@ export default function Signaler() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.enteteVert, { paddingTop: top + 14 }]}>
         <Pressable onPress={() => setEtape('photo')} accessibilityRole="button" accessibilityLabel="Retour à la photo" hitSlop={8} style={styles.retour}>
-          <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={28} color={P.onHeader} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <ThemedText accessibilityRole="header" style={styles.enteteTitre} maxFontSizeMultiplier={1.3}>
@@ -316,11 +320,11 @@ export default function Signaler() {
             <ThemedText style={styles.resumeTitre}>{categorie ? LIBELLES_CATEGORIE[categorie] : ''}</ThemedText>
             <ThemedText style={styles.resumeLieu}>{adresseLieu ?? 'Lieu à choisir'}</ThemedText>
             {verification ? (
-              <ThemedText style={[styles.resumePhoto, { color: verification.statut === 'refusee' ? '#B3261E' : verification.statut === 'acceptee' ? '#1D3A1B' : '#5E5548' }]} accessibilityLiveRegion="polite">
+              <ThemedText style={[styles.resumePhoto, { color: verification.statut === 'refusee' ? P.danger : verification.statut === 'acceptee' ? P.primary : P.textSecondary }]} accessibilityLiveRegion="polite">
                 {ETIQUETTES_RESUME[verification.statut]}
               </ThemedText>
             ) : (
-              <ThemedText style={[styles.resumePhoto, { color: '#5E5548' }]}>Sans photo</ThemedText>
+              <ThemedText style={[styles.resumePhoto, { color: P.textSecondary }]}>Sans photo</ThemedText>
             )}
           </View>
           <Pressable onPress={() => setEtape('probleme')} accessibilityRole="button" accessibilityLabel="Changer de problème" style={styles.changer}>
@@ -461,32 +465,32 @@ export default function Signaler() {
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 16, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
   rangee: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   ligne: { minHeight: CIBLE_MIN, padding: 12, borderRadius: 12, justifyContent: 'center' },
   carte: { height: 240, borderRadius: 14 },
-  enteteVert: { backgroundColor: '#1D3A1B', paddingHorizontal: 18, paddingBottom: 22, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  enteteVert: { backgroundColor: P.header, paddingHorizontal: 18, paddingBottom: 22, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   retour: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  enteteTitre: { color: '#FFFFFF', fontSize: 26, lineHeight: 34, fontWeight: '700' },
-  enteteSous: { color: '#DCE5CC', fontSize: 15, fontWeight: '500' },
-  resume: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  vignette: { width: 64, height: 64, borderRadius: 16, backgroundColor: '#DCE5CC', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  enteteTitre: { color: P.onHeader, fontSize: 26, lineHeight: 34, fontWeight: '700' },
+  enteteSous: { color: P.bandeau, fontSize: 15, fontWeight: '500' },
+  resume: { backgroundColor: P.surface, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  vignette: { width: 64, height: 64, borderRadius: 16, backgroundColor: P.bandeau, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   vignetteImage: { width: 64, height: 64 },
   resumeTitre: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
   resumePhoto: { fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  resumeLieu: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: '#5E5548' },
+  resumeLieu: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: P.textSecondary },
   changer: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingHorizontal: 4 },
-  changerTexte: { fontSize: 15, fontWeight: '600', color: '#1D3A1B', textDecorationLine: 'underline' },
+  changerTexte: { fontSize: 15, fontWeight: '600', color: P.primary, textDecorationLine: 'underline' },
   lienLieu: { minHeight: 48, justifyContent: 'center' },
   bloc: { gap: 10 },
   blocTitre: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
-  suggestion: { backgroundColor: '#DCE5CC', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  suggestion: { backgroundColor: P.bandeau, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
   suggestionTexte: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
   pied: { paddingHorizontal: 20, paddingTop: 12 },
-  envoyer: { height: 60, borderRadius: 30, backgroundColor: '#B84A0B', alignItems: 'center', justifyContent: 'center' },
-  envoyerTexte: { color: '#FFFFFF', fontSize: 19, lineHeight: 26, fontWeight: '700' },
+  envoyer: { height: 60, borderRadius: 30, backgroundColor: P.action, alignItems: 'center', justifyContent: 'center' },
+  envoyerTexte: { color: P.onAction, fontSize: 19, lineHeight: 26, fontWeight: '700' },
   avis: { borderWidth: 2, borderRadius: 12, padding: 12, gap: 4 },
   commentaire: { minHeight: 96, textAlignVertical: 'top', paddingTop: 12 },
   photoBloc: { gap: 8 },

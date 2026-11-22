@@ -18,6 +18,9 @@ import { useSource } from '@/hooks/use-source';
 import { erreursEquipe, type ErreursChamps } from '@/lib/champs';
 import { ETIQUETTE_DEMONSTRATION, MESSAGE_AUCUNE_EQUIPE, MESSAGE_EQUIPES_LECTURE_SEULE, MESSAGE_HYPOTHESES_DEMO } from '@/lib/messages';
 import type { Coordonnees } from '@/types';
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 /** Route classique. */
 export default function Equipes() {
@@ -25,6 +28,8 @@ export default function Equipes() {
 }
 
 export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean }) {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const { bottom: bas } = useSafeAreaInsets();
   const bottom = dansCoquille ? 0 : bas;
   const router = useRouter();
@@ -105,7 +110,7 @@ export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean 
                       {e.exemple_demo ? ` · ${ETIQUETTE_DEMONSTRATION}` : ''}
                     </ThemedText>
                   </View>
-                  <Ionicons name="chevron-forward" size={22} color="#2A1D14" />
+                  <Ionicons name="chevron-forward" size={22} color={P.text} />
                 </Pressable>
               );
             })
@@ -143,14 +148,14 @@ export function EcranEquipes({ dansCoquille = false }: { dansCoquille?: boolean 
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 20, gap: 12, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  carteEquipe: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 80 },
+  carteEquipe: { backgroundColor: P.surface, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 80 },
   numero: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   numeroTexte: { color: '#FFFFFF', fontSize: 17, lineHeight: 24, fontWeight: '700' },
   equipeNom: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
-  equipeDetail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: '#5E5548' },
-  equipeCompte: { fontSize: 13, lineHeight: 19, fontWeight: '700', color: '#1D3A1B' },
+  equipeDetail: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: P.textSecondary },
+  equipeCompte: { fontSize: 13, lineHeight: 19, fontWeight: '700', color: P.primary },
   formulaire: { gap: 10, marginTop: 8 },
 });

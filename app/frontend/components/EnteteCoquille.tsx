@@ -4,10 +4,14 @@ import { Texte as Text } from '@/components/texte';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Palette } from "@/constants/theme";
+import { useStyles } from '@/marque/utiliser';
+import { useTheme } from '@/hooks/use-theme';
+import type { Jetons } from '@/marque/jetons';
 
 // En-tête commun des coquilles Superviseur et Employé : nom de l'app, qui est connecté, déconnexion.
 export function EnteteCoquille({ sousTitre, onLogout }: { sousTitre: string; onLogout: () => void }) {
+  const styles = useStyles(creerStyles);
+  const P = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -21,16 +25,16 @@ export function EnteteCoquille({ sousTitre, onLogout }: { sousTitre: string; onL
         </Text>
       </View>
       <Pressable style={styles.logout} onPress={onLogout} accessibilityRole="button" accessibilityLabel="Se déconnecter">
-        <Ionicons name="log-out-outline" size={22} color={Palette.onHeader} />
+        <Ionicons name="log-out-outline" size={22} color={P.onHeader} />
         <Text style={styles.logoutText} maxFontSizeMultiplier={1.3}>Déconnexion</Text>
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   header: {
-    backgroundColor: Palette.header,
+    backgroundColor: P.header,
     paddingHorizontal: 20,
     paddingBottom: 16,
     flexDirection: "row",
@@ -39,8 +43,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
   },
-  brand: { color: Palette.onHeader, fontSize: 26, fontWeight: "800" },
-  who: { color: "#DCDACE", fontSize: 13, marginTop: 2 },
+  brand: { color: P.onHeader, fontSize: 26, fontWeight: "800" },
+  who: { color: P.onHeaderSoft, fontSize: 13, marginTop: 2 },
   logout: {
     flexDirection: "row",
     alignItems: "center",
@@ -53,5 +57,5 @@ const styles = StyleSheet.create({
     minWidth: 44,
     flexShrink: 0,
   },
-  logoutText: { color: Palette.onHeader, fontWeight: "700", fontSize: 13 },
+  logoutText: { color: P.onHeader, fontWeight: "700", fontSize: 13 },
 });

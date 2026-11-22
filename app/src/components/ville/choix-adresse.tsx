@@ -13,6 +13,8 @@ import type { Coordonnees, ResultatRecherche } from '@/types';
 import { Bouton } from './bouton';
 import { Champ } from './champ';
 import { COULEUR_ACCENT } from './style';
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
 
 export type AdresseChoisie = { position: Coordonnees; adresse: string | null };
 
@@ -27,6 +29,7 @@ type Props = {
 
 /** Choisir une adresse : la chercher en texte, toucher la carte, ou utiliser sa position. L'adresse retenue s'affiche en clair. */
 export function ChoixAdresse({ titre, point, adresse, onChoisir, erreur }: Props) {
+  const styles = useStyles(creerStyles);
   const theme = useTheme();
   const region = useMemo(() => chargerRegion(), []);
   const adresses = useMemo(() => chargerAdresses(), []);
@@ -124,9 +127,9 @@ export function ChoixAdresse({ titre, point, adresse, onChoisir, erreur }: Props
   );
 }
 
-const styles = StyleSheet.create({
+const creerStyles = (P: Jetons) => StyleSheet.create({
   bloc: { gap: 8 },
   carte: { height: 200 },
   resultat: { minHeight: 44, borderRadius: 12, paddingHorizontal: 12, justifyContent: 'center' },
-  erreur: { color: '#B3261E' },
+  erreur: { color: P.danger },
 });
