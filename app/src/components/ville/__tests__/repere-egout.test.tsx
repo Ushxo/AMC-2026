@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
-import { SelecteurTheme } from '../selecteur-theme';
+import { SelecteurCarte } from '../selecteur-carte';
 import { geometrieRepere, RepereEgout } from '../repere-egout';
 import { reinitialiserThemePourTests, lirePreferenceTheme } from '../../../lib/theme-pref';
 
@@ -34,11 +34,11 @@ describe('ancrage du repère', () => {
   });
 });
 
-describe('sélecteur de thème', () => {
+describe('sélecteur de style de carte', () => {
   beforeEach(() => reinitialiserThemePourTests());
 
   it('trois boutons, l’état choisi est annoncé, un appui change la préférence', async () => {
-    await render(<SelecteurTheme />);
+    await render(<SelecteurCarte />);
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(3);
     expect(screen.getByLabelText('Automatique').props.accessibilityState.checked).toBe(true);
@@ -46,5 +46,16 @@ describe('sélecteur de thème', () => {
     expect(lirePreferenceTheme()).toBe('sombre');
     expect(screen.getByLabelText('Sombre').props.accessibilityState.checked).toBe(true);
     expect(screen.getByLabelText('Automatique').props.accessibilityState.checked).toBe(false);
+  });
+});
+
+describe('repère numéroté', () => {
+  it('écrit le numéro d’arrêt, et la taille de police baisse avec le nombre de chiffres', async () => {
+    const { taillePolice } = require('../repere-egout') as typeof import('../repere-egout'); // eslint-disable-line @typescript-eslint/no-require-imports
+    expect(taillePolice(3)).toBeGreaterThan(taillePolice(12));
+    expect(taillePolice(12)).toBeGreaterThan(taillePolice(120));
+    const { unmount } = await render(<RepereEgout couleur="#2F7D32" numero={12} />);
+    expect(screen.getByTestId('repere-egout', { includeHiddenElements: true })).toBeTruthy();
+    await unmount();
   });
 });

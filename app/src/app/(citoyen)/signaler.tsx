@@ -3,8 +3,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import type MapView from 'react-native-maps';
-import type { MapPressEvent } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COULEUR_AVIS } from '@/components/citoyen-essai/style';
@@ -12,16 +10,19 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BandeauSource } from '@/components/ville/bandeau-source';
 import { Bouton } from '@/components/ville/bouton';
-import { CarteCommune } from '@/components/ville/carte-commune';
-import { MarqueurEgout } from '@/components/ville/marqueur-egout';
+import { Carte, Repere, type CarteCommandes } from '@/components/carte';
 import { Champ } from '@/components/ville/champ';
+import { useCouleursTexte } from '@/components/ville/couleurs';
 import { CIBLE_MIN, COULEUR_ACCENT } from '@/components/ville/style';
 import { useCreerSignalement } from '@/hooks/use-creer-signalement';
 import { usePosition } from '@/hooks/use-position';
-import { useRechercheAdresse } from '@/hooks/use-recherche-adresse';
+import { usePositionCarte } from '@/hooks/use-position-carte';
+import { dansQuartier, messagePositionCarte, RAYON_CITOYEN_M } from '@/lib/position-citoyen';
+import { MESSAGE_RECHERCHE_INDISPONIBLE, useRechercheAdresse } from '@/hooks/use-recherche-adresse';
 import { useSource } from '@/hooks/use-source';
 import { useTheme } from '@/hooks/use-theme';
 import { useZoneEau } from '@/hooks/use-zone-eau';
+import { erreursSignalement } from '@/lib/champs';
 import { chargerRegion } from '@/lib/officiel';
 import {
   MESSAGE_ECHEC_ENVOI,
@@ -47,11 +48,12 @@ export default function Signaler() {
   const { bottom } = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
+  const couleursTexte = useCouleursTexte();
   const { etat } = useSource();
   const region = useMemo(() => chargerRegion(), []);
   const { envoyer, envoiEnCours } = useCreerSignalement();
   const { position, permission, demander } = usePosition();
-  const { chercher } = useRechercheAdresse();
+  const { chercher, indisponible: rechercheIndisponible } = useRechercheAdresse();
   const [point, setPoint] = useState<Coordonnees | null>(null);
   const [demandePosition, setDemandePosition] = useState(false);
   const [texteAdresse, setTexteAdresse] = useState('');
@@ -61,13 +63,26 @@ export default function Signaler() {
   const [commentaire, setCommentaire] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
+  const [aEssaye, setAEssaye] = useState(false);
   const [envoyeId, setEnvoyeId] = useState<string | null>(null);
+  // Après un premier essai d'envoi, chaque champ invalide le dit et l'erreur disparaît dès qu'il est corrigé.
+  const erreursChamps = aEssaye ? erreursSignalement({ point, categorie, gravite, commentaire }) : {};
   const zone = useZoneEau(point);
-  const carteRef = useRef<MapView>(null);
+  const carteRef = useRef<CarteCommandes>(null);
+  const { position: positionCarte, statut: statutCarte } = usePositionCarte();
+  const dejaCentre = useRef(false);
+  const messageCarte = messagePositionCarte(statutCarte, positionCarte, region);
+
+  // Par défaut, la carte est centrée sur la position du citoyen (s'il est dans le quartier) ; le lieu du signalement reste à choisir.
+  useEffect(() => {
+    if (dejaCentre.current || !positionCarte || !dansQuartier(positionCarte, region) || !carteRef.current) return;
+    dejaCentre.current = true;
+    carteRef.current.surPosition(positionCarte, RAYON_CITOYEN_M);
+  }, [positionCarte, region]);
 
   // La carte se recentre sur le point choisi (position, adresse ou toucher).
   useEffect(() => {
-    if (point) carteRef.current?.animateToRegion({ ...region, latitude: point.latitude, longitude: point.longitude }, 400);
+    if (point) carteRef.current?.centrer(point);
   }, [point, region]);
 
   // Quand l'utilisateur a demandé sa position, on la prend dès qu'elle arrive.
@@ -111,14 +126,9 @@ export default function Signaler() {
 
   async function valider() {
     setMessages([]);
-    if (!point || !categorie || !gravite) {
-      const manque: string[] = [];
-      if (!point) manque.push('Choisissez le lieu : votre position, une adresse ou un point sur la carte.');
-      if (!categorie) manque.push('Choisissez ce que vous signalez.');
-      if (!gravite) manque.push('Choisissez la gravité du problème.');
-      setMessages(manque);
-      return;
-    }
+    setAEssaye(true);
+    const invalides = erreursSignalement({ point, categorie, gravite, commentaire });
+    if (!point || !categorie || !gravite || invalides.commentaire) return;
     const r = await envoyer({
       latitude: point.latitude,
       longitude: point.longitude,
@@ -172,8 +182,8 @@ export default function Signaler() {
             />
             <Bouton titre="Chercher" variante="discret" onPress={() => void lancerRecherche()} />
             {resultats && resultats.length === 0 ? (
-              <ThemedText type="small" themeColor="textSecondary">
-                Aucune adresse trouvée.
+              <ThemedText type="small" themeColor="textSecondary" accessibilityRole="alert">
+                {rechercheIndisponible ? MESSAGE_RECHERCHE_INDISPONIBLE : 'Aucune adresse trouvée.'}
               </ThemedText>
             ) : null}
             {(resultats ?? []).map((r) => (
@@ -192,16 +202,27 @@ export default function Signaler() {
             <ThemedText type="small" themeColor="textSecondary">
               Vous pouvez aussi toucher la carte pour placer le point.
             </ThemedText>
-            <CarteCommune
-              ref={carteRef}
+            <Carte
+              commandes={carteRef}
               style={styles.carte}
-              initialRegion={region}
-              onPress={(e: MapPressEvent) => setPoint(e.nativeEvent.coordinate)}
+              regionInitiale={region}
+              positionUtilisateur={statutCarte === 'ok'}
+              onPress={setPoint}
               accessibilityLabel="Carte pour choisir le lieu du problème">
-              {point ? <MarqueurEgout coordinate={point} couleur={COULEUR_ACCENT} etat="prochain" title="Lieu du problème" /> : null}
-            </CarteCommune>
+              {point ? <Repere id="lieu-du-probleme" position={point} couleur={COULEUR_ACCENT} etat="prochain" titre="Lieu du problème" /> : null}
+            </Carte>
+            {messageCarte ? (
+              <ThemedText type="small" themeColor="textSecondary">
+                {messageCarte}
+              </ThemedText>
+            ) : null}
             {point ? (
               <ThemedText type="small">Lieu choisi : {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}</ThemedText>
+            ) : null}
+            {erreursChamps.lieu && !point ? (
+              <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
+                {erreursChamps.lieu}
+              </ThemedText>
             ) : null}
             {zone.dansZone ? (
               <View accessibilityRole="alert" style={[styles.avis, { borderColor: COULEUR_AVIS }]}>
@@ -229,6 +250,12 @@ export default function Signaler() {
               ))}
             </View>
 
+            {erreursChamps.categorie && !categorie ? (
+              <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
+                {erreursChamps.categorie}
+              </ThemedText>
+            ) : null}
+
             <ThemedText type="smallBold" accessibilityRole="header">
               3. Quelle est la gravité ?
             </ThemedText>
@@ -244,6 +271,12 @@ export default function Signaler() {
               ))}
             </View>
 
+            {erreursChamps.gravite && !gravite ? (
+              <ThemedText type="small" accessibilityRole="alert" style={{ color: couleursTexte.erreur }}>
+                {erreursChamps.gravite}
+              </ThemedText>
+            ) : null}
+
             <ThemedText type="smallBold" accessibilityRole="header">
               4. Un détail à ajouter ? (facultatif)
             </ThemedText>
@@ -254,6 +287,7 @@ export default function Signaler() {
               multiline
               maxLength={500}
               style={styles.commentaire}
+              erreur={erreursChamps.commentaire}
             />
             <View style={styles.rangee}>
               <Bouton titre="Prendre une photo" variante="discret" onPress={() => void ajouterPhoto('camera')} />

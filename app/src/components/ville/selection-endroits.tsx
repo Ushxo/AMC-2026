@@ -6,11 +6,13 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import type { Region } from '@/lib/config';
 import { formaterNombre } from '@/lib/format';
-import { MESSAGE_SELECTION_VIDE } from '@/lib/messages';
+import { MESSAGE_SELECTION_VIDE, MESSAGE_ZONE_ESTIMEE } from '@/lib/messages';
+import type { Zone } from '@/lib/zones';
 import { compterSelection, gravitesDisponibles, libelleCompteur } from '@/lib/selection';
-import { LIBELLES_GRAVITE, type Endroit, type Gravite } from '@/types';
+import { LIBELLES_GRAVITE, type Endroit, type Gravite, type Signalement } from '@/types';
 
 import { Bouton } from './bouton';
+import { SelecteurCarte } from './selecteur-carte';
 import { CarteSelection } from './carte-selection';
 import { CIBLE_MIN, COULEUR_REPERE } from './style';
 
@@ -24,12 +26,36 @@ type Props = {
   estChoisi: (cle: string) => boolean;
   choisirGravite: (g: Gravite) => void;
   basculer: (cle: string) => void;
+  basculerZoneEndroits: (clesZone: string[]) => void;
   toutes: () => void;
   vider: () => void;
+  /** Zones de signalements (inondation) et leurs signalements, pour la fiche. */
+  zones?: Zone[];
+  signalements?: Signalement[];
+  onOuvrirSignalement?: (id: string) => void;
+  modeFin?: boolean;
+  cleFin?: string | null;
+  onChoisirFin?: (cle: string) => void;
 };
 
 /** Choix des endroits à planifier : boutons de gravité, carte, compteur et liste de secours accessible. */
-export function SelectionEndroits({ endroits, region, cles, estChoisi, choisirGravite, basculer, toutes, vider }: Props) {
+export function SelectionEndroits({
+  endroits,
+  region,
+  cles,
+  estChoisi,
+  choisirGravite,
+  basculer,
+  basculerZoneEndroits,
+  toutes,
+  vider,
+  zones = [],
+  signalements = [],
+  onOuvrirSignalement,
+  modeFin,
+  cleFin,
+  onChoisirFin,
+}: Props) {
   const theme = useTheme();
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -77,9 +103,23 @@ export function SelectionEndroits({ endroits, region, cles, estChoisi, choisirGr
         endroits={endroits}
         region={region}
         estChoisi={estChoisi}
+        cles={cles}
         onBasculer={basculer}
+        zones={zones}
+        signalements={signalements}
+        onBasculerZone={basculerZoneEndroits}
+        onOuvrirSignalement={onOuvrirSignalement}
+        modeFin={modeFin}
+        cleFin={cleFin}
+        onChoisirFin={onChoisirFin}
         style={{ height: Math.round(height * 0.55) }}
       />
+      {zones.length > 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {MESSAGE_ZONE_ESTIMEE}. Touchez une zone pour sélectionner (ou retirer) tous ses endroits ; « Voir la zone » ouvre sa fiche.
+        </ThemedText>
+      ) : null}
+      <SelecteurCarte />
       <Bouton titre="Agrandir la carte" variante="discret" onPress={() => setPlein(true)} />
       <Modal visible={plein} animationType="slide" onRequestClose={() => setPlein(false)}>
         <View style={[styles.plein, { backgroundColor: theme.background, paddingTop: insets.top }]}>
@@ -104,7 +144,18 @@ export function SelectionEndroits({ endroits, region, cles, estChoisi, choisirGr
             endroits={endroits}
             region={region}
             estChoisi={estChoisi}
+            cles={cles}
             onBasculer={basculer}
+            zones={zones}
+            signalements={signalements}
+            onBasculerZone={basculerZoneEndroits}
+            onOuvrirSignalement={(id) => {
+              setPlein(false);
+              onOuvrirSignalement?.(id);
+            }}
+            modeFin={modeFin}
+            cleFin={cleFin}
+            onChoisirFin={onChoisirFin}
             style={styles.cartePleine}
           />
         </View>

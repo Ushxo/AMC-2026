@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
@@ -14,6 +14,8 @@ type Props = {
   libelleAccessible?: string;
   /** Occupe toute la ligne : pour l'action principale d'un écran. */
   pleineLargeur?: boolean;
+  /** Une action est en cours : indicateur d'activité dans le bouton, appui désactivé. */
+  occupe?: boolean;
 };
 
 export function Bouton({
@@ -24,27 +26,32 @@ export function Bouton({
   selectionne,
   libelleAccessible,
   pleineLargeur,
+  occupe,
 }: Props) {
   const theme = useTheme();
   const plein = variante === 'plein';
   return (
     <Pressable
       onPress={onPress}
-      disabled={!actif}
+      disabled={!actif || !!occupe}
       accessibilityRole="button"
       accessibilityLabel={libelleAccessible ?? (selectionne ? `${titre}, sélectionné` : titre)}
-      accessibilityState={{ disabled: !actif, selected: selectionne }}
+      accessibilityState={{ disabled: !actif || !!occupe, selected: selectionne, busy: !!occupe }}
       style={({ pressed }) => [
         styles.bouton,
         pleineLargeur ? styles.pleine : null,
         {
           backgroundColor: plein ? COULEUR_ACCENT : selectionne ? theme.backgroundSelected : theme.backgroundElement,
-          opacity: !actif ? 0.45 : pressed ? 0.8 : 1,
+          opacity: !actif ? 0.45 : pressed ? 0.7 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
         },
       ]}>
-      <ThemedText type="smallBold" style={plein ? styles.texteBlanc : undefined}>
-        {selectionne ? `✓ ${titre}` : titre}
-      </ThemedText>
+      <View style={styles.contenu}>
+        {occupe ? <ActivityIndicator size="small" color={plein ? '#ffffff' : undefined} /> : null}
+        <ThemedText type="smallBold" style={plein ? styles.texteBlanc : undefined}>
+          {selectionne ? `✓ ${titre}` : titre}
+        </ThemedText>
+      </View>
     </Pressable>
   );
 }
@@ -58,5 +65,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pleine: { width: '100%' },
+  contenu: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   texteBlanc: { color: '#ffffff' },
 });

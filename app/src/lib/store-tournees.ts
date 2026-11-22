@@ -1,8 +1,19 @@
-// État partagé entre les hooks des tournées : bascule sur le précalculé et incident de démo affiché.
+import type { ResultatOptimisation } from '../types';
 
-type Etat = { forcerPrecalcule: boolean; incidentDemo: boolean; version: number };
+// État partagé entre les hooks des tournées : bascule sur le précalculé, incident de démo affiché, calcul en cours.
 
-let etat: Etat = { forcerPrecalcule: false, incidentDemo: false, version: 0 };
+type Etat = { forcerPrecalcule: boolean; incidentDemo: boolean; calculEnCours: boolean; version: number };
+
+/** Dernier plan valide lu : gardé tant qu'un nouveau plan valide ne le remplace pas (jamais effacé par une lecture ratée). */
+let dernierPlan: ResultatOptimisation | null = null;
+export function lireDernierPlan(): ResultatOptimisation | null {
+  return dernierPlan;
+}
+export function memoriserDernierPlan(p: ResultatOptimisation | null): void {
+  dernierPlan = p;
+}
+
+let etat: Etat = { forcerPrecalcule: false, incidentDemo: false, calculEnCours: false, version: 0 };
 const ecouteurs = new Set<() => void>();
 
 export function lireEtatTournees(): Etat {
@@ -30,6 +41,7 @@ export function abonnerTournees(f: () => void): () => void {
 }
 
 export function reinitialiserEtatTournees(): void {
-  etat = { forcerPrecalcule: false, incidentDemo: false, version: 0 };
+  dernierPlan = null;
+  etat = { forcerPrecalcule: false, incidentDemo: false, calculEnCours: false, version: 0 };
   ecouteurs.forEach((f) => f());
 }

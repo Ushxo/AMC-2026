@@ -1,5 +1,5 @@
 import { filtrerSignalements } from '../filtre';
-import { chercherLocal, normaliser } from '../recherche';
+import { adressePlusProche, chercherLocal, normaliser } from '../recherche';
 import { calculerResume } from '../resume';
 import { sig } from '../test-utils/fabrique';
 import { uuidV4 } from '../uuid';
@@ -49,5 +49,16 @@ describe('uuid', () => {
     const a = uuidV4();
     expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(uuidV4()).not.toBe(a);
+  });
+});
+
+describe('adresse la plus proche', () => {
+  it('rend la plus proche dans le rayon, sinon null', () => {
+    const index = [
+      { libelle: '100 rue A', latitude: 45.5, longitude: -73.57 },
+      { libelle: '200 rue B', latitude: 45.5005, longitude: -73.57 },
+    ];
+    expect(adressePlusProche({ latitude: 45.50045, longitude: -73.57 }, index)?.libelle).toBe('200 rue B');
+    expect(adressePlusProche({ latitude: 45.6, longitude: -73.57 }, index)).toBeNull();
   });
 });

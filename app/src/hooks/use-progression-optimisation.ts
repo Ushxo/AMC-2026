@@ -28,7 +28,7 @@ export function useProgressionOptimisation(
     let actif = true;
     AccessibilityInfo.isReduceMotionEnabled()
       .then((v) => actif && setReduire(Boolean(v)))
-      .catch(() => {});
+      .catch(() => {}); // réglage d'accessibilité illisible : on garde les animations par défaut
     const abonne = AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v: boolean) => setReduire(v));
     return () => {
       actif = false;

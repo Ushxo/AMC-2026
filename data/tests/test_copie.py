@@ -42,6 +42,7 @@ def test_liste_publique_explicite():
         "equipes-demo",
         "grilles",
         "meta",
+        "regards",
         "signalements-demo",
         "tournees-demo",
         "tournees-demo-incident",

@@ -84,5 +84,29 @@ export const MESSAGE_ARRET_FAIT_PARTIEL =
   "L'arrêt est noté, mais certains signalements n'ont pas pu être réglés. Touchez « Arrêt fait » pour réessayer.";
 export const MESSAGE_ARRET_ECHEC = "L'arrêt n'a pas pu être noté. Réessayez.";
 export const MESSAGE_TOURNEE_TERMINEE = 'Tournée terminée : retour au garage.';
-export const MESSAGE_TRAJET_SANS_GUIDAGE =
-  'Suivi des arrêts seulement : ce n’est pas un guidage virage par virage.';
+
+// --- Compte d'équipe, position et trajet ---
+export const MESSAGE_COMPTE_AUCUN = 'Aucun compte avec ce courriel. Le compte se crée d’abord par « Créer un compte ».';
+export const MESSAGE_COMPTE_RESERVE = 'Réservé aux superviseurs.';
+export const MESSAGE_COMPTE_INDISPONIBLE = "Cette fonction n'est pas encore disponible sur la base.";
+export const MESSAGE_COMPTE_ECHEC = "Le compte n'a pas pu être changé. Réessayez.";
+export const MESSAGE_COMPTE_ASSOCIE = 'Compte associé à cette équipe.';
+export const MESSAGE_COMPTE_RETIRE = 'Compte retiré de cette équipe.';
+export const MESSAGE_COMPTE_RAPPEL = "Le compte se crée d'abord par « Créer un compte » (écran de connexion).";
+export const MESSAGE_POSITION_PARTAGEE = 'Votre position est partagée avec le superviseur pendant le trajet.';
+export const MESSAGE_POSITION_LOCALE = 'Démonstration : votre position reste sur ce téléphone, rien n’est envoyé.';
+export const MESSAGE_POSITION_NON_PARTAGEE = "Votre position n'est pas partagée avec le superviseur.";
+export const MESSAGE_TRAJET_SANS_POSITION = "La position de l'appareil n'est pas autorisée : le trajet part du premier arrêt.";
+export const MESSAGE_TRONCON_DROITE = 'Tracé en ligne droite : le service de routes ne répond pas.';
+
+// --- Zones de signalements ---
+export const MESSAGE_ZONE_ESTIMEE = 'Zones de signalements : étendue estimée';
+
+export const MESSAGE_ORDRE_ESTIME = "Ordre estimé sur ce téléphone, à vol d'oiseau (sans les routes). Ce n'est pas un calcul de la Ville.";
+export const MESSAGE_RECALCUL_DEMANDE = "Recalcul demandé depuis votre position. Le nouvel ordre arrive dans un instant.";
+
+/** Étiquette unique pour tout ce qui est simulé ou issu de la démonstration. */
+export const ETIQUETTE_DEMONSTRATION = 'Démonstration';
+
+export const MESSAGE_RECALCUL_INDISPONIBLE = 'Le recalcul en ligne n’est pas disponible pour le moment.';
+export const MESSAGE_SEUL_SUPERVISEUR_OU_EQUIPE = 'Seul le superviseur ou le compte de cette équipe peut marquer un arrêt fait.';

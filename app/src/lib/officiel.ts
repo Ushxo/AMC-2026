@@ -87,6 +87,22 @@ export function chargerAdresses(): EntreeAdresse[] {
   return Array.isArray(v) ? (v as EntreeAdresse[]) : [];
 }
 
+export type RegardEgout = { id: string; latitude: number; longitude: number; adresse?: string | null };
+
+let cacheRegards: RegardEgout[] | null = null;
+
+/** Regards d'égout réels du quartier (copie locale). Liste vide si le fichier manque ou est invalide. */
+export function chargerRegards(): RegardEgout[] {
+  if (cacheRegards) return cacheRegards;
+  const v = essayer(() => require('../donnees/regards.json'));
+  cacheRegards = Array.isArray(v)
+    ? (v as RegardEgout[]).filter(
+        (r) => r && r.id !== undefined && Number.isFinite(Number(r.latitude)) && Number.isFinite(Number(r.longitude)),
+      )
+    : [];
+  return cacheRegards;
+}
+
 export function chargerSignalementsDemo(): Signalement[] {
   const v = essayer(() => require('../donnees/signalements-demo.json'));
   if (!Array.isArray(v)) return [];

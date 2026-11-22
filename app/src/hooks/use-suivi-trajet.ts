@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { chargerPrecalcule } from '../lib/optimisation';
 import { nettoyerResultat } from '../lib/tournees';
+import { reordonnerRestants } from '../lib/reordre';
 import { MESSAGE_ARRET_ECHEC, MESSAGE_ARRET_FAIT_PARTIEL } from '../lib/messages';
 import {
   arretsTries,
@@ -9,7 +10,7 @@ import {
   idArret,
   noterFaitLocal,
   noterPartiel,
-  prochainArret,
+  tourneeTerminee,
   trouverTournee,
   useEtatTrajet,
 } from '../lib/trajet';
@@ -37,6 +38,10 @@ export function useSuiviTrajet(equipeId: string): {
   estFait: (a: Arret) => boolean;
   estPartiel: (a: Arret) => boolean;
   aller: (delta: number) => void;
+  /** Réordonne localement les arrêts restants depuis cette position (estimation à vol d'oiseau). */
+  reordonnerDepuis: (position: Coordonnees) => void;
+  /** Vrai si l'ordre des arrêts restants a été réordonné sur ce téléphone. */
+  ordreLocal: boolean;
   marquerFait: (arretId: string) => Promise<string | null>;
   terminee: boolean;
   chargement: boolean;
@@ -53,13 +58,24 @@ export function useSuiviTrajet(equipeId: string): {
   const { changer } = useChangerEtat();
   const { faits: faitsLocaux, partiels } = useEtatTrajet();
   const [choix, setChoix] = useState<string | null>(null);
+  const [ordreCles, setOrdreCles] = useState<string[] | null>(null);
 
   const tournee = useMemo(() => trouverTournee(resultat, equipeId), [resultat, equipeId]);
-  const arrets = useMemo(() => (tournee ? arretsTries(tournee) : []), [tournee]);
   const estFait = useCallback((a: Arret) => Boolean(a.fait) || faitsLocaux.has(idArret(a)), [faitsLocaux]);
+  const arrets = useMemo(() => {
+    if (!tournee) return [];
+    const tries = arretsTries(tournee);
+    if (!ordreCles) return tries;
+    // Ordre local : les arrêts faits d'abord, puis les restants dans l'ordre estimé, numérotés de nouveau.
+    const faitsEnPremier = tries.filter(estFait);
+    const parCle = new Map(tries.filter((a) => !estFait(a)).map((a) => [idArret(a), a]));
+    const restants = ordreCles.map((c) => parCle.get(c)).filter((a): a is Arret => !!a);
+    const oublies = [...parCle.values()].filter((a) => !ordreCles.includes(idArret(a)));
+    return [...faitsEnPremier, ...restants, ...oublies].map((a, i) => ({ ...a, rang: i + 1 }));
+  }, [tournee, ordreCles, estFait]);
   const estPartiel = useCallback((a: Arret) => partiels.has(idArret(a)), [partiels]);
 
-  const prochain = useMemo(() => (tournee ? prochainArret(tournee, estFait) : null), [tournee, estFait]);
+  const prochain = useMemo(() => arrets.find((a) => !estFait(a)) ?? null, [arrets, estFait]);
   const courant = useMemo(
     () => (choix ? (arrets.find((a) => idArret(a) === choix) ?? prochain) : prochain),
     [arrets, choix, prochain],
@@ -75,6 +91,15 @@ export function useSuiviTrajet(equipeId: string): {
       setChoix(idArret(suivant));
     },
     [arrets, courant],
+  );
+
+  const reordonnerDepuis = useCallback(
+    (pos: Coordonnees) => {
+      const restants = arrets.filter((a) => !estFait(a));
+      setOrdreCles(reordonnerRestants(pos, restants).map(idArret));
+      setChoix(null);
+    },
+    [arrets, estFait],
   );
 
   const marquerFait = useCallback(
@@ -116,8 +141,11 @@ export function useSuiviTrajet(equipeId: string): {
     estFait,
     estPartiel,
     aller,
+    reordonnerDepuis,
+    ordreLocal: ordreCles !== null,
     marquerFait,
-    terminee: arrets.length > 0 && faits === arrets.length && partiels.size === 0,
+    // La fin ne regarde que les arrêts de la tournée affichée : l'échec d'une autre tournée ne la retient pas.
+    terminee: tourneeTerminee(arrets, estFait, estPartiel),
     chargement,
   };
 }

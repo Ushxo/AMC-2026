@@ -7,7 +7,8 @@ import type {
   ResultatOptimisation,
   Tournee,
 } from '../types';
-import { formaterDuree, formaterKm } from './temps';
+import { distanceM } from './geo';
+import { formaterDuree, formaterHeure, formaterKm } from './temps';
 
 type LigneArret = {
   id: string;
@@ -20,6 +21,7 @@ type LigneArret = {
   arrivee_prevue: string;
   depart_prevu: string;
   fait?: boolean;
+  fait_le?: string | null;
 };
 
 type LigneTournee = {
@@ -30,6 +32,8 @@ type LigneTournee = {
   debut_prevu: string;
   fin_prevue: string;
   geometrie: Tournee['geometrie'];
+  /** Départ, fin, recalcul partiel (colonne ajoutée par la migration 0006 ; absente tant qu'elle n'est pas lancée). */
+  details?: Record<string, unknown> | null;
 };
 
 export type LigneDemande = {
@@ -43,6 +47,22 @@ export type LigneDemande = {
   source_matrice: ResultatOptimisation['source_matrice'] | null;
   parametres?: { incident_ids?: string[] } | null;
 };
+
+/** Champs de départ, de fin et de recalcul lus dans `details` ; absent, vide ou invalide = garage, garage. */
+export function detailsTournee(d: unknown): Partial<Pick<Tournee, 'depart' | 'depart_position' | 'fin' | 'fin_nom' | 'fin_position' | 'conservee' | 'recalculee' | 'faits_conserves'>> {
+  if (!d || typeof d !== 'object') return {};
+  const x = d as Record<string, unknown>;
+  const r: ReturnType<typeof detailsTournee> = {};
+  if (x.depart === 'garage' || x.depart === 'position') r.depart = x.depart;
+  if (estPosition(x.depart_position)) r.depart_position = { latitude: x.depart_position.latitude, longitude: x.depart_position.longitude };
+  if (x.fin === 'garage' || x.fin === 'arrivee' || x.fin === 'libre' || x.fin === 'endroit') r.fin = x.fin;
+  if (typeof x.fin_nom === 'string' && x.fin_nom.trim()) r.fin_nom = x.fin_nom;
+  if (estPosition(x.fin_position)) r.fin_position = { latitude: x.fin_position.latitude, longitude: x.fin_position.longitude };
+  if (x.conservee === true) r.conservee = true;
+  if (x.recalculee === true) r.recalculee = true;
+  if (typeof x.faits_conserves === 'number') r.faits_conserves = x.faits_conserves;
+  return r;
+}
 
 /** Recompose un ResultatOptimisation depuis les lignes de la base (demande, tournées, arrêts). */
 export function assemblerResultat(
@@ -85,10 +105,13 @@ export function assemblerResultat(
           arrivee_prevue: a.arrivee_prevue,
           depart_prevu: a.depart_prevu,
           fait: a.fait,
+          ...(a.fait_le ? { fait_le: a.fait_le } : {}),
         })),
+      ...detailsTournee(t.details),
     })),
     non_servis: demande.non_servis ?? [],
     comparaison: demande.comparaison ?? comparaisonVide,
+    ...(demande.comparaison?.portee ? { portee: demande.comparaison.portee } : {}),
   };
 }
 
@@ -104,12 +127,87 @@ export const COMPARAISON_VIDE: Comparaison = {
 export function pointsTournee(
   t: Tournee,
   garage?: { latitude: number; longitude: number } | null,
+  arrivee?: { latitude: number; longitude: number } | null,
 ): { latitude: number; longitude: number }[] {
   if (t.geometrie && t.geometrie.coordinates.length > 1) {
     return t.geometrie.coordinates.map(([longitude, latitude]) => ({ latitude, longitude }));
   }
   const pts = [...t.arrets].sort((a, b) => a.rang - b.rang).map((a) => a.position);
-  return garage ? [garage, ...pts, garage] : pts;
+  const depart = t.depart === 'position' && t.depart_position ? t.depart_position : garage;
+  // Fin : retour au garage (défaut) ; fin libre = pas de retour ; fin à un endroit = on finit sur cet endroit (déjà dernier arrêt).
+  const fin = t.fin === 'libre' || t.fin === 'endroit' ? null : (t.fin_position ?? arrivee ?? garage);
+  return [...(depart ? [depart] : []), ...pts, ...(fin ? [fin] : [])];
+}
+
+/**
+ * Dernière destination après le dernier arrêt : le garage (fin = garage), l'endroit de fin (fin = endroit, sauf s'il est déjà
+ * le dernier arrêt), ou rien (fin libre). Rend aussi le mot à employer à l'écran.
+ */
+export function cibleFinTournee(
+  t: Pick<Tournee, 'fin' | 'fin_position' | 'arrets'>,
+  garage: { latitude: number; longitude: number } | null,
+  arriveeEquipe?: { latitude: number; longitude: number } | null,
+): { position: { latitude: number; longitude: number }; nom: 'garage' | 'fin' } | null {
+  const fin = t.fin ?? 'garage';
+  if (fin === 'garage' || fin === 'arrivee') {
+    // L'adresse d'arrivée de l'équipe (si elle en a une autre que le garage) ; la position donnée par le service l'emporte.
+    const p = t.fin_position ?? arriveeEquipe ?? garage;
+    if (!p) return null;
+    const estGarage = !!garage && distanceM(p, garage) <= 30;
+    return { position: p, nom: estGarage ? 'garage' : 'fin' };
+  }
+  if (fin !== 'endroit' || !t.fin_position) return null;
+  const dernier = [...t.arrets].sort((a, b) => a.rang - b.rang).at(-1)?.position;
+  if (dernier && distanceM(dernier, t.fin_position) <= 30) return null; // déjà sur place
+  return { position: t.fin_position, nom: 'fin' };
+}
+
+/** « Départ : position de l'équipe » ou « Départ : garage (simulé) » (le garage est un point de démonstration). */
+export function libelleDepart(t: Pick<Tournee, 'depart'>): string {
+  return t.depart === 'position' ? "Départ : position de l'équipe" : 'Départ : garage (simulé)';
+}
+
+/** « Fin : retour au garage », « Fin : au dernier arrêt » ou « Fin : à l'endroit choisi ». */
+export function libelleFin(t: Pick<Tournee, 'fin'>): string {
+  if (t.fin === 'arrivee') return "Fin : à l'adresse d'arrivée";
+  return t.fin === 'libre' ? 'Fin : au dernier arrêt' : t.fin === 'endroit' ? "Fin : à l'endroit choisi" : 'Fin : retour au garage';
+}
+
+type EquipeAdresses = Partial<Pick<Equipe, 'garage_adresse' | 'arrivee' | 'arrivee_adresse'>> | null | undefined;
+
+/**
+ * « Départ : garage, 800 rue X », « Départ : garage (simulé) » ou « Départ : position de l'équipe (22 h 14) ».
+ * `prefixe` : « Départ prévu » dans l'aperçu, avant le démarrage.
+ */
+export function libelleDepartPlan(
+  t: Pick<Tournee, 'depart'>,
+  equipe: EquipeAdresses,
+  majPosition?: string | null,
+  prefixe = 'Départ',
+): string {
+  if (t.depart === 'position') return `${prefixe} : position de l'équipe${majPosition ? ` (${formaterHeure(majPosition)})` : ''}`;
+  return `${prefixe} : garage${equipe?.garage_adresse ? `, ${equipe.garage_adresse}` : ' (simulé)'}`;
+}
+
+/** « Arrivée : garage, 800 rue X », « Arrivée : 12 rue Y », « Arrivée : au dernier arrêt » ou « Arrivée : à l'endroit choisi ». */
+export function libelleArriveePlan(t: Pick<Tournee, 'fin' | 'fin_nom'>, equipe: EquipeAdresses): string {
+  if (t.fin === 'libre') return 'Arrivée : au dernier arrêt';
+  if (t.fin === 'arrivee') return `Arrivée : ${t.fin_nom ?? equipe?.arrivee_adresse ?? "adresse d'arrivée de l'équipe"}`;
+  if (t.fin === 'endroit') return "Arrivée : à l'endroit choisi";
+  if (equipe?.arrivee) return `Arrivée : ${equipe.arrivee_adresse ?? "adresse d'arrivée de l'équipe"}`;
+  return `Arrivée : garage${equipe?.garage_adresse ? `, ${equipe.garage_adresse}` : ' (simulé)'}`;
+}
+
+/** Vrai si on a demandé le départ à la position mais que le service a pris le garage (position trop ancienne). */
+export function positionTropAncienne(departDemande: 'garage' | 'position' | undefined, t: Pick<Tournee, 'depart'>): boolean {
+  return departDemande === 'position' && (t.depart ?? 'garage') === 'garage';
+}
+
+export const MESSAGE_POSITION_TROP_ANCIENNE = "Position de l'équipe trop ancienne : départ au garage";
+
+/** Un recalcul d'une seule équipe est « partiel » : le gain du plan complet ne s'applique pas. */
+export function estPartiel(r: Pick<ResultatOptimisation, 'portee' | 'comparaison'>): boolean {
+  return (r.portee ?? r.comparaison?.portee) === 'partiel';
 }
 
 export type LigneGain = { etiquette: string; valeur: string };

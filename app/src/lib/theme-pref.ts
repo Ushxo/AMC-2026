@@ -1,13 +1,13 @@
 import { useSyncExternalStore } from 'react';
-import { Appearance } from 'react-native';
 
+/** Style de la CARTE seulement (le fond de l'app suit toujours l'appareil). */
 export type PreferenceTheme = 'auto' | 'clair' | 'sombre';
 
 export const CLE_THEME = 'signalement-mtl:theme';
 export const PREFERENCES: PreferenceTheme[] = ['auto', 'clair', 'sombre'];
 export const LIBELLES_THEME: Record<PreferenceTheme, string> = {
   auto: 'Automatique',
-  clair: 'Clair',
+  clair: 'Claire',
   sombre: 'Sombre',
 };
 
@@ -28,15 +28,6 @@ function stockage(): Stockage {
   return (m.default ?? m) as Stockage;
 }
 
-/** « Automatique » rend la main à l'appareil ; sinon on force l'apparence de toute l'app (en-têtes, barre d'état, cartes). */
-function appliquer(p: PreferenceTheme): void {
-  try {
-    Appearance.setColorScheme(p === 'clair' ? 'light' : p === 'sombre' ? 'dark' : 'auto');
-  } catch {
-    // Apparence non modifiable ici : on garde celle de l'appareil.
-  }
-}
-
 function notifier(): void {
   ecouteurs.forEach((f) => f());
 }
@@ -48,7 +39,6 @@ export function lirePreferenceTheme(): PreferenceTheme {
 export async function definirPreferenceTheme(p: PreferenceTheme): Promise<void> {
   preference = p;
   chargee = true;
-  appliquer(p);
   notifier();
   try {
     await stockage().setItem(CLE_THEME, p);
@@ -65,7 +55,6 @@ export async function chargerPreferenceTheme(): Promise<void> {
     const v = await stockage().getItem(CLE_THEME);
     if (estPreference(v) && v !== preference) {
       preference = v;
-      appliquer(v);
       notifier();
     }
   } catch {

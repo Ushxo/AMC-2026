@@ -22,6 +22,7 @@ PUBLICS = (
     "equipes-demo",
     "grilles",
     "meta",
+    "regards",
     "signalements-demo",
     "tournees-demo",
     "tournees-demo-incident",

@@ -10,7 +10,7 @@ from __future__ import annotations
 from itertools import pairwise
 from typing import Any
 
-from optimisation.modeles import Probleme
+from optimisation.modeles import Probleme, fin_de_equipe
 from optimisation.penalites import penalites_totales
 
 
@@ -24,18 +24,26 @@ def tournees_ordre_arrivee(
     """
     index = {l.id: i for i, l in enumerate(p.lieux)}
     pen = penalites_totales(p)
+    # La référence part et finit aux mêmes points que le plan optimisé.
     etat = [
         {
             "equipe": e,
-            "pos": index[e.garage],
+            "pos": index[e.depart or e.garage],
             "t": e.debut_s,
-            "noeuds": [index[e.garage]],
+            "noeuds": [index[e.depart or e.garage]],
             "arrets": [],
         }
         for e in p.equipes
     ]
 
-    def trajet(a: int, b: int) -> int:
+    def fin_de(e) -> int | None:
+        """Nœud où finit l'équipe ; None quand la tournée s'arrête au dernier arrêt."""
+        mode, lieu = fin_de_equipe(p.parametres, e)
+        return None if mode == "libre" else index[lieu]
+
+    def trajet(a: int | None, b: int | None) -> int:
+        if a is None or b is None:
+            return 0
         return int(p.temps_s[a][b]) + int(pen[a][b])
 
     non_servis = []
@@ -47,7 +55,7 @@ def tournees_ordre_arrivee(
         meilleur = None
         for s in etat:
             arrivee = s["t"] + trajet(s["pos"], k)
-            retour = arrivee + duree + trajet(k, index[s["equipe"].garage])
+            retour = arrivee + duree + trajet(k, fin_de(s["equipe"]))
             if (not avec_limite or retour <= s["equipe"].fin_s) and (
                 meilleur is None or arrivee < meilleur[1]
             ):
@@ -61,9 +69,10 @@ def tournees_ordre_arrivee(
         s["pos"], s["t"] = k, arrivee + duree
     tournees = []
     for s in etat:
-        noeuds = s["noeuds"] + [index[s["equipe"].garage]]
+        fin = fin_de(s["equipe"])
+        noeuds = s["noeuds"] + ([fin] if fin is not None else [])
         distance = sum(p.distance_m[x][y] for x, y in pairwise(noeuds))
-        retour = s["t"] + (trajet(s["pos"], noeuds[-1]) if len(noeuds) > 1 else 0)
+        retour = s["t"] + (trajet(s["pos"], fin) if len(noeuds) > 1 else 0)
         duree_equipe = int(retour - s["equipe"].debut_s) if s["arrets"] else 0
         tournees.append(
             {

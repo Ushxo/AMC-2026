@@ -27,3 +27,18 @@ export function chercherLocal(texte: string, index: EntreeAdresse[], max = 5): R
     source: 'local' as const,
   }));
 }
+
+/** Adresse de l'index la plus proche d'un point (à vol d'oiseau), ou null si aucune n'est à moins de `maxM` mètres. */
+export function adressePlusProche(
+  p: { latitude: number; longitude: number },
+  index: EntreeAdresse[],
+  maxM = 200,
+): { libelle: string; distance_m: number } | null {
+  let meilleur: { libelle: string; distance_m: number } | null = null;
+  const kx = 111320 * Math.cos((p.latitude * Math.PI) / 180);
+  for (const e of index) {
+    const d = Math.hypot((e.latitude - p.latitude) * 110540, (e.longitude - p.longitude) * kx);
+    if (d <= maxM && (!meilleur || d < meilleur.distance_m)) meilleur = { libelle: e.libelle, distance_m: d };
+  }
+  return meilleur;
+}

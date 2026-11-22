@@ -55,6 +55,7 @@ export function useOptimisation(): {
       clearTimeout(abandon);
       arretRealtime();
       setEnCours(false);
+      modifierEtatTournees({ calculEnCours: false });
     }
 
     async function verifier() {
@@ -84,6 +85,7 @@ export function useOptimisation(): {
         return null;
       }
       setEnCours(true);
+      modifierEtatTournees({ calculEnCours: true });
       // Les incidents pris en compte sont enregistrés avec la demande : l'écran affiche ceux du calcul.
       const incident_ids =
         p?.incident_ids ?? ((await lireIncidents()) ?? []).filter((i) => !!i).map((i) => i.id);
@@ -92,6 +94,7 @@ export function useOptimisation(): {
       // Une réponse vide ou inattendue (insertion refusée, droits insuffisants) donne un message, jamais une exception.
       if (!r || typeof r !== 'object' || 'erreur' in r || typeof r.id !== 'string') {
         setEnCours(false);
+        modifierEtatTournees({ calculEnCours: false });
         return (r && 'erreur' in r && r.erreur) || MESSAGE_OPTIMISATION_ECHEC;
       }
       modifierEtatTournees({ forcerPrecalcule: false });

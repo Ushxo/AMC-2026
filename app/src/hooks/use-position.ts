@@ -64,6 +64,7 @@ export function usePosition(): {
           setPosition(CENTRE_DEMO);
         }
       } catch {
+        // Permission illisible : la carte reste sur le centre-ville et « Ma position » permet de réessayer.
         if (actif) setPosition(CENTRE_DEMO);
       }
     })();

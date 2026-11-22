@@ -14,6 +14,30 @@ import {
 } from '../lib/source';
 import type { Signalement } from '../types';
 
+/** Mêmes signalements (identifiants, états, gravités, positions) : la liste précédente est gardée, rien ne se recalcule. */
+export function memesSignalements(a: Signalement[], b: Signalement[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (
+      x.id !== y.id ||
+      x.etat !== y.etat ||
+      x.gravite !== y.gravite ||
+      x.categorie !== y.categorie ||
+      x.latitude !== y.latitude ||
+      x.longitude !== y.longitude ||
+      x.etat_change_le !== y.etat_change_le ||
+      x.commentaire !== y.commentaire ||
+      x.photo_url !== y.photo_url ||
+      Boolean(x.en_attente) !== Boolean(y.en_attente) ||
+      x.echec_envoi !== y.echec_envoi
+    )
+      return false;
+  }
+  return true;
+}
+
 export function useSignalements(filtre?: FiltreSignalements): {
   signalements: Signalement[];
   rafraichir: () => Promise<void>;
@@ -39,7 +63,8 @@ export function useSignalements(filtre?: FiltreSignalements): {
           en_attente: true as const,
           ...(e.echec ? { echec_envoi: e.echec } : {}),
         }));
-      setTous([...attente, ...lus]);
+      const suivants = [...attente, ...lus];
+      setTous((avant) => (memesSignalements(avant, suivants) ? avant : suivants));
       setErreur(null);
     } catch {
       if (actif.current) setErreur(MESSAGE_LECTURE_ECHEC);

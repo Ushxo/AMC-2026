@@ -1,11 +1,14 @@
-import type { Coordonnees, CoucheGrilles, Endroit } from '../types';
+import type { Coordonnees, Endroit } from '../types';
 import type { Region } from './config';
 
-/** Les 5 380 bouches du quartier ne s'affichent qu'à fort zoom, dans la zone visible, au plus MAX_BOUCHES. */
+/** Les regards d'égout du quartier ne s'affichent qu'à fort zoom, dans la zone visible, au plus MAX_BOUCHES. */
 export const SEUIL_ZOOM_DELTA = 0.012;
 export const MAX_BOUCHES = 150;
 
-export type BoucheExistante = { id: string; position: Coordonnees };
+export type BoucheExistante = { id: string; position: Coordonnees; adresse?: string | null };
+
+/** Regard d'égout tel que dans la copie locale (donnees/regards.json). */
+export type SourceBouche = { id: string | number; latitude: number; longitude: number; adresse?: string | null };
 
 /** Identifiants de bouche qui ont déjà un signalement ouvert (elles sont affichées avec leur gravité, pas en gris). */
 export function idsAvecSignalement(endroits: Endroit[]): Set<string> {
@@ -21,7 +24,7 @@ export function idsAvecSignalement(endroits: Endroit[]): Set<string> {
  * un signalement ouvert ; les plus proches du centre d'abord, plafonnées à `max`.
  */
 export function bouchesVisibles(
-  grilles: CoucheGrilles,
+  sources: SourceBouche[],
   region: Region | null,
   exclues: Set<string>,
   max: number = MAX_BOUCHES,
@@ -32,19 +35,20 @@ export function bouchesVisibles(
   const minLng = region.longitude - region.longitudeDelta / 2;
   const maxLng = region.longitude + region.longitudeDelta / 2;
   const trouvees: (BoucheExistante & { d: number })[] = [];
-  for (const f of grilles.features) {
-    const c = f.geometry?.coordinates;
-    if (!c) continue;
-    const [lng, lat] = c;
+  for (const r of sources) {
+    const lat = Number(r.latitude);
+    const lng = Number(r.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
     if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) continue;
-    const id = String(f.properties.id);
+    const id = String(r.id);
     if (exclues.has(id)) continue;
     trouvees.push({
       id,
       position: { latitude: lat, longitude: lng },
+      adresse: r.adresse ?? null,
       d: (lat - region.latitude) ** 2 + (lng - region.longitude) ** 2,
     });
   }
   trouvees.sort((a, b) => a.d - b.d);
-  return trouvees.slice(0, max).map(({ id, position }) => ({ id, position }));
+  return trouvees.slice(0, max).map(({ id, position, adresse }) => ({ id, position, adresse }));
 }

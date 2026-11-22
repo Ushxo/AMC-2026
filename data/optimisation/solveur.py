@@ -10,8 +10,10 @@ from typing import Any
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
 from optimisation.gain import comparer_ordre_arrivee
-from optimisation.modeles import GRAVITES, Probleme
+from optimisation.modeles import GRAVITES, Probleme, fin_de_equipe
 from optimisation.penalites import penalites_totales
+
+FINS = ("garage", "libre", "endroit")
 
 
 def valider(p: Probleme) -> None:
@@ -31,9 +33,24 @@ def valider(p: Probleme) -> None:
     if not p.equipes:
         raise ValueError("Il faut au moins une équipe.")
     garages = {e.garage for e in p.equipes}
+    departs = {e.depart for e in p.equipes if e.depart is not None}
+    fin = p.parametres.fin
+    if fin not in FINS:
+        raise ValueError(f"Fin inconnue : {fin}.")
+    if fin == "endroit" and p.parametres.fin_lieu not in ids:
+        raise ValueError("Il faut un lieu de fin connu quand la fin est un endroit.")
+    lieu_fin = {p.parametres.fin_lieu} if fin == "endroit" else set()
     for e in p.equipes:
+        if e.fin not in (None, "garage", "libre", "arrivee"):
+            raise ValueError(f"Fin inconnue pour l'équipe {e.id} : {e.fin}.")
+        if e.fin == "arrivee":
+            if e.fin_lieu not in ids:
+                raise ValueError(f"Il faut un lieu d'arrivée connu pour l'équipe {e.id}.")
+            lieu_fin.add(e.fin_lieu)
         if e.garage not in ids:
             raise ValueError(f"Garage inconnu : {e.garage}.")
+        if e.depart is not None and e.depart not in ids:
+            raise ValueError(f"Départ inconnu : {e.depart}.")
         if e.fin_s <= e.debut_s:
             raise ValueError(f"Le quart de l'équipe {e.id} est vide.")
     if len({e.id for e in p.equipes}) != len(p.equipes):
@@ -43,6 +60,8 @@ def valider(p: Probleme) -> None:
             raise ValueError(f"Arrêt inconnu dans les lieux : {a.id}.")
         if a.id in garages:
             raise ValueError(f"Un arrêt ne peut pas être un garage : {a.id}.")
+        if a.id in departs or a.id in lieu_fin:
+            raise ValueError(f"Un arrêt ne peut pas être un lieu de départ ou de fin : {a.id}.")
         if a.gravite not in GRAVITES:
             raise ValueError(f"Gravité inconnue : {a.gravite}.")
     if len({a.id for a in p.arrets}) != len(p.arrets):
@@ -77,9 +96,14 @@ def _refuser_negatifs(p: Probleme) -> None:
 
 
 def reduire(p: Probleme) -> Probleme:
-    """Ne garde que les garages des équipes et les arrêts retenus : aucun autre point de la matrice
-    ne peut devenir une visite, et les distances affichées sont celles du plan réellement calculé."""
-    utiles = {e.garage for e in p.equipes} | {a.id for a in p.arrets}
+    """Ne garde que les départs, les fins et les arrêts retenus : aucun autre point de la matrice
+    ne peut devenir une visite (un lieu qui n'est ni départ ni fin serait un arrêt obligatoire),
+    et les distances affichées sont celles du plan réellement calculé."""
+    utiles = {e.depart or e.garage for e in p.equipes} | {a.id for a in p.arrets}
+    for e in p.equipes:
+        lieu = fin_de_equipe(p.parametres, e)[1]
+        if lieu:
+            utiles.add(lieu)
     gardes = [i for i, lieu in enumerate(p.lieux) if lieu.id in utiles]
     if len(gardes) == len(p.lieux):
         return p
@@ -104,7 +128,18 @@ def resoudre(p: Probleme) -> dict[str, Any]:
     ids = [l.id for l in p.lieux]
     index = {id_: i for i, id_ in enumerate(ids)}
     pen = penalites_totales(p)
+    temps_s = p.temps_s
     n = len(ids)
+    modes = [fin_de_equipe(p.parametres, e) for e in p.equipes]
+
+    if any(mode == "libre" for mode, _ in modes):
+        # Nœud de fin fictif : on y arrive de n'importe où sans coût (le temps de service du dernier
+        # arrêt compte quand même), donc la tournée s'arrête au dernier arrêt.
+        ids = [*ids, "fin-libre"]
+        index["fin-libre"] = n
+        pen = [[*ligne, 0] for ligne in pen] + [[0] * (n + 1)]
+        temps_s = [[*ligne, 0] for ligne in temps_s] + [[0] * (n + 1)]
+        n += 1
 
     service = [0] * n
     for a in p.arrets:
@@ -112,13 +147,14 @@ def resoudre(p: Probleme) -> dict[str, Any]:
             a.intervention_s if a.intervention_s is not None else p.parametres.intervention_s
         )
 
-    starts = [index[e.garage] for e in p.equipes]
-    manager = pywrapcp.RoutingIndexManager(n, len(p.equipes), starts, starts)
+    starts = [index[e.depart or e.garage] for e in p.equipes]
+    ends = [index["fin-libre"] if mode == "libre" else index[lieu] for mode, lieu in modes]
+    manager = pywrapcp.RoutingIndexManager(n, len(p.equipes), starts, ends)
     routing = pywrapcp.RoutingModel(manager)
 
     def transit(i: int, j: int) -> int:
         a, b = manager.IndexToNode(i), manager.IndexToNode(j)
-        return int(p.temps_s[a][b]) + pen[a][b] + service[a]
+        return int(temps_s[a][b]) + pen[a][b] + service[a]
 
     cb = routing.RegisterTransitCallback(transit)
     routing.SetArcCostEvaluatorOfAllVehicles(cb)
@@ -169,7 +205,7 @@ def resoudre(p: Probleme) -> dict[str, Any]:
     for v, e in enumerate(p.equipes):
         i = routing.Start(v)
         suite: list[dict[str, Any]] = []
-        noeuds = [index[e.garage]]
+        noeuds = [starts[v]]
         while not routing.IsEnd(i):
             node = manager.IndexToNode(i)
             if ids[node] in arrets_par_id:
@@ -185,9 +221,10 @@ def resoudre(p: Probleme) -> dict[str, Any]:
                 servis.add(ids[node])
                 noeuds.append(node)
             i = solution.Value(routing.NextVar(i))
-        noeuds.append(index[e.garage])
+        if modes[v][0] != "libre":
+            noeuds.append(ends[v])
         retour = solution.Value(temps.CumulVar(i))
-        tournees.append(_tournee(e.id, e.nom, e.debut_s, suite, noeuds, retour, p))
+        tournees.append(_tournee(e, suite, noeuds, retour, p, modes[v][0]))
 
     non_servis = [a.id for a in p.arrets if a.id not in servis]
     resultat: dict[str, Any] = {
@@ -200,18 +237,29 @@ def resoudre(p: Probleme) -> dict[str, Any]:
     return resultat
 
 
-def _tournee(equipe_id, nom, debut_s, suite, noeuds, retour_s, p: Probleme) -> dict[str, Any]:
+def _position(p: Probleme, k: int) -> dict[str, float | None]:
+    return {"latitude": p.lieux[k].latitude, "longitude": p.lieux[k].longitude}
+
+
+def _tournee(e, suite, noeuds, retour_s, p: Probleme, mode_fin: str) -> dict[str, Any]:
+    """Distance, temps de trajet et durée : le premier trajet part du départ réel de l'équipe et
+    le dernier va jusqu'à la fin réelle (retour au garage, endroit de fin, ou dernier arrêt)."""
     distance = sum(p.distance_m[a][b] for a, b in pairwise(noeuds))
     trajet = sum(p.temps_s[a][b] for a, b in pairwise(noeuds))
     return {
-        "equipe_id": equipe_id,
-        "equipe_nom": nom,
+        "equipe_id": e.id,
+        "equipe_nom": e.nom,
         "arrets": suite,
         "distance_m": int(distance),
         "trajet_s": int(trajet),
         "retour_s": int(retour_s),
-        "duree_s": int(retour_s - debut_s),
+        "duree_s": int(retour_s - e.debut_s),
         "lieux": [p.lieux[k].id for k in noeuds],
+        "depart": "position" if e.depart else "garage",
+        "depart_position": _position(p, noeuds[0]),
+        "fin": mode_fin,
+        "fin_position": _position(p, noeuds[-1]),
+        "fin_nom": e.fin_nom if mode_fin == "arrivee" else None,
     }
 
 

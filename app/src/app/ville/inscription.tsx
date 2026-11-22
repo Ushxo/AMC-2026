@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { BandeauSource } from '@/components/ville/bandeau-source';
 import { Bouton } from '@/components/ville/bouton';
 import { Champ } from '@/components/ville/champ';
+import { erreursInscription, type ErreursChamps } from '@/lib/champs';
 import { useCouleursTexte } from '@/components/ville/couleurs';
 import { Lien } from '@/components/ville/lien';
 import { useSource } from '@/hooks/use-source';
@@ -26,7 +27,12 @@ export default function Inscription() {
   const [enCours, setEnCours] = useState(false);
   const [resultat, setResultat] = useState<{ ok: boolean; message: string } | null>(null);
 
+  const [erreurs, setErreurs] = useState<ErreursChamps>({});
+
   async function valider() {
+    const invalides = erreursInscription({ courriel, motDePasse });
+    setErreurs(invalides);
+    if (Object.keys(invalides).length > 0) return;
     setEnCours(true);
     setResultat(null);
     const r = await creerCompte(courriel, motDePasse, prenom, nom);
@@ -64,6 +70,7 @@ export default function Inscription() {
                   autoCorrect={false}
                   keyboardType="email-address"
                   textContentType="emailAddress"
+                  erreur={erreurs.courriel}
                 />
                 <Champ
                   etiquette={`Mot de passe (${MOT_DE_PASSE_MIN} caractères au moins)`}
@@ -73,6 +80,7 @@ export default function Inscription() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="newPassword"
+                  erreur={erreurs.motDePasse}
                 />
                 <Bouton
                   titre={afficher ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}

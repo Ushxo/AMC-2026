@@ -1,4 +1,5 @@
 import type { Endroit, Gravite } from '../types';
+import type { Zone } from './zones';
 
 export type CompteSelection = { total: number; elevee: number; moyenne: number; faible: number };
 
@@ -67,4 +68,40 @@ export function gravitesDisponibles(endroits: Endroit[]): Record<Gravite, number
   const n: Record<Gravite, number> = { faible: 0, moyenne: 0, elevee: 0 };
   for (const e of endroitsOuverts(endroits)) n[e.gravite_affichee] += 1;
   return n;
+}
+
+export type EtatZone = 'toutes' | 'certaines' | 'aucune';
+
+/** Endroits ouverts d'une zone : ceux qui ont au moins un des signalements de la zone. */
+export function clesDeZone(zone: Pick<Zone, 'signalement_ids'>, endroits: Endroit[]): string[] {
+  const ids = new Set(zone.signalement_ids);
+  return endroitsOuverts(endroits)
+    .filter((e) => e.signalements.some((s) => ids.has(s.id)))
+    .map((e) => e.cle);
+}
+
+/** Une zone est « toutes » sélectionnée, « certaines » ou « aucune » (une zone sans endroit ouvert compte pour « aucune »). */
+export function etatZone(cles: string[], clesZone: string[]): EtatZone {
+  if (clesZone.length === 0) return 'aucune';
+  const choisies = new Set(cles);
+  const n = clesZone.filter((c) => choisies.has(c)).length;
+  return n === 0 ? 'aucune' : n === clesZone.length ? 'toutes' : 'certaines';
+}
+
+/** Toucher une zone : sélectionne tous ses endroits ; si tous le sont déjà, les retire. */
+export function basculerZone(cles: string[], clesZone: string[]): string[] {
+  if (clesZone.length === 0) return cles;
+  if (etatZone(cles, clesZone) === 'toutes') return cles.filter((c) => !clesZone.includes(c));
+  return [...new Set([...cles, ...clesZone])];
+}
+
+const TEXTE_ETAT_ZONE: Record<EtatZone, string> = {
+  toutes: 'tous les endroits sélectionnés',
+  certaines: 'certains endroits sélectionnés',
+  aucune: 'aucun endroit sélectionné',
+};
+
+/** « 3 endroits : tous les endroits sélectionnés » (aussi lu par les lecteurs d'écran). */
+export function libelleEtatZone(nombreEndroits: number, etat: EtatZone): string {
+  return `${nombreEndroits} endroit${nombreEndroits > 1 ? 's' : ''} dans la zone : ${TEXTE_ETAT_ZONE[etat]}`;
 }

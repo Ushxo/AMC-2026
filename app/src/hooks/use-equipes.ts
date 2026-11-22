@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  MESSAGE_ADRESSES_PAS_ENCORE,
   creerEquipe,
   desactiverEquipe,
   lireEquipes,
@@ -20,6 +21,7 @@ export function useEquipes(): {
   lectureSeule: boolean;
   chargement: boolean;
   erreur: string | null;
+  rafraichir: () => Promise<void>;
 } {
   const { etat } = useSource();
   const [equipes, setEquipes] = useState<Equipe[]>([]);
@@ -61,7 +63,7 @@ export function useEquipes(): {
     async (operation: () => Promise<string | null>) => {
       if (etatSource() === 'repli') return MESSAGE_EQUIPES_LECTURE_SEULE;
       const r = await operation();
-      if (!r) await charger();
+      if (!r || r === MESSAGE_ADRESSES_PAS_ENCORE) await charger();
       return r;
     },
     [charger],
@@ -75,5 +77,6 @@ export function useEquipes(): {
     lectureSeule: repli,
     chargement,
     erreur,
+    rafraichir: charger,
   };
 }

@@ -1,11 +1,13 @@
+import * as Appareil from 'expo-device';
+
 import type { Employe } from '../types';
 
 export const ID_EMPLOYE_DEMO = 'demo-hors-ligne';
 
 export type RoleVille = 'employe' | 'superviseur' | 'admin';
 
-let courant: Employe | null = null;
-let role: RoleVille | null = null;
+let courant: Employe | null = __DEV__ && !Appareil.isDevice ? { user_id: ID_EMPLOYE_DEMO, nom: 'Démonstration', courriel: 'x' } : null;
+let role: RoleVille | null = __DEV__ && !Appareil.isDevice ? 'superviseur' : null;
 let avertissement: string | null = null;
 const ecouteurs = new Set<() => void>();
 

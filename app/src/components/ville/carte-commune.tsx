@@ -4,7 +4,7 @@ import MapView, { PROVIDER_GOOGLE, UrlTile, type MapViewProps } from 'react-nati
 import type { Ref } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeCarte } from '@/hooks/use-theme-carte';
 import { envCarte, lireFondCarte, lireReglagesTuiles } from '@/lib/carte-reglages';
 
 const DANS_EXPO_GO = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -19,7 +19,7 @@ type Props = MapViewProps & { ref?: Ref<MapView> };
  * tant qu'elles ne sont pas validées ; si on les active, l'attribution s'affiche sous la carte.
  */
 export function CarteCommune({ children, style, ...reste }: Props) {
-  const theme = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const theme = useThemeCarte();
   const fond = lireFondCarte(envCarte(), { dansExpoGo: DANS_EXPO_GO, googleInstalle: GOOGLE_INSTALLE, theme });
   // Avec Google, le style vient de l'identifiant de carte (console Google) : pas de tuiles par-dessus.
   const tuiles = fond.google ? { actif: false, modele: '', attribution: '' } : lireReglagesTuiles(envCarte());

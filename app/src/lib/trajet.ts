@@ -101,3 +101,18 @@ export async function ecrireArretFait(arretId: string): Promise<boolean> {
     return false;
   }
 }
+
+/** La tournée est terminée quand tous ses arrêts sont faits et qu'aucun n'est en échec partiel (les autres tournées ne comptent pas). */
+export function tourneeTerminee(arrets: Arret[], estFait: (a: Arret) => boolean, estPartiel: (a: Arret) => boolean): boolean {
+  return arrets.length > 0 && arrets.every(estFait) && !arrets.some(estPartiel);
+}
+
+/** Seul le compte de l'équipe publie la position de l'équipe, et seulement une fois le suivi démarré, en ligne et hors démonstration. */
+export function peutPublierPosition(p: { suiviActif: boolean; compteDeLEquipe: boolean; local: boolean; demoHorsLigne: boolean; repli: boolean }): boolean {
+  return p.suiviActif && p.compteDeLEquipe && !p.local && !p.demoHorsLigne && !p.repli;
+}
+
+/** Un arrêt n'est marqué fait que par un superviseur ou par le compte de l'équipe de la tournée (démonstration locale : libre). */
+export function peutMarquerFait(p: { peutGerer: boolean; compteDeLEquipe: boolean; local: boolean }): boolean {
+  return p.peutGerer || p.compteDeLEquipe || p.local;
+}

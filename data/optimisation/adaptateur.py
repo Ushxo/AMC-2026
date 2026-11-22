@@ -85,6 +85,12 @@ def vers_resultat(
                 "debut_prevu": iso(jour, equipe.debut_s),
                 "fin_prevue": iso(jour, t["retour_s"]),
                 "geometrie": t.get("geometrie"),
+                # D'où l'équipe est partie et où elle finit, avec les coordonnées réelles.
+                "depart": t.get("depart", "garage"),
+                "depart_position": t.get("depart_position"),
+                "fin": t.get("fin", "garage"),
+                "fin_position": t.get("fin_position"),
+                "fin_nom": t.get("fin_nom"),
                 "arrets": arrets,
             }
         )
@@ -98,8 +104,17 @@ def vers_resultat(
         "duree_calcul_ms": int(sortie["duree_calcul_s"] * 1000),
         "source_matrice": SOURCE_MATRICE.get(d.source_matrice, "osrm_cache"),
         "precalcule": precalcule,
+        # 'complet' : le plan de toutes les équipes sur tous les endroits ; 'partiel' : recalcul pour
+        # une partie des équipes ou des endroits (la comparaison ne vaut pas pour le plan complet).
+        "portee": "complet",
         "incidents": incidents or [],
         "tournees": tournees,
+        # Totaux de toutes les tournées : premier trajet depuis le départ réel et dernier jusqu'à la fin réelle.
+        "totaux": {
+            "distance_m": sum(t["distance_m"] for t in tournees),
+            "duree_s": sum(t["duree_s"] for t in tournees),
+            "arrets_servis": sum(len(t["arrets"]) for t in tournees),
+        },
         "non_servis": [
             {"cle_endroit": f"{d.prefixe_cle}{i}", "gravite": graves[i], "raison": RAISON_NON_SERVI}
             for i in sortie["non_servis"]

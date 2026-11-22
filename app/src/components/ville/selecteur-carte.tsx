@@ -11,13 +11,13 @@ import {
 
 import { CIBLE_MIN } from './style';
 
-/** Trois boutons côte à côte : Automatique (réglage de l'appareil), Clair, Sombre. */
-export function SelecteurTheme() {
+/** « Carte : Automatique / Claire / Sombre » : ne change que le style de la carte, pas le fond de l'app. */
+export function SelecteurCarte() {
   const theme = useTheme();
   const choix = usePreferenceTheme();
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel="Apparence de l'application" style={styles.groupe}>
-      <ThemedText type="smallBold">Apparence</ThemedText>
+    <View accessibilityRole="radiogroup" accessibilityLabel="Style de la carte" style={styles.groupe}>
+      <ThemedText type="smallBold">Carte</ThemedText>
       <View style={[styles.rangee, { backgroundColor: theme.backgroundElement }]}>
         {PREFERENCES.map((p) => {
           const actif = choix === p;

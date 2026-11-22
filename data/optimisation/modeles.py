@@ -41,6 +41,29 @@ class Equipe:
     garage: str  # identifiant d'un lieu
     fin_s: int  # retour au garage au plus tard, en secondes depuis le début de la journée
     debut_s: int = 0
+    # Lieu de départ si l'équipe ne part pas du garage (par exemple sa dernière position connue).
+    depart: str | None = None
+    # Fin propre à l'équipe, qui l'emporte sur `Parametres.fin` : "garage", "libre" (au dernier arrêt)
+    # ou "arrivee" (au lieu `fin_lieu`, avec `fin_nom` pour l'affichage). None : la fin globale.
+    fin: str | None = None
+    fin_lieu: str | None = None
+    fin_nom: str | None = None
+
+
+def fin_de_equipe(parametres: Parametres, e: Equipe) -> tuple[str, str | None]:
+    """Façon de finir d'une équipe : (mode, lieu). Mode : "garage", "arrivee", "endroit" ou "libre"
+    (sans lieu). Le choix de l'équipe l'emporte sur la fin globale."""
+    if e.fin == "libre":
+        return ("libre", None)
+    if e.fin == "arrivee":
+        return ("arrivee", e.fin_lieu)
+    if e.fin == "garage":
+        return ("garage", e.garage)
+    if parametres.fin == "libre":
+        return ("libre", None)
+    if parametres.fin == "endroit":
+        return ("endroit", parametres.fin_lieu)
+    return ("garage", e.garage)
 
 
 @dataclass(frozen=True)
@@ -59,6 +82,10 @@ class Parametres:
         default_factory=lambda: dict(PENALITE_NON_VISITE_DEFAUT)
     )
     equilibrage: int = 0  # poids de l'écart de durée entre équipes (0 = ignoré)
+    # Fin des tournées : "garage" (retour au garage, défaut), "libre" (au dernier arrêt, sans retour)
+    # ou "endroit" (toutes les équipes finissent au lieu `fin_lieu`).
+    fin: str = "garage"
+    fin_lieu: str | None = None
 
 
 @dataclass(frozen=True)
@@ -95,6 +122,8 @@ class Probleme:
                     **p.get("penalite_non_visite", {}),
                 },
                 equilibrage=p.get("equilibrage", defauts.equilibrage),
+                fin=p.get("fin", defauts.fin),
+                fin_lieu=p.get("fin_lieu"),
             ),
             tournees_initiales=d.get("tournees_initiales"),
         )

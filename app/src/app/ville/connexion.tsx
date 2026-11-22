@@ -1,22 +1,21 @@
 import { Redirect } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BandeauSource } from '@/components/ville/bandeau-source';
 import { Bouton } from '@/components/ville/bouton';
+import { Champ } from '@/components/ville/champ';
 import { useCouleursTexte } from '@/components/ville/couleurs';
 import { Lien } from '@/components/ville/lien';
-import { CIBLE_MIN } from '@/components/ville/style';
 import { useSessionEmploye } from '@/hooks/use-session-employe';
 import { useSource } from '@/hooks/use-source';
-import { useTheme } from '@/hooks/use-theme';
+import { erreursConnexion, type ErreursChamps } from '@/lib/champs';
 
 export default function Connexion() {
   const { bottom } = useSafeAreaInsets();
-  const theme = useTheme();
   const couleurs = useCouleursTexte();
   const { etat } = useSource();
   const { employe, connecter, entrerDemoHorsLigne, avertissement } = useSessionEmploye();
@@ -24,15 +23,16 @@ export default function Connexion() {
   const [courriel, setCourriel] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
+  const [erreurs, setErreurs] = useState<ErreursChamps>({});
   const [enCours, setEnCours] = useState(false);
 
   if (employe) return <Redirect href="/ville" />;
 
-  const champ = [styles.champ, { backgroundColor: theme.backgroundElement, color: theme.text }];
-
   async function valider() {
-    if (!courriel.trim() || !motDePasse) {
-      setErreur('Entrez votre courriel et votre mot de passe.');
+    const invalides = erreursConnexion({ courriel, motDePasse });
+    setErreurs(invalides);
+    if (Object.keys(invalides).length > 0) {
+      setErreur(null);
       return;
     }
     setEnCours(true);
@@ -54,28 +54,24 @@ export default function Connexion() {
             </ThemedText>
             <ThemedText themeColor="textSecondary">Connexion réservée aux employés de la Ville.</ThemedText>
             <BandeauSource etat={etat} />
-            <TextInput
-              style={champ}
+            <Champ
+              etiquette="Courriel"
               value={courriel}
               onChangeText={setCourriel}
-              placeholder="Courriel"
-              placeholderTextColor={theme.textSecondary}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
               textContentType="emailAddress"
-              accessibilityLabel="Courriel"
+              erreur={erreurs.courriel}
             />
-            <TextInput
-              style={champ}
+            <Champ
+              etiquette="Mot de passe"
               value={motDePasse}
               onChangeText={setMotDePasse}
-              placeholder="Mot de passe"
-              placeholderTextColor={theme.textSecondary}
               secureTextEntry
               textContentType="password"
-              accessibilityLabel="Mot de passe"
               onSubmitEditing={valider}
+              erreur={erreurs.motDePasse}
             />
             {avertissement && !erreur ? (
               <ThemedText accessibilityRole="alert" style={{ color: couleurs.erreur }}>
@@ -109,6 +105,5 @@ export default function Connexion() {
 const styles = StyleSheet.create({
   fond: { flex: 1 },
   contenu: { padding: 24, gap: 14, maxWidth: 520, width: '100%', alignSelf: 'center' },
-  champ: { minHeight: CIBLE_MIN, borderRadius: 12, paddingHorizontal: 14, fontSize: 16 },
   demo: { gap: 8, marginTop: 8 },
 });

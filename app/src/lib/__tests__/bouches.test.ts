@@ -1,16 +1,14 @@
-import type { CoucheGrilles, Endroit } from '../../types';
+import type { Endroit } from '../../types';
 import type { Region } from '../config';
-import { bouchesVisibles, idsAvecSignalement, MAX_BOUCHES, SEUIL_ZOOM_DELTA } from '../bouches';
+import { bouchesVisibles, idsAvecSignalement, MAX_BOUCHES, SEUIL_ZOOM_DELTA, type SourceBouche } from '../bouches';
 
-function grilles(n: number): CoucheGrilles {
-  return {
-    type: 'FeatureCollection',
-    features: Array.from({ length: n }, (_, i) => ({
-      type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: [-73.57 + (i % 40) * 0.0001, 45.5 + Math.floor(i / 40) * 0.0001] },
-      properties: { id: String(i), origine: 'officiel', adresse: null, provenance: null },
-    })),
-  } as unknown as CoucheGrilles;
+function grilles(n: number): SourceBouche[] {
+  return Array.from({ length: n }, (_, i) => ({
+    id: String(i),
+    latitude: 45.5 + Math.floor(i / 40) * 0.0001,
+    longitude: -73.57 + (i % 40) * 0.0001,
+    adresse: `${i} rue Exemple`,
+  }));
 }
 
 const zoome: Region = { latitude: 45.5, longitude: -73.57, latitudeDelta: 0.008, longitudeDelta: 0.012 };
@@ -37,6 +35,10 @@ describe('bouches existantes (grises)', () => {
     expect(maxCentre).toBeLessThanOrEqual(
       (tous[150].position.latitude - zoome.latitude) ** 2 + (tous[150].position.longitude - zoome.longitude) ** 2 + 1e-12,
     );
+  });
+
+  it('garde l’adresse du regard', () => {
+    expect(bouchesVisibles(grilles(3), zoome, new Set())[0].adresse).toContain('rue Exemple');
   });
 
   it('exclut les bouches qui ont un signalement ouvert (elles ont déjà leur repère de gravité)', () => {

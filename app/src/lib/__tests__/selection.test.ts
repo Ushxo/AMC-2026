@@ -1,6 +1,10 @@
 import type { Endroit, Gravite } from '../../types';
 import {
   basculerCle,
+  basculerZone,
+  clesDeZone,
+  etatZone,
+  libelleEtatZone,
   basculerGravite,
   clesOuvertes,
   compterSelection,
@@ -63,5 +67,38 @@ describe('sélection des endroits', () => {
     expect(selectionAEnvoyer(['a', 'b', 'c', 'd'], endroits)).toBeUndefined();
     expect(selectionAEnvoyer(['a', 'ferme'], endroits)).toEqual(['a']);
     expect(selectionAEnvoyer([], endroits)).toEqual([]);
+  });
+});
+
+describe('sélection par zone', () => {
+  const avec = (cle: string, ids: string[], nombre = 1): Endroit => ({
+    ...e(cle, 'moyenne', nombre),
+    signalements: ids.map((id) => ({ id }) as Endroit['signalements'][number]),
+  });
+  const lieux = [avec('p', ['s1', 's2']), avec('q', ['s3']), avec('r', ['s4']), avec('ferme', ['s5'], 0)];
+  const zone = { signalement_ids: ['s1', 's3', 's5'] };
+
+  it('les endroits ouverts d’une zone sont ceux qui ont un de ses signalements', () => {
+    expect(clesDeZone(zone, lieux)).toEqual(['p', 'q']); // « ferme » n'est pas ouvert, « r » est hors zone
+  });
+
+  it('état : aucune, certaines, toutes ; une zone vide compte pour aucune', () => {
+    expect(etatZone([], ['p', 'q'])).toBe('aucune');
+    expect(etatZone(['p'], ['p', 'q'])).toBe('certaines');
+    expect(etatZone(['p', 'q', 'r'], ['p', 'q'])).toBe('toutes');
+    expect(etatZone(['p'], [])).toBe('aucune');
+  });
+
+  it('toucher une zone : sélectionne tout ; si tout y est déjà, retire tout ; le reste de la sélection est gardé', () => {
+    expect(basculerZone(['r'], ['p', 'q']).sort()).toEqual(['p', 'q', 'r']);
+    expect(basculerZone(['p'], ['p', 'q']).sort()).toEqual(['p', 'q']); // certaines → toutes
+    expect(basculerZone(['p', 'q', 'r'], ['p', 'q'])).toEqual(['r']);
+    expect(basculerZone(['r'], [])).toEqual(['r']);
+  });
+
+  it('libellé d’accessibilité de l’état', () => {
+    expect(libelleEtatZone(3, 'toutes')).toBe('3 endroits dans la zone : tous les endroits sélectionnés');
+    expect(libelleEtatZone(1, 'aucune')).toBe('1 endroit dans la zone : aucun endroit sélectionné');
+    expect(libelleEtatZone(2, 'certaines')).toContain('certains');
   });
 });

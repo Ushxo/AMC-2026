@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Marker, type MapMarkerProps } from 'react-native-maps';
 
-import { geometrieRepere, RepereEgout, type EtatRepere } from './repere-egout';
+import { geometrieRepere, RepereEgout, type EtatRepere, type MarqueSelection } from './repere-egout';
 
 type Props = Omit<MapMarkerProps, 'children' | 'tracksViewChanges' | 'anchor' | 'centerOffset'> & {
   couleur: string;
   etat?: EtatRepere;
+  numero?: number;
+  pointEleve?: boolean;
+  marque?: MarqueSelection;
 };
 
 const DUREE_SUIVI_MS = 700;
@@ -15,7 +18,7 @@ const DUREE_SUIVI_MS = 700;
  * (tracksViewChanges coupé : 190 repères restent fluides, avec Apple comme avec Google).
  * Si la couleur ou l'état change, on le redessine brièvement.
  */
-export function MarqueurEgout({ couleur, etat = 'normal', ...reste }: Props) {
+export function MarqueurEgout({ couleur, etat = 'normal', numero, pointEleve, marque, ...reste }: Props) {
   const [suit, setSuit] = useState(true);
   const g = geometrieRepere(etat);
   useEffect(() => {
@@ -25,11 +28,11 @@ export function MarqueurEgout({ couleur, etat = 'normal', ...reste }: Props) {
       clearTimeout(relance);
       clearTimeout(arret);
     };
-  }, [couleur, etat]);
+  }, [couleur, etat, numero, pointEleve, marque]);
   return (
     // La pointe du repère tombe sur la position : anchor pour Google, centerOffset pour Apple Plans.
     <Marker {...reste} anchor={g.ancre} centerOffset={g.decalage} tracksViewChanges={suit}>
-      <RepereEgout couleur={couleur} etat={etat} />
+      <RepereEgout couleur={couleur} etat={etat} numero={numero} pointEleve={pointEleve} marque={marque} />
     </Marker>
   );
 }

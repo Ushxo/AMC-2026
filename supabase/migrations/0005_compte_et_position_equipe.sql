@@ -36,6 +36,17 @@ create policy positions_mise_a_jour on positions_equipes for update using (
   or exists (select 1 from equipes e where e.id = equipe_id and e.compte_id = auth.uid())
 );
 
+-- L'heure et l'auteur d'une position viennent du serveur, jamais du téléphone.
+create or replace function horodater_position() returns trigger language plpgsql as $$
+begin
+  new.maj_le := now();
+  new.compte_id := auth.uid();
+  return new;
+end $$;
+drop trigger if exists positions_horodatage on positions_equipes;
+create trigger positions_horodatage before insert or update on positions_equipes
+for each row execute function horodater_position();
+
 -- L'équipe du compte connecté, ou rien.
 create or replace function mon_equipe() returns uuid
 language sql stable security definer set search_path = public as $$
@@ -55,7 +66,9 @@ begin
     raise exception 'Réservé aux superviseurs.';
   end if;
 
-  select id into v_compte from auth.users where lower(email) = lower(trim(p_courriel)) limit 1;
+  select id into v_compte from auth.users
+  where lower(email) = lower(trim(p_courriel)) and deleted_at is null
+  limit 1;
   if v_compte is null then
     raise exception 'Aucun compte avec ce courriel.';
   end if;
@@ -65,6 +78,8 @@ begin
 
   update equipes set compte_id = null where compte_id = v_compte and id <> p_equipe;
   update equipes set compte_id = v_compte where id = p_equipe;
+  -- Nouveau compte : l'ancienne position de l'équipe ne vaut plus.
+  delete from positions_equipes where equipe_id = p_equipe;
 
   update profils set role = 'employe' where id = v_compte and role::text = 'citoyen';
 end $$;
@@ -79,6 +94,7 @@ begin
     raise exception 'Réservé aux superviseurs.';
   end if;
   update equipes set compte_id = null where id = p_equipe;
+  delete from positions_equipes where equipe_id = p_equipe;
 end $$;
 revoke execute on function dissocier_compte_equipe(uuid) from public, anon;
 grant execute on function dissocier_compte_equipe(uuid) to authenticated, service_role;

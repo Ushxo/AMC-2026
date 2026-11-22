@@ -160,6 +160,11 @@ export type Equipe = {
   vehicule: string | null;
   garage: Coordonnees;
   garage_nom?: string;
+  garage_adresse?: string | null;
+  // Adresse d'arrivée de l'équipe ; absente = retour au garage.
+  arrivee?: Coordonnees | null;
+  arrivee_nom?: string | null;
+  arrivee_adresse?: string | null;
   // Compte qui suit le trajet de cette équipe et partage sa position (absent si aucun).
   compte_id?: string | null;
   debut_quart: string; // "08:00"
@@ -191,6 +196,18 @@ export type ParametresOptimisation = {
   incident_ids: string[];
   // Endroits choisis par le superviseur (clés d'endroit). Absent ou vide = tous les endroits ouverts.
   cles_endroits?: string[];
+  // Départ des tournées : le garage de chaque équipe (défaut) ou sa dernière position connue.
+  depart?: 'garage' | 'position';
+  // Fin des tournées : retour au garage (défaut), fin libre au dernier arrêt, ou un endroit choisi.
+  fin?: 'garage' | 'libre' | 'endroit';
+  // Endroit de fin commun quand fin vaut 'endroit' (clé d'endroit).
+  fin_cle_endroit?: string;
+  // 'tournee' : recalcul de la tournée des équipes de equipe_ids, arrêts faits gardés en tête. Défaut : 'global'.
+  recalcul?: 'global' | 'tournee';
+  // Choix par équipe, qui l'emporte sur depart et fin : clé = identifiant de l'équipe.
+  // Départ : son garage ou sa dernière position connue. Fin : son adresse d'arrivée (le garage si elle n'en a pas) ou fin libre.
+  depart_par_equipe?: Record<string, 'garage' | 'position'>;
+  fin_par_equipe?: Record<string, 'arrivee' | 'libre'>;
   affectations_forcees: { cle_endroit: string; equipe_id: string }[];
   limite_secondes: number;
 };
@@ -214,6 +231,7 @@ export type Arret = {
   arrivee_prevue: string;
   depart_prevu: string;
   fait?: boolean;
+  fait_le?: string | null;
 };
 
 export type Tournee = {
@@ -226,6 +244,17 @@ export type Tournee = {
   fin_prevue: string;
   geometrie: { type: 'LineString'; coordinates: [number, number][] } | null;
   arrets: Arret[];
+  // D'où part et où finit la tournée. Absents dans les anciens résultats : garage et garage.
+  depart?: 'garage' | 'position';
+  depart_position?: Coordonnees;
+  fin?: 'garage' | 'arrivee' | 'libre' | 'endroit';
+  fin_position?: Coordonnees;
+  // Nom de l'adresse d'arrivée quand fin vaut 'arrivee'.
+  fin_nom?: string | null;
+  // Recalcul pour une partie des équipes : tournée republiée telle quelle, ou recalculée en gardant ses arrêts faits en tête.
+  conservee?: boolean;
+  recalculee?: boolean;
+  faits_conserves?: number;
 };
 
 export type NonServi = { cle_endroit: string; gravite: Gravite; raison: string };
@@ -241,6 +270,8 @@ export type Comparaison = {
   gain_duree_s: number;
   // Mesure à part : arrêts servis dans le quart par chaque méthode.
   dans_le_quart: { ordre_arrivee: number; optimise: number; arrets_en_plus: number };
+  // 'partiel' : calcul sur une partie des équipes ou des endroits ; ne vaut pas pour le plan complet. Absent = complet.
+  portee?: 'complet' | 'partiel';
 };
 
 export type ResultatOptimisation = {
@@ -256,6 +287,10 @@ export type ResultatOptimisation = {
   tournees: Tournee[];
   non_servis: NonServi[];
   comparaison: Comparaison;
+  // Totaux de toutes les tournées (absents dans les anciens résultats).
+  totaux?: { distance_m: number; duree_s: number; arrets_servis: number };
+  // 'partiel' quand le calcul ne portait que sur une partie des équipes : la comparaison ne vaut pas pour le plan complet.
+  portee?: 'complet' | 'partiel';
 };
 
 // Fichiers précalculés embarqués (app/src/donnees/tournees-demo*.json).
