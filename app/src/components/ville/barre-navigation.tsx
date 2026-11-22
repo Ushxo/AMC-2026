@@ -66,7 +66,7 @@ export function BarreNavigation({ principal, progression, lieu, etiquette, arriv
           {etiquette ? ` · ${etiquette}` : ''}
         </ThemedText>
         {lieu ? (
-          <ThemedText style={[styles.lieu, { color: P.text }]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+          <ThemedText style={[styles.lieu, { color: P.text }]} numberOfLines={2} maxFontSizeMultiplier={1.2}>
             {lieu}
           </ThemedText>
         ) : null}

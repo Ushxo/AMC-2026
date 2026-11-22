@@ -1,10 +1,11 @@
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type * as Nav from '@googlemaps/react-native-navigation-sdk';
 
+import { MARGE_HAUTE_PANNEAU, reglagesVueNavigation } from '@/lib/disposition-navigation';
 import { useJetonsNavigation } from '@/hooks/use-jetons-navigation';
 import { useThemeCarte } from '@/hooks/use-theme-carte';
 import { assombrir } from '@/marque/couleurs';
@@ -91,8 +92,9 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
   const J = useJetonsNavigation();
   const { top } = useSafeAreaInsets();
   const [restant, setRestant] = useState<{ secondes: number; metres: number } | null>(null);
-  const [hauteurPanneau, setHauteurPanneau] = useState(0);
+  // La boussole n'est masquée qu'une fois la carte prête (voir reglagesVueNavigation).
   const vueNavigation = useRef<Nav.NavigationViewController | null>(null);
+  const [boussoleMasquee, setBoussoleMasquee] = useState(false);
   const [etat, setEtat] = useState<Etat>('init');
   const [message, setMessage] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
@@ -322,34 +324,23 @@ function Interieur({ cible, onArrivee, onIndisponible, reperes = [], apercu, bar
           iOSStylingOptions={stylage}
           // Notre panneau remplace le pied de Google (la carte noire « 4 min ») et sa barre de progression ; pas de boussole, de limite de
           // vitesse, de compteur ni de messages de circulation par-dessus les nôtres ; le bouton de recentrage reste, au-dessus du panneau.
-          footerEnabled={false}
-          tripProgressBarEnabled={false}
-          compassEnabled={false}
-          speedometerEnabled={false}
-          speedLimitIconEnabled={false}
-          trafficPromptsEnabled={false}
-          trafficIncidentCardsEnabled={false}
-          recenterButtonEnabled
-          mapPadding={{ top: 0, left: 0, right: 0, bottom: etat === 'guidage' ? hauteurPanneau : 0 }}
+          {...reglagesVueNavigation(boussoleMasquee)}
           // Pas de signalement d'incident de la circulation par Google : l'équipe signale par notre app.
-          reportIncidentButtonEnabled={false}
           onMapViewControllerCreated={setCarte}
-          onMapReady={() => setCartePrete(true)}
+          onMapReady={() => {
+            setCartePrete(true);
+            setBoussoleMasquee(true);
+          }}
           onNavigationViewControllerCreated={(c) => {
             vueNavigation.current = c;
           }}
         />
       </View>
-      {/* Notre panneau se pose PAR-DESSUS le bas de la carte (coins arrondis sur la carte) ; la carte réserve sa hauteur pour que le logo
-          et le recentrage de Google restent visibles au-dessus. */}
+      {/* Notre panneau est SOUS la carte (disposition en colonne) : la carte s'arrête à son bord, le véhicule suivi ne peut pas passer derrière.
+          Seuls ses coins arrondis mordent sur la carte. */}
       {/* Les fonctions d'écran passées en propriété ne lisent aucune référence pendant le rendu. */}
       {/* eslint-disable-next-line react-hooks/refs */}
-      {session.enGuidage ? (
-        <View style={styles.panneau} onLayout={(e: LayoutChangeEvent) => setHauteurPanneau(Math.round(e.nativeEvent.layout.height))}>
-          {/* eslint-disable-next-line react-hooks/refs */}
-          {barre(session)}
-        </View>
-      ) : null}
+      {session.enGuidage ? <View style={styles.panneau}>{barre(session)}</View> : null}
       {/* eslint-disable-next-line react-hooks/refs */}
       {!session.enGuidage ? <View style={StyleSheet.absoluteFill}>{apercu(session)}</View> : null}
     </View>
@@ -372,5 +363,5 @@ export function NavigationGoogle(props: Props) {
 const styles = StyleSheet.create({
   racine: { flex: 1 },
   vue: { flex: 1 },
-  panneau: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  panneau: { marginTop: MARGE_HAUTE_PANNEAU },
 });

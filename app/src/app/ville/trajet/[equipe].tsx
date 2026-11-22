@@ -16,6 +16,7 @@ import {
 } from '@/components/carte/navigation-google';
 import { ChiffreGlissant } from '@/components/mouvement/chiffre-glissant';
 import { BarreNavigation } from '@/components/ville/barre-navigation';
+import { libelleResteCourt, MARGE_HAUTE_PANNEAU, RECOUVREMENT_PANNEAU } from '@/lib/disposition-navigation';
 import { etatArretNavigation, libelleProblemeEtLieu, libelleProchainArret } from '@/lib/libelles-navigation';
 import { ChoixResultatArret, type ChoixResultat } from '@/components/ville/choix-resultat-arret';
 import { FeuilleResultatArret } from '@/components/ville/feuille-resultat-arret';
@@ -43,7 +44,7 @@ import { useSuiviTrajet } from '@/hooks/use-suivi-trajet';
 import { useTournees } from '@/hooks/use-tournees';
 import { useTraceTournee } from '@/hooks/use-trace-tournee';
 import { useTroncon } from '@/hooks/use-troncon';
-import { libelleReste, resteEstime, resumeTotalTournee } from '@/lib/durees';
+import { resteEstime, resumeTotalTournee } from '@/lib/durees';
 import { formaterDuree, interventionDe, lieuDeEndroit } from '@/lib/interventions';
 import { useEndroits } from '@/hooks/use-endroits';
 import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Arret } from '@/types';
@@ -113,7 +114,6 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
   const P = useTheme();
   const styles = useStyles(creerStyles);
   const { bottom, top } = useSafeAreaInsets();
-  const [hauteurPanneau, setHauteurPanneau] = useState(0);
   const { etat } = useSource();
   const { demoHorsLigne, peutGerer } = useSessionEmploye();
   const { lancer: lancerCalcul, enCours: calculEnCours, demande: demandeCalcul } = useOptimisation();
@@ -355,7 +355,6 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
   const suggestion = surPlace
     ? { texte: `Vous êtes à l'arrêt ${surPlace.rang} : le faire maintenant ?`, titre: `Arrêt ${surPlace.rang} fait ?`, onPress: () => setResultatCible({ arret: surPlace, choix: null }) }
     : null;
-  const reste = tournee && !finie ? libelleReste(resteEstime(tournee, estTraite)) : null;
   const { endroits: tousEndroits } = useEndroits();
   const adressesLieu = useMemo(() => chargerAdresses(), []);
   const endroitCourant = courant ? tousEndroits.find((e) => e.cle === courant.cle_endroit) : undefined;
@@ -377,7 +376,7 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
         <SignalerPleinEcran onChange={onPleinEcran} />
         <BarreNavigation
           principal={principal}
-          progression={[pastille, reste].filter(Boolean).join(' · ')}
+          progression={[pastille, tournee && !finie ? libelleResteCourt(resteEstime(tournee, estTraite).duree_s, formaterDuree) : null].filter(Boolean).join(' · ')}
           lieu={libelleProblemeEtLieu(titreCourant, lieuCourant)}
           etiquette={demoHorsLigne ? ETIQUETTE_DEMONSTRATION : null}
           arrivee={messageArriveeEcran}
@@ -747,7 +746,7 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
             ) : null}
           </View>
         </View>
-        <View style={styles.panneauBas} onLayout={(e) => setHauteurPanneau(Math.round(e.nativeEvent.layout.height))}>
+        <View style={styles.panneauBas}>
           {barre(() => routeur.back())}
         </View>
         {feuille}
@@ -796,12 +795,12 @@ export function EcranTrajet({ equipe, onPleinEcran }: { equipe?: string; onPlein
               <BandeauGuidage guidage={guidage} resume={titreBandeau} />
             </View>
           ) : null}
-          <View style={[styles.commandesCarte, { bottom: hauteurPanneau + 8 }]} pointerEvents="box-none">
+          <View style={[styles.commandesCarte, { bottom: 8 + RECOUVREMENT_PANNEAU }]} pointerEvents="box-none">
             {libre ? <Bouton titre="Recentrer" onPress={() => setLibre(false)} /> : null}
             <Bouton titre="Vue d'ensemble" variante="discret" onPress={vueEnsemble} />
           </View>
         </View>
-        <View style={styles.panneauBas} onLayout={(e) => setHauteurPanneau(Math.round(e.nativeEvent.layout.height))}>
+        <View style={styles.panneauBas}>
           {barre(() => {
             setSuiviActif(false);
             setEnSuivi(false);
@@ -849,5 +848,5 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   avisSecours: { padding: 12, borderRadius: 12, backgroundColor: P.surface, color: P.text },
   superposition: { position: 'absolute', top: 8, left: 8, right: 8 },
   commandesCarte: { position: 'absolute', right: 8, bottom: 8, gap: 8, alignItems: 'flex-end' },
-  panneauBas: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  panneauBas: { marginTop: MARGE_HAUTE_PANNEAU },
 });
