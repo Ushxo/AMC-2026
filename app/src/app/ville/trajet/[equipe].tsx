@@ -15,6 +15,8 @@ import {
   type SessionNavigation,
 } from '@/components/carte/navigation-google';
 import { BarreNavigation } from '@/components/ville/barre-navigation';
+import { ChoixResultatArret, type ChoixResultat } from '@/components/ville/choix-resultat-arret';
+import { FeuilleResultatArret } from '@/components/ville/feuille-resultat-arret';
 import { FeuilleArrets } from '@/components/ville/feuille-arrets';
 import { Carte as CarteGoogleOuMaps, Repere as RepereCommun, Trace as TraceCommune, Vehicule as VehiculeCommun, type CarteCommandes } from '@/components/carte';
 import { BandeauGuidage } from '@/components/ville/bandeau-guidage';
@@ -42,7 +44,8 @@ import { useTroncon } from '@/hooks/use-troncon';
 import { libelleReste, resteEstime, resumeTotalTournee } from '@/lib/durees';
 import { formaterDuree, interventionDe, lieuDeEndroit } from '@/lib/interventions';
 import { useEndroits } from '@/hooks/use-endroits';
-import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE } from '@/types';
+import { LIBELLES_CATEGORIE, LIBELLES_GRAVITE, type Arret } from '@/types';
+import { QUESTION_ARRET_FAIT } from '@/lib/messages-resultat';
 import { useImportance } from '../../../../frontend/supervisor/InterventionsAPlanifier';
 import { formaterNombre } from '@/lib/format';
 import {
@@ -65,7 +68,7 @@ import { chargerAdresses, chargerRegion } from '@/lib/officiel';
 import { proposerRecalcul } from '@/lib/reordre';
 import { formaterHeure } from '@/lib/temps';
 import { cibleFinTournee, libelleArriveePlan, libelleDepartPlan } from '@/lib/tournees';
-import { arretSurPlace, idArret, messageApresRecalcul, peutMarquerFait, peutPublierPosition, regionAutour } from '@/lib/trajet';
+import { arretSurPlace, idArret, libelleAvancement, messageApresRecalcul, peutMarquerFait, peutPublierPosition, regionAutour } from '@/lib/trajet';
 import { useStyles } from '@/marque/utiliser';
 import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
@@ -109,7 +112,9 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
   const carte = useRef<MapView>(null);
   const regionParDefaut = useMemo(() => chargerRegion(), []);
 
-  const { tournee, arrets, courant, faits, total, local, estFait, estPartiel } = suivi;
+  const { tournee, arrets, courant, faits, total, local, estFait, estNonFait, estTraite, statut, commentaire, traites, nonFaits, estPartiel } = suivi;
+  // Résultat d'un arrêt (Oui ou Non) : la feuille de confirmation s'ouvre sur l'arrêt touché.
+  const [resultatCible, setResultatCible] = useState<{ arret: Arret; choix: ChoixResultat | null } | null>(null);
   // Seul le compte de l'équipe publie la position de l'équipe, et seulement une fois le suivi démarré (visible). Un superviseur qui ouvre l'aperçu ne publie rien.
   const [suiviActif, setSuiviActif] = useState(false);
   const compteDeLEquipe = !!tournee && monEquipe === tournee.equipe_id;
@@ -142,7 +147,7 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
     [trace, arrets, regionParDefaut],
   );
   const partiel = arrets.find(estPartiel) ?? null;
-  const restants = arrets.filter((a) => !estFait(a));
+  const restants = arrets.filter((a) => !estTraite(a));
   const rangCourant = courant ? arrets.findIndex((a) => idArret(a) === idArret(courant)) : -1;
 
   // Vue d'ensemble : la position (ou le garage) et le prochain arrêt dans le cadre.
@@ -220,6 +225,18 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
     }
     setRecalculDemande({ prochainAvant: courant ? idArret(courant) : null });
     setMessage(MESSAGE_RECALCUL_DEMANDE);
+  }
+
+  function choixDe(a: Arret): ChoixResultat | null {
+    const st = statut(a);
+    return st === 'fait' ? 'oui' : st === 'non_fait' ? 'non' : null;
+  }
+
+  async function enregistrerArret(a: Arret, p: { fait: boolean; commentaire: string }): Promise<string | null> {
+    const r = await suivi.enregistrerResultat(idArret(a), p);
+    if (r.erreur) return r.erreur;
+    setMessage(r.info ?? (p.fait ? (local ? MESSAGE_ARRET_FAIT_LOCAL : MESSAGE_ARRET_FAIT) : null));
+    return null;
   }
 
   async function faire(id: string) {
@@ -302,9 +319,9 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
   // L'équipe est à un arrêt non fait qui n'est pas le prochain : on propose de le faire maintenant (l'ordre des autres ne change pas).
   const surPlace = !finie && peutMarquer ? arretSurPlace(pos.position, restants, courant) : null;
   const suggestion = surPlace
-    ? { texte: `Vous êtes à l'arrêt ${surPlace.rang} : le faire maintenant ?`, titre: `Arrêt ${surPlace.rang} fait`, onPress: () => void faire(idArret(surPlace)) }
+    ? { texte: `Vous êtes à l'arrêt ${surPlace.rang} : le faire maintenant ?`, titre: `Arrêt ${surPlace.rang} fait ?`, onPress: () => setResultatCible({ arret: surPlace, choix: null }) }
     : null;
-  const reste = tournee && !finie ? libelleReste(resteEstime(tournee, estFait)) : null;
+  const reste = tournee && !finie ? libelleReste(resteEstime(tournee, estTraite)) : null;
   const { endroits: tousEndroits } = useEndroits();
   const adressesLieu = useMemo(() => chargerAdresses(), []);
   const endroitCourant = courant ? tousEndroits.find((e) => e.cle === courant.cle_endroit) : undefined;
@@ -325,10 +342,10 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
         reste={reste}
         info={infoDepart}
         suggestion={suggestion}
-        titreAction={arriveeFin ? 'Terminer' : 'Arrêt fait'}
+        titreAction={arriveeFin ? 'Terminer' : 'Arrêt fait ?'}
         occupe={occupe}
-        actionActive={arriveeFin || (peutMarquer && !!courant && !estFait(courant))}
-        onAction={() => (arriveeFin ? arreter() : courant ? void faire(idArret(courant)) : undefined)}
+        actionActive={arriveeFin || (peutMarquer && !!courant)}
+        onAction={() => (arriveeFin ? arreter() : courant ? setResultatCible({ arret: courant, choix: choixDe(courant) }) : undefined)}
         onArreter={arreter}
         onListe={() => setListe(true)}
         message={messageAffiche ?? (peutMarquer ? null : MESSAGE_SEUL_SUPERVISEUR_OU_EQUIPE)}
@@ -354,20 +371,20 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
               {titreBandeau ? <BandeauNavigation titre={titreBandeau} detail={detailBandeau} /> : null}
               <View style={styles.progression}>
                 <View style={{ flex: 1, gap: 8 }}>
-                  <ThemedText style={styles.progressionTitre} accessibilityLabel={`${faits} arrêts faits sur ${total}`}>
-                    {faits} {faits > 1 ? 'arrêts faits' : 'arrêt fait'} sur {total}
+                  <ThemedText style={styles.progressionTitre} accessibilityLabel={libelleAvancement(traites, total, nonFaits)}>
+                    {libelleAvancement(traites, total, nonFaits)}
                   </ThemedText>
                   <View
                     accessibilityRole="progressbar"
-                    accessibilityLabel="Arrêts faits"
-                    accessibilityValue={{ min: 0, max: total, now: faits }}
+                    accessibilityLabel="Arrêts traités"
+                    accessibilityValue={{ min: 0, max: total, now: traites }}
                     style={styles.piste}>
-                    <View style={[styles.remplissage, { width: `${total > 0 ? Math.round((faits / total) * 100) : 0}%`, backgroundColor: P.primary }]} />
+                    <View style={[styles.remplissage, { width: `${total > 0 ? Math.round((traites / total) * 100) : 0}%`, backgroundColor: P.primary }]} />
                   </View>
                 </View>
                 {tournee && !finie ? (
-                  <ThemedText style={styles.dureePastille} accessibilityLabel={`Temps restant estimé ${formaterDuree(resteEstime(tournee, estFait).duree_s)}`}>
-                    {formaterDuree(resteEstime(tournee, estFait).duree_s)}
+                  <ThemedText style={styles.dureePastille} accessibilityLabel={`Temps restant estimé ${formaterDuree(resteEstime(tournee, estTraite).duree_s)}`}>
+                    {formaterDuree(resteEstime(tournee, estTraite).duree_s)}
                   </ThemedText>
                 ) : null}
               </View>
@@ -478,23 +495,19 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                       {LIBELLES_GRAVITE[graviteCourant]}
                     </ThemedText>
                   </View>
-                  <View style={styles.deuxBoutons}>
-                    <Pressable accessibilityRole="button" onPress={() => setListe(true)} style={[styles.bouton, styles.boutonContour]}>
-                      <ThemedText style={[styles.boutonTexte, { color: P.primary }]} maxFontSizeMultiplier={1.2}>
-                        Voir les {restants.length} arrêts
-                      </ThemedText>
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityState={{ disabled: !(peutMarquer && !estFait(courant)) || occupe, busy: occupe }}
-                      disabled={!(peutMarquer && !estFait(courant)) || occupe}
-                      onPress={() => void faire(idArret(courant))}
-                      style={[styles.bouton, styles.boutonPlein, (!(peutMarquer && !estFait(courant)) || occupe) && { opacity: 0.5 }]}>
-                      <ThemedText style={[styles.boutonTexte, { color: P.onPrimary }]} maxFontSizeMultiplier={1.2}>
-                        {occupe ? 'Enregistrement…' : 'Arrêt fait'}
-                      </ThemedText>
-                    </Pressable>
+                  <View style={{ gap: 8 }}>
+                    <ThemedText style={styles.arretQuestion}>{QUESTION_ARRET_FAIT}</ThemedText>
+                    <ChoixResultatArret
+                      choix={choixDe(courant)}
+                      actif={peutMarquer && !occupe}
+                      onChoisir={(c) => setResultatCible({ arret: courant, choix: c })}
+                    />
                   </View>
+                  <Pressable accessibilityRole="button" onPress={() => setListe(true)} style={[styles.bouton, styles.boutonContour]}>
+                    <ThemedText style={[styles.boutonTexte, { color: P.primary }]} maxFontSizeMultiplier={1.2}>
+                      Voir les {total} arrêts
+                    </ThemedText>
+                  </Pressable>
                   {!peutMarquer ? (
                     <ThemedText type="small" themeColor="textSecondary">
                       {MESSAGE_SEUL_SUPERVISEUR_OU_EQUIPE}
@@ -560,6 +573,18 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
                   {formaterNombre(a.signalement_ids.length, 'signalement', 'signalements')}
                 </ThemedText>
               ))}
+              {nonFaits > 0 ? (
+                <>
+                  <ThemedText type="smallBold" accessibilityRole="header">
+                    Arrêts non faits ({nonFaits})
+                  </ThemedText>
+                  {arrets.filter(estNonFait).map((a) => (
+                    <ThemedText key={idArret(a)} type="small" accessibilityLabel={`Arrêt ${a.rang}, non fait${commentaire(a) ? `, commentaire : ${commentaire(a)}` : ''}`}>
+                      {a.rang}. Non fait{commentaire(a) ? ` · « ${commentaire(a)} »` : ''}
+                    </ThemedText>
+                  ))}
+                </>
+              ) : null}
               {monEquipe && monEquipe !== tournee.equipe_id ? (
                 <ThemedText type="small" themeColor="textSecondary">
                   Ce n&apos;est pas la tournée de votre équipe.
@@ -618,7 +643,26 @@ export function EcranTrajet({ equipe }: { equipe?: string }) {
     </>
   );
 
-  const feuille = <FeuilleArrets visible={liste} arrets={restants} onFermer={() => setListe(false)} />;
+  const feuille = (
+    <>
+      <FeuilleArrets
+        visible={liste}
+        arrets={arrets}
+        statutDe={statut}
+        commentaireDe={commentaire}
+        onChoisir={peutMarquer && !finie ? (a) => { setListe(false); setResultatCible({ arret: a, choix: choixDe(a) }); } : undefined}
+        onFermer={() => setListe(false)}
+      />
+      <FeuilleResultatArret
+        visible={resultatCible !== null}
+        rang={resultatCible?.arret.rang ?? 0}
+        choixInitial={resultatCible?.choix ?? null}
+        commentaireInitial={resultatCible ? (commentaire(resultatCible.arret) ?? '') : ''}
+        onEnregistrer={(p) => (resultatCible ? enregistrerArret(resultatCible.arret, p) : Promise.resolve(null))}
+        onFermer={() => setResultatCible(null)}
+      />
+    </>
+  );
 
   // Navigation Google impossible (clé refusée, quota, conditions ou position refusées) : notre guidage simplifié, à vol d'oiseau.
   if (NAVIGATION_GOOGLE && navEchec) {
@@ -744,7 +788,7 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   deuxBoutons: { flexDirection: 'row', gap: 12 },
   bouton: { flex: 1, minHeight: 52, borderRadius: 30, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   boutonContour: { borderWidth: 2, borderColor: P.primary, backgroundColor: P.surface },
-  boutonPlein: { backgroundColor: P.success },
+  arretQuestion: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
   boutonTexte: { fontSize: 15, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
   pied: { paddingHorizontal: 20, paddingTop: 8 },
   carte: { height: 380 },

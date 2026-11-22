@@ -16,8 +16,9 @@ import { useTheme } from '@/hooks/use-theme';
 import type { Jetons } from '@/marque/jetons';
 import { BLANC_FIXE } from '@/components/ville/style';
 
-// « Arrêts faits » du superviseur : par équipe, les arrêts déjà faits (heure réelle) puis le prochain à venir. Lecture seule :
-// un arrêt fait règle tout de suite ses signalements, il n'y a pas de rapport à approuver.
+// « Arrêts faits » du superviseur : par équipe, les arrêts non faits en tête (heure et commentaire de l'équipe), puis les arrêts faits
+// (heure réelle, commentaire s'il y en a) et le prochain à venir. Lecture seule : un arrêt fait règle tout de suite ses signalements,
+// un arrêt non fait laisse les siens ouverts.
 export default function ArretsFaits() {
   const styles = useStyles(creerStyles);
   const P = useTheme();
@@ -25,13 +26,14 @@ export default function ArretsFaits() {
   const { endroits } = useEndroits();
   const adresses = useMemo(() => chargerAdresses(), []);
   const tournees = resultat?.tournees ?? [];
-  const total = tournees.reduce((n, t) => n + t.arrets.filter((a) => a.fait).length, 0);
+  const estNonFait = (a: { fait?: boolean; non_fait?: boolean }) => Boolean(a.non_fait) && !a.fait;
+  const total = tournees.reduce((n, t) => n + t.arrets.filter((a) => a.fait || estNonFait(a)).length, 0);
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.note}>
         <Ionicons name="information-circle-outline" size={26} color={P.primary} />
-        <Text style={styles.noteTexte}>Un arrêt fait règle tout de suite les signalements de l’endroit.</Text>
+        <Text style={styles.noteTexte}>Un arrêt fait règle tout de suite les signalements de l’endroit. Un arrêt non fait les laisse ouverts, avec le commentaire de l’équipe.</Text>
       </View>
       {chargement ? (
         <Chargement texte="Chargement des tournées…" />
@@ -41,40 +43,52 @@ export default function ArretsFaits() {
         tournees.map((t, i) => {
           const ordre = [...t.arrets].sort((a, b) => a.rang - b.rang);
           const faits = ordre.filter((a) => a.fait);
-          const prochain = ordre.find((a) => !a.fait);
-          const lignes = [...faits.slice(0, 12), ...(prochain ? [prochain] : [])];
+          const nonFaits = ordre.filter(estNonFait);
+          const prochain = ordre.find((a) => !a.fait && !estNonFait(a));
+          // Les non faits d'abord : c'est ce qui demande une suite (réparer, revenir).
+          const lignes = [...nonFaits, ...faits.slice(0, 12), ...(prochain ? [prochain] : [])];
+          const traites = faits.length + nonFaits.length;
           return (
             <View key={t.equipe_id} style={{ gap: 12 }} accessible={false}>
-              <View style={styles.equipe} accessible accessibilityLabel={`${t.equipe_nom} : ${faits.length} arrêts faits sur ${t.arrets.length}`}>
+              <View style={styles.equipe} accessible accessibilityLabel={`${t.equipe_nom} : ${faits.length} arrêts faits sur ${t.arrets.length}${nonFaits.length ? `, dont ${nonFaits.length} non fait${nonFaits.length > 1 ? 's' : ''}` : ''}`}>
                 <View style={[styles.point, { backgroundColor: couleurEquipe(i) }]} />
                 <Text style={styles.equipeNom}>{t.equipe_nom}</Text>
+                {nonFaits.length > 0 ? <Text style={styles.pastilleNonFait}>{nonFaits.length} non fait{nonFaits.length > 1 ? "s" : ""}</Text> : null}
                 <Text style={styles.pastille}>
                   {faits.length} sur {t.arrets.length}
                 </Text>
               </View>
-              {lignes.length === 0 || faits.length === 0 ? (
+              {traites === 0 ? (
                 <View style={styles.carte}>
                   <Text style={styles.vide}>Aucun arrêt fait pour l’instant.</Text>
                 </View>
               ) : null}
-              {lignes.length > 0 && faits.length > 0 ? (
+              {traites > 0 ? (
                 <View style={styles.carte}>
                   {lignes.map((a, n) => {
                     const e = endroits.find((x) => x.cle === a.cle_endroit);
                     const inter = e ? interventionDe(e) : null;
                     const titre = inter ? LIBELLES_CATEGORIE[inter.categorie] : "Intervention";
-                    const detail = a.fait ? lieuDeEndroit(a.position, adresses) : `Prévu vers ${formaterHeure(a.arrivee_prevue)}`;
-                    const heure = a.fait ? (a.fait_le ? formaterHeure(a.fait_le) : "Fait") : "À venir";
+                    const nonFait = estNonFait(a);
+                    const traite = a.fait || nonFait;
+                    const detail = traite ? lieuDeEndroit(a.position, adresses) : `Prévu vers ${formaterHeure(a.arrivee_prevue)}`;
+                    const heureTraitee = nonFait ? (a.traite_le ?? null) : (a.fait_le ?? a.traite_le ?? null);
+                    const heure = traite ? (heureTraitee ? formaterHeure(heureTraitee) : nonFait ? "Non fait" : "Fait") : "À venir";
+                    const mot = traite ? (a.commentaire ?? "").trim() : "";
                     return (
                       <View key={a.rang}>
                         {n > 0 ? <View style={styles.separateur} /> : null}
-                        <View style={styles.ligne} accessible accessibilityLabel={`Arrêt ${a.rang}, ${titre}, ${detail}, ${heure}`}>
-                          <Text style={[styles.numero, { backgroundColor: a.fait ? P.success : P.borderForte }]}>{a.rang}</Text>
+                        <View style={styles.ligne} accessible accessibilityLabel={`Arrêt ${a.rang}, ${titre}, ${detail}, ${nonFait ? `non fait à ${heure}` : heure}${mot ? `, commentaire : ${mot}` : ""}`}>
+                          <Text style={[styles.numero, { backgroundColor: nonFait ? P.danger : a.fait ? P.success : P.borderForte }]}>{a.rang}</Text>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.ligneTitre}>{titre}</Text>
                             <Text style={styles.ligneDetail}>{detail}</Text>
+                            {mot ? <Text style={styles.commentaire}>« {mot} »</Text> : null}
                           </View>
-                          <Text style={[styles.heure, !a.fait && { color: P.textSecondary }]}>{heure}</Text>
+                          <View style={{ alignItems: "flex-end", gap: 2 }}>
+                            {nonFait ? <Text style={styles.etiquetteNonFait}>Non fait</Text> : null}
+                            <Text style={[styles.heure, !traite && { color: P.textSecondary }]}>{nonFait && !a.traite_le ? "" : heure}</Text>
+                          </View>
                         </View>
                       </View>
                     );
@@ -85,7 +99,7 @@ export default function ArretsFaits() {
           );
         })
       )}
-      {tournees.length > 0 && total === 0 ? <Text style={styles.sous}>Aucun arrêt n’est encore marqué comme fait.</Text> : null}
+      {tournees.length > 0 && total === 0 ? <Text style={styles.sous}>Aucun arrêt n’est encore marqué comme fait ou non fait.</Text> : null}
     </ScrollView>
   );
 }
@@ -105,6 +119,9 @@ const creerStyles = (P: Jetons) => StyleSheet.create({
   ligneTitre: { fontSize: 15, fontWeight: "700", color: P.text },
   ligneDetail: { fontSize: 13, fontWeight: "500", color: P.textSecondary },
   heure: { fontSize: 14, fontWeight: "700", color: P.primary },
+  pastilleNonFait: { backgroundColor: P.surface, color: P.danger, borderWidth: 2, borderColor: P.danger, fontSize: 14, fontWeight: "700", paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, overflow: "hidden" },
+  etiquetteNonFait: { color: P.danger, fontSize: 13, fontWeight: "700" },
+  commentaire: { fontSize: 14, fontWeight: "600", color: P.text, lineHeight: 20 },
   vide: { fontSize: 14, fontWeight: "500", color: P.textSecondary },
   sous: { color: P.textSecondary, fontSize: 14 },
 });

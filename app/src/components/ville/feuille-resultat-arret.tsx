@@ -1,0 +1,141 @@
+import { useState } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Appuyable as Pressable } from '@/components/appuyable';
+import { BoutonAction } from '@/components/bouton-action';
+import { ChampTexte as TextInput, Texte as Text } from '@/components/texte';
+import { useStyles } from '@/marque/utiliser';
+import type { Jetons } from '@/marque/jetons';
+import { erreurCommentaire, LIMITE_COMMENTAIRE, QUESTION_ARRET_FAIT, RAISONS_NON_FAIT } from '@/lib/messages-resultat';
+
+import { Bouton } from './bouton';
+import { ChoixResultatArret, type ChoixResultat } from './choix-resultat-arret';
+import { FEUILLE_BASE, VOILE_FEUILLE } from './style';
+
+type Props = {
+  visible: boolean;
+  rang: number;
+  /** Choix déjà fait (correction) ou touché sur la carte ; null : la personne choisit ici. */
+  choixInitial: ChoixResultat | null;
+  commentaireInitial?: string;
+  /** Écrit le résultat. Rend un message d'erreur (la saisie reste), ou null. */
+  onEnregistrer: (p: { fait: boolean; commentaire: string }) => Promise<string | null>;
+  onFermer: () => void;
+};
+
+/** Petite feuille de confirmation d'un arrêt : Oui (commentaire facultatif) ou Non (commentaire obligatoire, avec des raisons en un toucher). */
+export function FeuilleResultatArret(props: Props) {
+  return (
+    <Modal visible={props.visible} transparent animationType="slide" onRequestClose={props.onFermer}>
+      {props.visible ? <Contenu {...props} /> : null}
+    </Modal>
+  );
+}
+
+function Contenu({ rang, choixInitial, commentaireInitial = '', onEnregistrer, onFermer }: Props) {
+  const styles = useStyles(creerStyles);
+  const { bottom } = useSafeAreaInsets();
+  const [choix, setChoix] = useState<ChoixResultat | null>(choixInitial);
+  const [texte, setTexte] = useState(commentaireInitial);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [occupe, setOccupe] = useState(false);
+
+  async function enregistrer() {
+    if (!choix) return;
+    const invalide = erreurCommentaire(choix === 'oui', texte);
+    if (invalide) {
+      setErreur(invalide);
+      return;
+    }
+    setOccupe(true);
+    const refus = await onEnregistrer({ fait: choix === 'oui', commentaire: texte });
+    setOccupe(false);
+    if (refus) setErreur(refus);
+    else onFermer();
+  }
+
+  const libelle = choix === 'non' ? "Pourquoi l'arrêt n'est-il pas fait ? (obligatoire)" : 'Quelque chose à signaler ? (facultatif)';
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.cadre}>
+      <Pressable retour={false} style={styles.fond} onPress={onFermer} accessibilityRole="button" accessibilityLabel="Fermer sans enregistrer" />
+      <View style={[styles.feuille, { paddingBottom: bottom + 16 }]}>
+        <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
+          <Text style={styles.titre} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
+            Arrêt {rang}
+          </Text>
+          <Text style={styles.question}>{QUESTION_ARRET_FAIT}</Text>
+          <ChoixResultatArret
+            choix={choix}
+            onChoisir={(c) => {
+              setChoix(c);
+              setErreur(null);
+            }}
+            actif={!occupe}
+          />
+          {choix ? (
+            <View style={styles.groupe}>
+              <Text style={styles.etiquette}>{libelle}</Text>
+              {choix === 'non' ? (
+                <View style={styles.raisons}>
+                  {RAISONS_NON_FAIT.map((r) => (
+                    <Bouton
+                      key={r}
+                      titre={r}
+                      variante="discret"
+                      selectionne={texte === r}
+                      onPress={() => {
+                        setTexte(r);
+                        setErreur(null);
+                      }}
+                    />
+                  ))}
+                </View>
+              ) : null}
+              <TextInput
+                style={[styles.champ, !!erreur && styles.champErreur]}
+                value={texte}
+                onChangeText={(v) => {
+                  setTexte(v);
+                  setErreur(null);
+                }}
+                multiline
+                maxLength={LIMITE_COMMENTAIRE}
+                accessibilityLabel={libelle}
+                accessibilityHint={erreur ?? undefined}
+                placeholder={choix === 'non' ? 'Ce qui a empêché de faire l’arrêt' : 'Ce que vous avez vu'}
+              />
+              <Text style={styles.compteur} accessibilityLabel={`${texte.length} caractères sur ${LIMITE_COMMENTAIRE}`}>
+                {`${texte.length} / ${LIMITE_COMMENTAIRE}`}
+              </Text>
+              {erreur ? (
+                <Text style={styles.erreur} accessibilityRole="alert">
+                  {erreur}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+          <BoutonAction titre={occupe ? 'Enregistrement…' : 'Enregistrer'} actif={!!choix} occupe={occupe} onPress={() => void enregistrer()} />
+          <Bouton titre="Annuler" variante="discret" pleineLargeur onPress={onFermer} actif={!occupe} />
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const creerStyles = (P: Jetons) =>
+  StyleSheet.create({
+    cadre: { flex: 1 },
+    fond: { flex: 1, backgroundColor: VOILE_FEUILLE },
+    feuille: { maxHeight: '85%', backgroundColor: P.background, ...FEUILLE_BASE },
+    contenu: { padding: 20, gap: 12 },
+    titre: { fontSize: 22, lineHeight: 30, fontWeight: '700', color: P.text },
+    question: { fontSize: 17, lineHeight: 24, fontWeight: '600', color: P.text },
+    groupe: { gap: 8 },
+    etiquette: { fontSize: 14, fontWeight: '700', color: P.text },
+    raisons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    champ: { minHeight: 96, borderRadius: 16, borderWidth: 2, borderColor: P.borderForte, backgroundColor: P.surface, color: P.text, padding: 12, fontSize: 16, textAlignVertical: 'top' },
+    champErreur: { borderColor: P.danger },
+    compteur: { fontSize: 13, color: P.textSecondary, textAlign: 'right' },
+    erreur: { fontSize: 14, fontWeight: '600', color: P.danger },
+  });

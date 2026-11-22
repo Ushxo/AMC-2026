@@ -22,6 +22,9 @@ type LigneArret = {
   depart_prevu: string;
   fait?: boolean;
   fait_le?: string | null;
+  non_fait?: boolean;
+  commentaire?: string | null;
+  traite_le?: string | null;
 };
 
 type LigneTournee = {
@@ -106,6 +109,10 @@ export function assemblerResultat(
           depart_prevu: a.depart_prevu,
           fait: a.fait,
           ...(a.fait_le ? { fait_le: a.fait_le } : {}),
+          // Résultat donné par l'équipe (migration 0012) : absent tant que la colonne n'existe pas.
+          ...(a.non_fait ? { non_fait: true } : {}),
+          ...(a.commentaire ? { commentaire: a.commentaire } : {}),
+          ...(a.traite_le ? { traite_le: a.traite_le } : {}),
         })),
       ...detailsTournee(t.details),
     })),

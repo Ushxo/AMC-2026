@@ -52,6 +52,8 @@ jest.mock('@/hooks/use-suivi-trajet', () => ({
     tournee: mockTournee, arrets: mockArrets, prochain: mockArrets[1], courant: mockArrets[1], faits: 1, total: 3, position: null, local: false,
     estFait: (a: { fait?: boolean }) => !!a.fait, estPartiel: () => false, aller: jest.fn(), reordonnerDepuis: jest.fn(), ordreLocal: false,
     marquerFait: jest.fn(), terminee: false, chargement: false,
+    estNonFait: () => false, estTraite: (a: { fait?: boolean }) => !!a.fait, statut: (a: { fait?: boolean }) => (a.fait ? 'fait' : null),
+    commentaire: () => null, traites: 1, nonFaits: 0, enregistrerResultat: jest.fn(),
   }),
 }));
 jest.mock('@/hooks/use-tournees', () => ({ useTournees: () => ({ resultat: { tournees: [mockTournee], comparaison: null }, source: 'direct', chargement: false }) }));

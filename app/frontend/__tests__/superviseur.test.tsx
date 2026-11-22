@@ -71,6 +71,24 @@ describe('rapports du superviseur : arrêts faits (lecture)', () => {
   });
 });
 
+describe('arrêts traités : les non faits et leur commentaire', () => {
+  it('les non faits passent en tête, avec l’étiquette, l’heure et le commentaire en clair ; le commentaire d’un arrêt fait aussi', async () => {
+    const nonFait: Arret = { ...arret(2, false), non_fait: true, commentaire: 'Grille brisée, à réparer', traite_le: '2026-11-22T12:30:00Z' };
+    const faitAvecMot: Arret = { ...arret(1, true), commentaire: 'Un peu de sable à nettoyer' };
+    mockTournees.mockReturnValue({ resultat: resultat([tournee('Équipe 1', [faitAvecMot, nonFait, arret(3, false)])]), chargement: false });
+    await render(<ArretsFaits />);
+    expect(screen.getByText('1 non fait')).toBeTruthy();
+    expect(screen.getByText('Non fait')).toBeTruthy();
+    expect(screen.getByText('« Grille brisée, à réparer »')).toBeTruthy();
+    expect(screen.getByText('« Un peu de sable à nettoyer »')).toBeTruthy();
+    expect(screen.getByLabelText(/^Arrêt 2, .*non fait à .*, commentaire : Grille brisée, à réparer$/)).toBeTruthy();
+    expect(screen.getByLabelText(/Équipe 1 : 1 arrêts faits sur 3, dont 1 non fait/)).toBeTruthy();
+    // le non fait est listé avant le fait
+    const textes = screen.getAllByText(/^« /).map((n) => n.props.children.join(''));
+    expect(textes[0]).toContain('Grille brisée');
+  });
+});
+
 describe('tableau de bord du superviseur', () => {
   it('chiffres à traiter et réglés, et le plan des équipes', async () => {
     mockResume.mockReturnValue({
