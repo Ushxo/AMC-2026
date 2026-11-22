@@ -14,6 +14,8 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(citoyen)" />
         <Stack.Screen name="ville" />
+        <Stack.Screen name="essai-photo" />
+        <Stack.Screen name="resultat" />
       </Stack>
     </ThemeProvider>
   );

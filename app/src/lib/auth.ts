@@ -277,6 +277,8 @@ const MESSAGES: Record<string, string> = {
   email_not_confirmed: 'Email pas encore confirmé.',
   over_request_rate_limit: 'Trop de tentatives, réessaie dans quelques minutes.',
   over_email_send_rate_limit: 'Trop de tentatives, réessaie dans quelques minutes.',
+  otp_expired: 'Code invalide ou expiré.',
+  same_password: "Le nouveau mot de passe doit être différent de l'ancien.",
 };
 
 function erreurDepuisAuth(erreur: AuthError): ErreurAuth {
@@ -317,6 +319,38 @@ export async function connecter(email: string, motDePasse: string): Promise<Prof
 
 export async function deconnecter(): Promise<void> {
   const { error } = await client().auth.signOut();
+  if (error) throw erreurDepuisAuth(error);
+}
+
+// Mot de passe oublié, en 3 étapes :
+//   1. envoyerCodeReinitialisation(email)   → Supabase envoie un code par email
+//   2. verifierCodeReinitialisation(email, code) → l'utilisateur est connecté
+//   3. changerMotDePasse(nouveau)
+
+/**
+ * Étape 1. Réussit même si aucun compte n'existe pour cet email, pour ne pas
+ * révéler quels emails sont inscrits : afficher « Si un compte existe, un
+ * code a été envoyé ».
+ */
+export async function envoyerCodeReinitialisation(email: string): Promise<void> {
+  const { error } = await client().auth.resetPasswordForEmail(email.trim());
+  if (error) throw erreurDepuisAuth(error);
+}
+
+/** Étape 2. Vérifie le code reçu par email ; l'utilisateur est alors connecté. */
+export async function verifierCodeReinitialisation(email: string, code: string): Promise<Profil> {
+  const { error } = await client().auth.verifyOtp({
+    email: email.trim(),
+    token: code.replace(/\s/g, ''),
+    type: 'recovery',
+  });
+  if (error) throw erreurDepuisAuth(error);
+  return exigerProfil();
+}
+
+/** Étape 3 (ou depuis les réglages) : change le mot de passe de l'utilisateur connecté. */
+export async function changerMotDePasse(nouveauMotDePasse: string): Promise<void> {
+  const { error } = await client().auth.updateUser({ password: nouveauMotDePasse });
   if (error) throw erreurDepuisAuth(error);
 }
 

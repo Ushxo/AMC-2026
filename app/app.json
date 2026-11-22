@@ -45,6 +45,13 @@
           "cameraPermission": "L'appareil photo sert à joindre une photo à votre signalement.",
           "photosPermission": "Vos photos servent à joindre une image à votre signalement."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "L'appareil photo sert à photographier la bouche d'égout à signaler.",
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

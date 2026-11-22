@@ -1,6 +1,15 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
-import { connecter, creerUtilisateur, ErreurAuth, inscrireCitoyen, monProfil } from '../auth';
+import {
+  changerMotDePasse,
+  connecter,
+  creerUtilisateur,
+  envoyerCodeReinitialisation,
+  ErreurAuth,
+  inscrireCitoyen,
+  monProfil,
+  verifierCodeReinitialisation,
+} from '../auth';
 import { getSupabase } from '../supabase';
 
 jest.mock('../supabase', () => {
@@ -11,6 +20,9 @@ jest.mock('../supabase', () => {
       signOut: jest.fn(),
       getSession: jest.fn(),
       onAuthStateChange: jest.fn(),
+      resetPasswordForEmail: jest.fn(),
+      verifyOtp: jest.fn(),
+      updateUser: jest.fn(),
     },
     rpc: jest.fn(),
     functions: { invoke: jest.fn() },
@@ -114,5 +126,45 @@ describe('creerUtilisateur', () => {
       message: 'Réservé aux administrateurs',
       code: 403,
     });
+  });
+});
+
+describe('mot de passe oublié', () => {
+  it("envoie le code à l'email nettoyé", async () => {
+    sb.auth.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+    await envoyerCodeReinitialisation(' lea@example.com ');
+    expect(sb.auth.resetPasswordForEmail).toHaveBeenCalledWith('lea@example.com');
+  });
+
+  it('vérifie le code en type recovery, espaces retirés, et renvoie le profil', async () => {
+    sb.auth.verifyOtp.mockResolvedValue({ data: {}, error: null });
+    await expect(verifierCodeReinitialisation('lea@example.com', '123 456')).resolves.toEqual(PROFIL);
+    expect(sb.auth.verifyOtp).toHaveBeenCalledWith({
+      email: 'lea@example.com',
+      token: '123456',
+      type: 'recovery',
+    });
+  });
+
+  it('traduit un code expiré', async () => {
+    sb.auth.verifyOtp.mockResolvedValue({
+      data: {},
+      error: { code: 'otp_expired', status: 403, message: 'Token has expired or is invalid' },
+    });
+    await expect(verifierCodeReinitialisation('a@b.com', '000000')).rejects.toMatchObject({
+      message: 'Code invalide ou expiré.',
+    });
+  });
+
+  it('change le mot de passe et refuse le même que l’ancien', async () => {
+    sb.auth.updateUser.mockResolvedValueOnce({ data: {}, error: null });
+    await changerMotDePasse('Nouveau123');
+    expect(sb.auth.updateUser).toHaveBeenCalledWith({ password: 'Nouveau123' });
+
+    sb.auth.updateUser.mockResolvedValueOnce({
+      data: {},
+      error: { code: 'same_password', status: 422, message: 'same password' },
+    });
+    await expect(changerMotDePasse('Nouveau123')).rejects.toMatchObject({ code: 'same_password' });
   });
 });
