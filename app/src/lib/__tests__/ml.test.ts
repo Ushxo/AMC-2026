@@ -18,10 +18,12 @@ const RESULTAT = {
   probabilites: { invalide: 2, faible: 3, moyenne: 20, elevee: 75 },
 };
 
-function charger(url: string | undefined) {
+function charger(url: string | undefined, cle?: string) {
   jest.resetModules();
   if (url === undefined) delete process.env.EXPO_PUBLIC_ML_URL;
   else process.env.EXPO_PUBLIC_ML_URL = url;
+  if (cle === undefined) delete process.env.EXPO_PUBLIC_ML_CLE;
+  else process.env.EXPO_PUBLIC_ML_CLE = cle;
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- rechargement du module après avoir changé l’env
   return require('../ml') as typeof import('../ml');
 }
@@ -40,6 +42,21 @@ describe('jugerPhoto', () => {
     expect(url).toBe('https://ml.example.com/juger');
     expect(options.method).toBe('POST');
     expect(options.body).toBeInstanceOf(FormData);
+  });
+
+  it('envoie la clé d’accès dans l’en-tête X-Cle-API', async () => {
+    const { jugerPhoto } = charger('https://ml.example.com', 'secret');
+    (globalThis.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => RESULTAT });
+
+    await jugerPhoto('file:///photo.jpg');
+    expect((globalThis.fetch as jest.Mock).mock.calls[0][1].headers).toEqual({ 'X-Cle-API': 'secret' });
+  });
+
+  it('dit quoi vérifier quand le serveur refuse la clé', async () => {
+    const { jugerPhoto } = charger('https://ml.example.com', 'mauvaise');
+    (globalThis.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 401, json: async () => ({}) });
+
+    await expect(jugerPhoto('file:///photo.jpg')).rejects.toThrow('EXPO_PUBLIC_ML_CLE');
   });
 
   it('envoie un File d’expo-file-system (le fetch d’Expo refuse le format { uri })', async () => {

@@ -43,7 +43,7 @@ describe('signalement : feuille des quatre problèmes', () => {
     expect(screen.getByText('Derniers détails')).toBeTruthy();
     expect(screen.getByText('Étape 3 sur 3')).toBeTruthy();
     expect(screen.getByText('Égout bouché')).toBeTruthy();
-    expect(screen.getByText('Importance')).toBeTruthy();
+    expect(screen.queryByText('Importance')).toBeNull();
     expect(screen.getByText('Envoyer le signalement')).toBeTruthy();
   });
 
