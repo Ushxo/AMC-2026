@@ -1,5 +1,9 @@
 export const SEUIL_MOYENNE = 20;
 export const SEUIL_ELEVEE = 50;
+/** Signalements ouverts qu'il faut au même endroit pour qu'il apparaisse, sans photo vérifiée. */
+export const SEUIL_SANS_PHOTO = 3;
+/** Avec une photo vérifiée, un seul signalement suffit. */
+export const SEUIL_AVEC_PHOTO = 1;
 export const PAS_CASE = 0.0005;
 export const RAYON_GRILLE_M = 25;
 export const RAYON_AVIS_POINT_M = 150;

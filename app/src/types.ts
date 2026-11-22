@@ -106,6 +106,8 @@ export type Signalement = {
   gravite: Gravite; // estimée par l'analyse de la photo (faible sans photo analysable)
   commentaire: string | null;
   photo_url: string | null;
+  /** Vrai quand la photo a été acceptée par l'analyse. Absent sur un ancien signalement : compte comme vrai. */
+  photo_verifiee?: boolean;
   grille_id: string | null;
   etat: Etat;
   etat_change_le: string;
@@ -121,6 +123,8 @@ export type NouveauSignalement = {
   gravite: Gravite;
   commentaire?: string;
   photoUri?: string; // fichier local de l'appareil photo
+  /** Vrai seulement si l'analyse a accepté cette photo. */
+  photoVerifiee?: boolean;
 };
 
 export type ErreurValidation = { champ: keyof NouveauSignalement; message: string };
@@ -135,6 +139,14 @@ export type Endroit = {
   cle: string;
   position: Coordonnees;
   nombre: number;
+  /** Signalements ouverts dont la photo est vérifiée. */
+  nombre_avec_photo?: number;
+  /**
+   * Vrai quand l'endroit a assez de signalements ouverts pour apparaître sur la carte et entrer dans le calcul :
+   * une photo vérifiée suffit, sinon il en faut plusieurs sans photo (voir SEUIL_SANS_PHOTO).
+   * Absent : l'endroit compte comme confirmé.
+   */
+  confirme?: boolean;
   gravite_choisie_max: Gravite;
   gravite_par_nombre: Gravite;
   gravite_affichee: Gravite;
