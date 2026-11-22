@@ -2,7 +2,27 @@ import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'g
 
 export type Origine = 'officiel' | 'citoyen';
 export type Gravite = 'faible' | 'moyenne' | 'elevee';
-export type Categorie = 'grille_bouchee' | 'eau_accumulee' | 'eau_douteuse' | 'absence_eau' | 'autre';
+export type Categorie =
+  | 'grille_bouchee'
+  | 'eau_accumulee'
+  | 'affaissement'
+  | 'grille_endommagee'
+  | 'eau_douteuse'
+  | 'absence_eau'
+  | 'autre';
+
+/** Les catégories proposées au citoyen. Les autres ne servent qu'à lire d'anciens signalements. */
+export const CATEGORIES_PROPOSEES: Categorie[] = ['grille_bouchee', 'eau_accumulee', 'affaissement', 'grille_endommagee'];
+/** Toutes les catégories lisibles (les anciennes servent à relire d'anciens signalements). */
+export const CATEGORIES_TOUTES: Categorie[] = [
+  'grille_bouchee',
+  'eau_accumulee',
+  'affaissement',
+  'grille_endommagee',
+  'eau_douteuse',
+  'absence_eau',
+  'autre',
+];
 export type Etat = 'nouveau' | 'pris_en_charge' | 'regle' | 'rejete';
 export type TypeAvisEau = 'ebullition' | 'coupure';
 export type EtatSource = 'en_ligne' | 'repli';
@@ -16,8 +36,10 @@ export const LIBELLES_GRAVITE: Record<Gravite, string> = {
 };
 
 export const LIBELLES_CATEGORIE: Record<Categorie, string> = {
-  grille_bouchee: 'Grille bouchée',
-  eau_accumulee: "Eau accumulée ou inondation",
+  grille_bouchee: 'Égout bouché',
+  eau_accumulee: "Accumulation d'eau ou inondation",
+  affaissement: "Affaissement autour d'un égout",
+  grille_endommagee: "Grille d'égout endommagée",
   eau_douteuse: "Eau du robinet douteuse",
   absence_eau: "Pas d'eau",
   autre: 'Autre',

@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,6 +35,7 @@ import {
   MESSAGE_POSITION_REFUSEE,
 } from '@/lib/messages';
 import {
+  CATEGORIES_PROPOSEES,
   LIBELLES_CATEGORIE,
   LIBELLES_GRAVITE,
   type Categorie,
@@ -43,7 +44,7 @@ import {
   type ResultatRecherche,
 } from '@/types';
 
-const CATEGORIES: Categorie[] = ['grille_bouchee', 'eau_accumulee', 'eau_douteuse', 'absence_eau', 'autre'];
+const CATEGORIES: Categorie[] = CATEGORIES_PROPOSEES;
 const GRAVITES: Gravite[] = ['faible', 'moyenne', 'elevee'];
 
 export default function Signaler() {
@@ -56,7 +57,13 @@ export default function Signaler() {
   const { envoyer, envoiEnCours } = useCreerSignalement();
   const { position, permission, demander } = usePosition();
   const { chercher, indisponible: rechercheIndisponible } = useRechercheAdresse();
-  const [point, setPoint] = useState<Coordonnees | null>(null);
+  // Le lieu peut venir de la carte (toucher la carte ou un regard).
+  const params = useLocalSearchParams<{ lat?: string; lng?: string }>();
+  const [point, setPoint] = useState<Coordonnees | null>(() => {
+    const lat = Number(params.lat);
+    const lng = Number(params.lng);
+    return params.lat && params.lng && Number.isFinite(lat) && Number.isFinite(lng) ? { latitude: lat, longitude: lng } : null;
+  });
   const [demandePosition, setDemandePosition] = useState(false);
   const [texteAdresse, setTexteAdresse] = useState('');
   const [resultats, setResultats] = useState<ResultatRecherche[] | null>(null);

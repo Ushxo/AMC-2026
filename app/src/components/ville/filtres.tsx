@@ -1,12 +1,12 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { LIBELLES_CATEGORIE, LIBELLES_ETAT, type Categorie, type Etat } from '@/types';
+import { CATEGORIES_TOUTES, LIBELLES_CATEGORIE, LIBELLES_ETAT, type Categorie, type Etat } from '@/types';
 
 import { Bouton } from './bouton';
 
 const ETATS: Etat[] = ['nouveau', 'pris_en_charge', 'regle', 'rejete'];
-const CATEGORIES: Categorie[] = ['grille_bouchee', 'eau_accumulee', 'eau_douteuse', 'absence_eau', 'autre'];
+const CATEGORIES: Categorie[] = CATEGORIES_TOUTES;
 
 function basculer<T>(liste: T[], v: T): T[] {
   return liste.includes(v) ? liste.filter((x) => x !== v) : [...liste, v];

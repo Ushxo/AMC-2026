@@ -41,6 +41,8 @@ const FILL = ['22%', '58%', '100%'] as const;
 const KINDS: Record<Categorie, { tile: string; color: string; icon?: keyof typeof Ionicons.glyphMap }> = {
   grille_bouchee: { tile: C.orangeSoft, color: C.orange },
   eau_accumulee: { tile: C.sage, color: C.green, icon: 'water-outline' },
+  affaissement: { tile: '#FCE6C9', color: C.orange, icon: 'trending-down-outline' },
+  grille_endommagee: { tile: '#FCE6C9', color: C.orange, icon: 'warning-outline' },
   eau_douteuse: { tile: '#FCE6C9', color: C.orange, icon: 'flask-outline' },
   absence_eau: { tile: '#FCE6C9', color: C.orange, icon: 'close-circle-outline' },
   autre: { tile: '#FCE6C9', color: C.orange, icon: 'warning-outline' },

@@ -1,17 +1,21 @@
 import React, { useState } from "react";
 import { Alert, Platform, StyleSheet, View } from "react-native";
 
-import { BOTTOM_NAV_HEIGHT, BottomNav, CitizenTab } from "../components/BottomNav";
 import EcranCarteCitoyen from "@/components/citoyen/ecran-carte";
 import { Palette } from "@/constants/theme";
+import { BOTTOM_NAV_HEIGHT, BottomNav, CitizenTab } from "../components/BottomNav";
 import MyAlerts from "./MyAlerts";
 
-// Application citoyen plein écran : Carte / Mes alertes avec la barre du bas.
-export default function CitizenApp({ onLogout }: { onLogout: () => void }) {
+// Application citoyen plein écran : Carte / Mes alertes avec la barre du bas. Aucune connexion n'est demandée au citoyen.
+// L'icône de profil ouvre la connexion du personnel de la Ville ; un compte citoyen déjà connecté peut s'y déconnecter.
+export default function CitizenApp({ compteConnecte, onLogout, onStaffLogin }: { compteConnecte: boolean; onLogout: () => void; onStaffLogin: () => void }) {
   const [tab, setTab] = useState<CitizenTab>("carte");
 
-  // L'icône de profil propose la déconnexion.
   function openProfile() {
+    if (!compteConnecte) {
+      onStaffLogin();
+      return;
+    }
     if (Platform.OS === "web") {
       if (window.confirm("Se déconnecter ?")) onLogout();
       return;
